@@ -1,0 +1,4062 @@
+Grammar
+
+    0 $accept: file $end
+
+    1 file: classDefinition
+
+    2 classDefinition: CLASS IDENTIFIER '{' classBodyItemList '}'
+
+    3 classBodyItemList: classBodyItemList classBodyItem
+    4                  | /* empty */
+
+    5 classBodyItem: fieldDeclaration
+    6              | methodDefinition
+
+    7 fieldDeclaration: varDeclaration
+
+    8 varDeclaration: type varDeclarationList ';'
+
+    9 varDeclarationList: varDeclarationList ',' varDeclarationItem
+   10                   | varDeclarationItem
+
+   11 varDeclarationItem: IDENTIFIER
+   12                   | IDENTIFIER '=' expression
+
+   13 type: IDENTIFIER
+   14     | type OPEN_AND_CLOSE_BRACKET
+
+   15 methodDefinition: type IDENTIFIER '(' argList ')' methodBody
+   16                 | VOID IDENTIFIER '(' argList ')' methodBody
+   17                 | type IDENTIFIER '(' ')' methodBody
+   18                 | VOID IDENTIFIER '(' ')' methodBody
+
+   19 argList: argList ',' argItem
+   20        | argItem
+
+   21 argItem: type IDENTIFIER
+   22        | type IDENTIFIER '=' expression
+
+   23 methodBody: '{' statementList '}'
+
+   24 statementList: statementList statement
+   25              | /* empty */
+
+   26 statement: ';'
+   27          | varDeclaration
+   28          | directAssignmentExpression ';'
+   29          | directIncrementExpression ';'
+   30          | methodCall ';'
+   31          | ifStatement
+   32          | switchStatement
+   33          | whileStatement
+   34          | doWhileStatement
+   35          | forStatement
+   36          | forInStatement
+   37          | controlFlowStatement
+   38          | '{' statementList '}'
+
+   39 assignmentOperator: '='
+   40                   | PLUS_ASSIGN
+   41                   | MINUS_ASSIGN
+   42                   | MULT_ASSIGN
+   43                   | DIV_ASSIGN
+   44                   | MOD_ASSIGN
+   45                   | LEFT_SHIFT_ASSIGN
+   46                   | RIGHT_SHIFT_ASSIGN
+   47                   | UNSIGNED_RIGHT_SHIFT_ASSIGN
+   48                   | AND_ASSIGN
+   49                   | OR_ASSIGN
+   50                   | XOR_ASSIGN
+
+   51 directIncrementExpression: parenthesesExpression INCREMENT
+   52                          | parenthesesExpression DECREMENT
+   53                          | INCREMENT parenthesesExpression
+   54                          | DECREMENT parenthesesExpression
+
+   55 ifStatement: IF '(' expression ')' statement
+   56            | IF '(' expression ')' statement ELSE statement
+
+   57 switchStatement: SWITCH '(' expression ')' '{' caseList '}'
+
+   58 caseList: caseList caseClause ':' statementList
+   59         | /* empty */
+
+   60 caseClause: CASE literal
+   61           | DEFAULT
+
+   62 literal: INT_LITERAL
+   63        | TRUE
+   64        | FALSE
+
+   65 whileStatement: WHILE '(' expression ')' statement
+
+   66 doWhileStatement: DO statement WHILE '(' expression ')' ';'
+
+   67 forStatement: FOR '(' forStatementList ';' expression ';' forStatementList ')' statement
+
+   68 forStatementList: forNonEmptyStatementList
+   69                 | /* empty */
+
+   70 forNonEmptyStatementList: forComponentStatement ',' forNonEmptyStatementList
+   71                         | forComponentStatement
+
+   72 forComponentStatement: directAssignmentExpression
+   73                      | directIncrementExpression
+   74                      | methodCall
+   75                      | type IDENTIFIER '=' expression
+
+   76 forInStatement: FOR '(' type IDENTIFIER ':' expression ')' statement
+
+   77 controlFlowStatement: BREAK ';'
+   78                     | BREAK INT_LITERAL ';'
+   79                     | CONTINUE ';'
+   80                     | CONTINUE INT_LITERAL ';'
+   81                     | RETURN ';'
+   82                     | RETURN expression ';'
+
+   83 methodCall: IDENTIFIER '(' expressionList ')'
+   84           | IDENTIFIER '(' ')'
+
+   85 expressionList: expressionList ',' expression
+   86               | expression
+
+   87 bracketExpressionList: bracketExpressionList '[' expression ']'
+   88                      | '[' expression ']'
+
+   89 expression: assignmentExpression
+
+   90 directAssignmentExpression: parenthesesExpression assignmentOperator assignmentExpression
+
+   91 assignmentExpression: directAssignmentExpression
+   92                     | booleanOrExpression
+
+   93 booleanOrExpression: booleanOrExpression BOOLEAN_OR booleanAndExpression
+   94                    | booleanAndExpression
+
+   95 booleanAndExpression: booleanAndExpression BOOLEAN_AND bitwiseOrExpression
+   96                     | equalityExpression
+
+   97 equalityExpression: equalityExpression EQUALS bitwiseOrExpression
+   98                   | equalityExpression NOT_EQUALS bitwiseOrExpression
+   99                   | bitwiseOrExpression
+
+  100 bitwiseOrExpression: bitwiseOrExpression '|' xorExpression
+  101                    | xorExpression
+
+  102 xorExpression: xorExpression '^' bitwiseAndExpression
+  103              | bitwiseAndExpression
+
+  104 bitwiseAndExpression: bitwiseAndExpression '&' comparisonExpression
+  105                     | comparisonExpression
+
+  106 comparisonExpression: comparisonExpression '<' bitShiftExpression
+  107                     | comparisonExpression '>' bitShiftExpression
+  108                     | comparisonExpression LESS_THAN_OR_EQUAL_TO bitShiftExpression
+  109                     | comparisonExpression GREATER_THAN_OR_EQUAL_TO bitShiftExpression
+  110                     | bitShiftExpression
+
+  111 bitShiftExpression: bitShiftExpression LEFT_SHIFT additionExpression
+  112                   | bitShiftExpression RIGHT_SHIFT additionExpression
+  113                   | bitShiftExpression UNSIGNED_RIGHT_SHIFT additionExpression
+  114                   | additionExpression
+
+  115 additionExpression: additionExpression '+' multiplicationExpression
+  116                   | additionExpression '-' multiplicationExpression
+  117                   | multiplicationExpression
+
+  118 multiplicationExpression: multiplicationExpression '*' castExpression
+  119                         | multiplicationExpression '/' castExpression
+  120                         | multiplicationExpression '%' castExpression
+  121                         | castExpression
+
+  122 castExpression: '(' expression ')' castFriendlyUnaryExpression
+  123               | castUnfriendlyUnaryExpression
+
+  124 castUnfriendlyUnaryExpression: directIncrementExpression
+  125                              | '-' castUnfriendlyUnaryExpression
+  126                              | '[' expressionList ']'
+  127                              | OPEN_AND_CLOSE_BRACKET
+  128                              | castFriendlyUnaryExpression
+
+  129 castFriendlyUnaryExpression: '~' castUnfriendlyUnaryExpression
+  130                            | '!' castUnfriendlyUnaryExpression
+  131                            | NEW IDENTIFIER bracketExpressionList
+  132                            | parenthesesExpression
+
+  133 parenthesesExpression: '(' expression ')'
+  134                      | parenthesesExpression '[' expression ']'
+  135                      | parenthesesExpression '.' LENGTH
+  136                      | methodCall
+  137                      | literal
+  138                      | IDENTIFIER
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'!' (33) 130
+'%' (37) 120
+'&' (38) 104
+'(' (40) 15 16 17 18 55 56 57 65 66 67 76 83 84 122 133
+')' (41) 15 16 17 18 55 56 57 65 66 67 76 83 84 122 133
+'*' (42) 118
+'+' (43) 115
+',' (44) 9 19 70 85
+'-' (45) 116 125
+'.' (46) 135
+'/' (47) 119
+':' (58) 58 76
+';' (59) 8 26 28 29 30 66 67 77 78 79 80 81 82
+'<' (60) 106
+'=' (61) 12 22 39 75
+'>' (62) 107
+'[' (91) 87 88 126 134
+']' (93) 87 88 126 134
+'^' (94) 102
+'{' (123) 2 23 38 57
+'|' (124) 100
+'}' (125) 2 23 38 57
+'~' (126) 129
+error (256)
+BREAK (258) 77 78
+CASE (259) 60
+CLASS (260) 2
+CONTINUE (261) 79 80
+DEFAULT (262) 61
+DO (263) 66
+ELSE (264) 56
+FALSE (265) 64
+FOR (266) 67 76
+IF (267) 55 56
+LENGTH (268) 135
+NEW (269) 131
+RETURN (270) 81 82
+SWITCH (271) 57
+TRUE (272) 63
+VOID (273) 16 18
+WHILE (274) 65 66
+BOOLEAN_AND (275) 95
+BOOLEAN_OR (276) 93
+EQUALS (277) 97
+NOT_EQUALS (278) 98
+LESS_THAN_OR_EQUAL_TO (279) 108
+GREATER_THAN_OR_EQUAL_TO (280) 109
+LEFT_SHIFT (281) 111
+RIGHT_SHIFT (282) 112
+UNSIGNED_RIGHT_SHIFT (283) 113
+DECREMENT (284) 52 54
+INCREMENT (285) 51 53
+OPEN_AND_CLOSE_BRACKET (286) 14 127
+AND_ASSIGN (287) 48
+DIV_ASSIGN (288) 43
+LEFT_SHIFT_ASSIGN (289) 45
+MINUS_ASSIGN (290) 41
+MOD_ASSIGN (291) 44
+MULT_ASSIGN (292) 42
+OR_ASSIGN (293) 49
+PLUS_ASSIGN (294) 40
+RIGHT_SHIFT_ASSIGN (295) 46
+UNSIGNED_RIGHT_SHIFT_ASSIGN (296) 47
+XOR_ASSIGN (297) 50
+IDENTIFIER (298) 2 11 12 13 15 16 17 18 21 22 75 76 83 84 131 138
+INT_LITERAL (299) 62 78 80
+IFX (300)
+
+
+Nonterminals, with rules where they appear
+
+$accept (69)
+    on left: 0
+file (70)
+    on left: 1, on right: 0
+classDefinition (71)
+    on left: 2, on right: 1
+classBodyItemList (72)
+    on left: 3 4, on right: 2 3
+classBodyItem (73)
+    on left: 5 6, on right: 3
+fieldDeclaration (74)
+    on left: 7, on right: 5
+varDeclaration (75)
+    on left: 8, on right: 7 27
+varDeclarationList (76)
+    on left: 9 10, on right: 8 9
+varDeclarationItem (77)
+    on left: 11 12, on right: 9 10
+type (78)
+    on left: 13 14, on right: 8 14 15 17 21 22 75 76
+methodDefinition (79)
+    on left: 15 16 17 18, on right: 6
+argList (80)
+    on left: 19 20, on right: 15 16 19
+argItem (81)
+    on left: 21 22, on right: 19 20
+methodBody (82)
+    on left: 23, on right: 15 16 17 18
+statementList (83)
+    on left: 24 25, on right: 23 24 38 58
+statement (84)
+    on left: 26 27 28 29 30 31 32 33 34 35 36 37 38,
+    on right: 24 55 56 65 66 67 76
+assignmentOperator (85)
+    on left: 39 40 41 42 43 44 45 46 47 48 49 50, on right: 90
+directIncrementExpression (86)
+    on left: 51 52 53 54, on right: 29 73 124
+ifStatement (87)
+    on left: 55 56, on right: 31
+switchStatement (88)
+    on left: 57, on right: 32
+caseList (89)
+    on left: 58 59, on right: 57 58
+caseClause (90)
+    on left: 60 61, on right: 58
+literal (91)
+    on left: 62 63 64, on right: 60 137
+whileStatement (92)
+    on left: 65, on right: 33
+doWhileStatement (93)
+    on left: 66, on right: 34
+forStatement (94)
+    on left: 67, on right: 35
+forStatementList (95)
+    on left: 68 69, on right: 67
+forNonEmptyStatementList (96)
+    on left: 70 71, on right: 68 70
+forComponentStatement (97)
+    on left: 72 73 74 75, on right: 70 71
+forInStatement (98)
+    on left: 76, on right: 36
+controlFlowStatement (99)
+    on left: 77 78 79 80 81 82, on right: 37
+methodCall (100)
+    on left: 83 84, on right: 30 74 136
+expressionList (101)
+    on left: 85 86, on right: 83 85 126
+bracketExpressionList (102)
+    on left: 87 88, on right: 87 131
+expression (103)
+    on left: 89, on right: 12 22 55 56 57 65 66 67 75 76 82 85 86 87
+    88 122 133 134
+directAssignmentExpression (104)
+    on left: 90, on right: 28 72 91
+assignmentExpression (105)
+    on left: 91 92, on right: 89 90
+booleanOrExpression (106)
+    on left: 93 94, on right: 92 93
+booleanAndExpression (107)
+    on left: 95 96, on right: 93 94 95
+equalityExpression (108)
+    on left: 97 98 99, on right: 96 97 98
+bitwiseOrExpression (109)
+    on left: 100 101, on right: 95 97 98 99 100
+xorExpression (110)
+    on left: 102 103, on right: 100 101 102
+bitwiseAndExpression (111)
+    on left: 104 105, on right: 102 103 104
+comparisonExpression (112)
+    on left: 106 107 108 109 110, on right: 104 105 106 107 108 109
+bitShiftExpression (113)
+    on left: 111 112 113 114, on right: 106 107 108 109 110 111 112
+    113
+additionExpression (114)
+    on left: 115 116 117, on right: 111 112 113 114 115 116
+multiplicationExpression (115)
+    on left: 118 119 120 121, on right: 115 116 117 118 119 120
+castExpression (116)
+    on left: 122 123, on right: 118 119 120 121
+castUnfriendlyUnaryExpression (117)
+    on left: 124 125 126 127 128, on right: 123 125 129 130
+castFriendlyUnaryExpression (118)
+    on left: 129 130 131 132, on right: 122 128
+parenthesesExpression (119)
+    on left: 133 134 135 136 137 138, on right: 51 52 53 54 90 132
+    134 135
+
+
+state 0
+
+    0 $accept: . file $end
+
+    CLASS  shift, and go to state 1
+
+    file             go to state 2
+    classDefinition  go to state 3
+
+
+state 1
+
+    2 classDefinition: CLASS . IDENTIFIER '{' classBodyItemList '}'
+
+    IDENTIFIER  shift, and go to state 4
+
+
+state 2
+
+    0 $accept: file . $end
+
+    $end  shift, and go to state 5
+
+
+state 3
+
+    1 file: classDefinition .
+
+    $default  reduce using rule 1 (file)
+
+
+state 4
+
+    2 classDefinition: CLASS IDENTIFIER . '{' classBodyItemList '}'
+
+    '{'  shift, and go to state 6
+
+
+state 5
+
+    0 $accept: file $end .
+
+    $default  accept
+
+
+state 6
+
+    2 classDefinition: CLASS IDENTIFIER '{' . classBodyItemList '}'
+
+    $default  reduce using rule 4 (classBodyItemList)
+
+    classBodyItemList  go to state 7
+
+
+state 7
+
+    2 classDefinition: CLASS IDENTIFIER '{' classBodyItemList . '}'
+    3 classBodyItemList: classBodyItemList . classBodyItem
+
+    VOID        shift, and go to state 8
+    IDENTIFIER  shift, and go to state 9
+    '}'         shift, and go to state 10
+
+    classBodyItem     go to state 11
+    fieldDeclaration  go to state 12
+    varDeclaration    go to state 13
+    type              go to state 14
+    methodDefinition  go to state 15
+
+
+state 8
+
+   16 methodDefinition: VOID . IDENTIFIER '(' argList ')' methodBody
+   18                 | VOID . IDENTIFIER '(' ')' methodBody
+
+    IDENTIFIER  shift, and go to state 16
+
+
+state 9
+
+   13 type: IDENTIFIER .
+
+    $default  reduce using rule 13 (type)
+
+
+state 10
+
+    2 classDefinition: CLASS IDENTIFIER '{' classBodyItemList '}' .
+
+    $default  reduce using rule 2 (classDefinition)
+
+
+state 11
+
+    3 classBodyItemList: classBodyItemList classBodyItem .
+
+    $default  reduce using rule 3 (classBodyItemList)
+
+
+state 12
+
+    5 classBodyItem: fieldDeclaration .
+
+    $default  reduce using rule 5 (classBodyItem)
+
+
+state 13
+
+    7 fieldDeclaration: varDeclaration .
+
+    $default  reduce using rule 7 (fieldDeclaration)
+
+
+state 14
+
+    8 varDeclaration: type . varDeclarationList ';'
+   14 type: type . OPEN_AND_CLOSE_BRACKET
+   15 methodDefinition: type . IDENTIFIER '(' argList ')' methodBody
+   17                 | type . IDENTIFIER '(' ')' methodBody
+
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 17
+    IDENTIFIER              shift, and go to state 18
+
+    varDeclarationList  go to state 19
+    varDeclarationItem  go to state 20
+
+
+state 15
+
+    6 classBodyItem: methodDefinition .
+
+    $default  reduce using rule 6 (classBodyItem)
+
+
+state 16
+
+   16 methodDefinition: VOID IDENTIFIER . '(' argList ')' methodBody
+   18                 | VOID IDENTIFIER . '(' ')' methodBody
+
+    '('  shift, and go to state 21
+
+
+state 17
+
+   14 type: type OPEN_AND_CLOSE_BRACKET .
+
+    $default  reduce using rule 14 (type)
+
+
+state 18
+
+   11 varDeclarationItem: IDENTIFIER .
+   12                   | IDENTIFIER . '=' expression
+   15 methodDefinition: type IDENTIFIER . '(' argList ')' methodBody
+   17                 | type IDENTIFIER . '(' ')' methodBody
+
+    '='  shift, and go to state 22
+    '('  shift, and go to state 23
+
+    $default  reduce using rule 11 (varDeclarationItem)
+
+
+state 19
+
+    8 varDeclaration: type varDeclarationList . ';'
+    9 varDeclarationList: varDeclarationList . ',' varDeclarationItem
+
+    ';'  shift, and go to state 24
+    ','  shift, and go to state 25
+
+
+state 20
+
+   10 varDeclarationList: varDeclarationItem .
+
+    $default  reduce using rule 10 (varDeclarationList)
+
+
+state 21
+
+   16 methodDefinition: VOID IDENTIFIER '(' . argList ')' methodBody
+   18                 | VOID IDENTIFIER '(' . ')' methodBody
+
+    IDENTIFIER  shift, and go to state 9
+    ')'         shift, and go to state 26
+
+    type     go to state 27
+    argList  go to state 28
+    argItem  go to state 29
+
+
+state 22
+
+   12 varDeclarationItem: IDENTIFIER '=' . expression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 46
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 23
+
+   15 methodDefinition: type IDENTIFIER '(' . argList ')' methodBody
+   17                 | type IDENTIFIER '(' . ')' methodBody
+
+    IDENTIFIER  shift, and go to state 9
+    ')'         shift, and go to state 63
+
+    type     go to state 27
+    argList  go to state 64
+    argItem  go to state 29
+
+
+state 24
+
+    8 varDeclaration: type varDeclarationList ';' .
+
+    $default  reduce using rule 8 (varDeclaration)
+
+
+state 25
+
+    9 varDeclarationList: varDeclarationList ',' . varDeclarationItem
+
+    IDENTIFIER  shift, and go to state 65
+
+    varDeclarationItem  go to state 66
+
+
+state 26
+
+   18 methodDefinition: VOID IDENTIFIER '(' ')' . methodBody
+
+    '{'  shift, and go to state 67
+
+    methodBody  go to state 68
+
+
+state 27
+
+   14 type: type . OPEN_AND_CLOSE_BRACKET
+   21 argItem: type . IDENTIFIER
+   22        | type . IDENTIFIER '=' expression
+
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 17
+    IDENTIFIER              shift, and go to state 69
+
+
+state 28
+
+   16 methodDefinition: VOID IDENTIFIER '(' argList . ')' methodBody
+   19 argList: argList . ',' argItem
+
+    ','  shift, and go to state 70
+    ')'  shift, and go to state 71
+
+
+state 29
+
+   20 argList: argItem .
+
+    $default  reduce using rule 20 (argList)
+
+
+state 30
+
+   64 literal: FALSE .
+
+    $default  reduce using rule 64 (literal)
+
+
+state 31
+
+  131 castFriendlyUnaryExpression: NEW . IDENTIFIER bracketExpressionList
+
+    IDENTIFIER  shift, and go to state 72
+
+
+state 32
+
+   63 literal: TRUE .
+
+    $default  reduce using rule 63 (literal)
+
+
+state 33
+
+   54 directIncrementExpression: DECREMENT . parenthesesExpression
+
+    FALSE        shift, and go to state 30
+    TRUE         shift, and go to state 32
+    IDENTIFIER   shift, and go to state 36
+    INT_LITERAL  shift, and go to state 37
+    '('          shift, and go to state 73
+
+    literal                go to state 44
+    methodCall             go to state 45
+    parenthesesExpression  go to state 74
+
+
+state 34
+
+   53 directIncrementExpression: INCREMENT . parenthesesExpression
+
+    FALSE        shift, and go to state 30
+    TRUE         shift, and go to state 32
+    IDENTIFIER   shift, and go to state 36
+    INT_LITERAL  shift, and go to state 37
+    '('          shift, and go to state 73
+
+    literal                go to state 44
+    methodCall             go to state 45
+    parenthesesExpression  go to state 75
+
+
+state 35
+
+  127 castUnfriendlyUnaryExpression: OPEN_AND_CLOSE_BRACKET .
+
+    $default  reduce using rule 127 (castUnfriendlyUnaryExpression)
+
+
+state 36
+
+   83 methodCall: IDENTIFIER . '(' expressionList ')'
+   84           | IDENTIFIER . '(' ')'
+  138 parenthesesExpression: IDENTIFIER .
+
+    '('  shift, and go to state 76
+
+    $default  reduce using rule 138 (parenthesesExpression)
+
+
+state 37
+
+   62 literal: INT_LITERAL .
+
+    $default  reduce using rule 62 (literal)
+
+
+state 38
+
+  122 castExpression: '(' . expression ')' castFriendlyUnaryExpression
+  133 parenthesesExpression: '(' . expression ')'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 77
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 39
+
+  126 castUnfriendlyUnaryExpression: '[' . expressionList ']'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expressionList                 go to state 78
+    expression                     go to state 79
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 40
+
+  125 castUnfriendlyUnaryExpression: '-' . castUnfriendlyUnaryExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 73
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    castUnfriendlyUnaryExpression  go to state 80
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 41
+
+  129 castFriendlyUnaryExpression: '~' . castUnfriendlyUnaryExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 73
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    castUnfriendlyUnaryExpression  go to state 82
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 42
+
+  130 castFriendlyUnaryExpression: '!' . castUnfriendlyUnaryExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 73
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    castUnfriendlyUnaryExpression  go to state 83
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 43
+
+  124 castUnfriendlyUnaryExpression: directIncrementExpression .
+
+    $default  reduce using rule 124 (castUnfriendlyUnaryExpression)
+
+
+state 44
+
+  137 parenthesesExpression: literal .
+
+    $default  reduce using rule 137 (parenthesesExpression)
+
+
+state 45
+
+  136 parenthesesExpression: methodCall .
+
+    $default  reduce using rule 136 (parenthesesExpression)
+
+
+state 46
+
+   12 varDeclarationItem: IDENTIFIER '=' expression .
+
+    $default  reduce using rule 12 (varDeclarationItem)
+
+
+state 47
+
+   91 assignmentExpression: directAssignmentExpression .
+
+    $default  reduce using rule 91 (assignmentExpression)
+
+
+state 48
+
+   89 expression: assignmentExpression .
+
+    $default  reduce using rule 89 (expression)
+
+
+state 49
+
+   92 assignmentExpression: booleanOrExpression .
+   93 booleanOrExpression: booleanOrExpression . BOOLEAN_OR booleanAndExpression
+
+    BOOLEAN_OR  shift, and go to state 84
+
+    $default  reduce using rule 92 (assignmentExpression)
+
+
+state 50
+
+   94 booleanOrExpression: booleanAndExpression .
+   95 booleanAndExpression: booleanAndExpression . BOOLEAN_AND bitwiseOrExpression
+
+    BOOLEAN_AND  shift, and go to state 85
+
+    $default  reduce using rule 94 (booleanOrExpression)
+
+
+state 51
+
+   96 booleanAndExpression: equalityExpression .
+   97 equalityExpression: equalityExpression . EQUALS bitwiseOrExpression
+   98                   | equalityExpression . NOT_EQUALS bitwiseOrExpression
+
+    EQUALS      shift, and go to state 86
+    NOT_EQUALS  shift, and go to state 87
+
+    $default  reduce using rule 96 (booleanAndExpression)
+
+
+state 52
+
+   99 equalityExpression: bitwiseOrExpression .
+  100 bitwiseOrExpression: bitwiseOrExpression . '|' xorExpression
+
+    '|'  shift, and go to state 88
+
+    $default  reduce using rule 99 (equalityExpression)
+
+
+state 53
+
+  101 bitwiseOrExpression: xorExpression .
+  102 xorExpression: xorExpression . '^' bitwiseAndExpression
+
+    '^'  shift, and go to state 89
+
+    $default  reduce using rule 101 (bitwiseOrExpression)
+
+
+state 54
+
+  103 xorExpression: bitwiseAndExpression .
+  104 bitwiseAndExpression: bitwiseAndExpression . '&' comparisonExpression
+
+    '&'  shift, and go to state 90
+
+    $default  reduce using rule 103 (xorExpression)
+
+
+state 55
+
+  105 bitwiseAndExpression: comparisonExpression .
+  106 comparisonExpression: comparisonExpression . '<' bitShiftExpression
+  107                     | comparisonExpression . '>' bitShiftExpression
+  108                     | comparisonExpression . LESS_THAN_OR_EQUAL_TO bitShiftExpression
+  109                     | comparisonExpression . GREATER_THAN_OR_EQUAL_TO bitShiftExpression
+
+    LESS_THAN_OR_EQUAL_TO     shift, and go to state 91
+    GREATER_THAN_OR_EQUAL_TO  shift, and go to state 92
+    '<'                       shift, and go to state 93
+    '>'                       shift, and go to state 94
+
+    $default  reduce using rule 105 (bitwiseAndExpression)
+
+
+state 56
+
+  110 comparisonExpression: bitShiftExpression .
+  111 bitShiftExpression: bitShiftExpression . LEFT_SHIFT additionExpression
+  112                   | bitShiftExpression . RIGHT_SHIFT additionExpression
+  113                   | bitShiftExpression . UNSIGNED_RIGHT_SHIFT additionExpression
+
+    LEFT_SHIFT            shift, and go to state 95
+    RIGHT_SHIFT           shift, and go to state 96
+    UNSIGNED_RIGHT_SHIFT  shift, and go to state 97
+
+    $default  reduce using rule 110 (comparisonExpression)
+
+
+state 57
+
+  114 bitShiftExpression: additionExpression .
+  115 additionExpression: additionExpression . '+' multiplicationExpression
+  116                   | additionExpression . '-' multiplicationExpression
+
+    '+'  shift, and go to state 98
+    '-'  shift, and go to state 99
+
+    $default  reduce using rule 114 (bitShiftExpression)
+
+
+state 58
+
+  117 additionExpression: multiplicationExpression .
+  118 multiplicationExpression: multiplicationExpression . '*' castExpression
+  119                         | multiplicationExpression . '/' castExpression
+  120                         | multiplicationExpression . '%' castExpression
+
+    '*'  shift, and go to state 100
+    '/'  shift, and go to state 101
+    '%'  shift, and go to state 102
+
+    $default  reduce using rule 117 (additionExpression)
+
+
+state 59
+
+  121 multiplicationExpression: castExpression .
+
+    $default  reduce using rule 121 (multiplicationExpression)
+
+
+state 60
+
+  123 castExpression: castUnfriendlyUnaryExpression .
+
+    $default  reduce using rule 123 (castExpression)
+
+
+state 61
+
+  128 castUnfriendlyUnaryExpression: castFriendlyUnaryExpression .
+
+    $default  reduce using rule 128 (castUnfriendlyUnaryExpression)
+
+
+state 62
+
+   51 directIncrementExpression: parenthesesExpression . INCREMENT
+   52                          | parenthesesExpression . DECREMENT
+   90 directAssignmentExpression: parenthesesExpression . assignmentOperator assignmentExpression
+  132 castFriendlyUnaryExpression: parenthesesExpression .
+  134 parenthesesExpression: parenthesesExpression . '[' expression ']'
+  135                      | parenthesesExpression . '.' LENGTH
+
+    DECREMENT                    shift, and go to state 103
+    INCREMENT                    shift, and go to state 104
+    AND_ASSIGN                   shift, and go to state 105
+    DIV_ASSIGN                   shift, and go to state 106
+    LEFT_SHIFT_ASSIGN            shift, and go to state 107
+    MINUS_ASSIGN                 shift, and go to state 108
+    MOD_ASSIGN                   shift, and go to state 109
+    MULT_ASSIGN                  shift, and go to state 110
+    OR_ASSIGN                    shift, and go to state 111
+    PLUS_ASSIGN                  shift, and go to state 112
+    RIGHT_SHIFT_ASSIGN           shift, and go to state 113
+    UNSIGNED_RIGHT_SHIFT_ASSIGN  shift, and go to state 114
+    XOR_ASSIGN                   shift, and go to state 115
+    '='                          shift, and go to state 116
+    '['                          shift, and go to state 117
+    '.'                          shift, and go to state 118
+
+    $default  reduce using rule 132 (castFriendlyUnaryExpression)
+
+    assignmentOperator  go to state 119
+
+
+state 63
+
+   17 methodDefinition: type IDENTIFIER '(' ')' . methodBody
+
+    '{'  shift, and go to state 67
+
+    methodBody  go to state 120
+
+
+state 64
+
+   15 methodDefinition: type IDENTIFIER '(' argList . ')' methodBody
+   19 argList: argList . ',' argItem
+
+    ','  shift, and go to state 70
+    ')'  shift, and go to state 121
+
+
+state 65
+
+   11 varDeclarationItem: IDENTIFIER .
+   12                   | IDENTIFIER . '=' expression
+
+    '='  shift, and go to state 22
+
+    $default  reduce using rule 11 (varDeclarationItem)
+
+
+state 66
+
+    9 varDeclarationList: varDeclarationList ',' varDeclarationItem .
+
+    $default  reduce using rule 9 (varDeclarationList)
+
+
+state 67
+
+   23 methodBody: '{' . statementList '}'
+
+    $default  reduce using rule 25 (statementList)
+
+    statementList  go to state 122
+
+
+state 68
+
+   18 methodDefinition: VOID IDENTIFIER '(' ')' methodBody .
+
+    $default  reduce using rule 18 (methodDefinition)
+
+
+state 69
+
+   21 argItem: type IDENTIFIER .
+   22        | type IDENTIFIER . '=' expression
+
+    '='  shift, and go to state 123
+
+    $default  reduce using rule 21 (argItem)
+
+
+state 70
+
+   19 argList: argList ',' . argItem
+
+    IDENTIFIER  shift, and go to state 9
+
+    type     go to state 27
+    argItem  go to state 124
+
+
+state 71
+
+   16 methodDefinition: VOID IDENTIFIER '(' argList ')' . methodBody
+
+    '{'  shift, and go to state 67
+
+    methodBody  go to state 125
+
+
+state 72
+
+  131 castFriendlyUnaryExpression: NEW IDENTIFIER . bracketExpressionList
+
+    '['  shift, and go to state 126
+
+    bracketExpressionList  go to state 127
+
+
+state 73
+
+  133 parenthesesExpression: '(' . expression ')'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 128
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 74
+
+   54 directIncrementExpression: DECREMENT parenthesesExpression .
+  134 parenthesesExpression: parenthesesExpression . '[' expression ']'
+  135                      | parenthesesExpression . '.' LENGTH
+
+    '['  shift, and go to state 117
+    '.'  shift, and go to state 118
+
+    $default  reduce using rule 54 (directIncrementExpression)
+
+
+state 75
+
+   53 directIncrementExpression: INCREMENT parenthesesExpression .
+  134 parenthesesExpression: parenthesesExpression . '[' expression ']'
+  135                      | parenthesesExpression . '.' LENGTH
+
+    '['  shift, and go to state 117
+    '.'  shift, and go to state 118
+
+    $default  reduce using rule 53 (directIncrementExpression)
+
+
+state 76
+
+   83 methodCall: IDENTIFIER '(' . expressionList ')'
+   84           | IDENTIFIER '(' . ')'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    ')'                     shift, and go to state 129
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expressionList                 go to state 130
+    expression                     go to state 79
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 77
+
+  122 castExpression: '(' expression . ')' castFriendlyUnaryExpression
+  133 parenthesesExpression: '(' expression . ')'
+
+    ')'  shift, and go to state 131
+
+
+state 78
+
+   85 expressionList: expressionList . ',' expression
+  126 castUnfriendlyUnaryExpression: '[' expressionList . ']'
+
+    ','  shift, and go to state 132
+    ']'  shift, and go to state 133
+
+
+state 79
+
+   86 expressionList: expression .
+
+    $default  reduce using rule 86 (expressionList)
+
+
+state 80
+
+  125 castUnfriendlyUnaryExpression: '-' castUnfriendlyUnaryExpression .
+
+    $default  reduce using rule 125 (castUnfriendlyUnaryExpression)
+
+
+state 81
+
+   51 directIncrementExpression: parenthesesExpression . INCREMENT
+   52                          | parenthesesExpression . DECREMENT
+  132 castFriendlyUnaryExpression: parenthesesExpression .
+  134 parenthesesExpression: parenthesesExpression . '[' expression ']'
+  135                      | parenthesesExpression . '.' LENGTH
+
+    DECREMENT  shift, and go to state 103
+    INCREMENT  shift, and go to state 104
+    '['        shift, and go to state 117
+    '.'        shift, and go to state 118
+
+    $default  reduce using rule 132 (castFriendlyUnaryExpression)
+
+
+state 82
+
+  129 castFriendlyUnaryExpression: '~' castUnfriendlyUnaryExpression .
+
+    $default  reduce using rule 129 (castFriendlyUnaryExpression)
+
+
+state 83
+
+  130 castFriendlyUnaryExpression: '!' castUnfriendlyUnaryExpression .
+
+    $default  reduce using rule 130 (castFriendlyUnaryExpression)
+
+
+state 84
+
+   93 booleanOrExpression: booleanOrExpression BOOLEAN_OR . booleanAndExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    booleanAndExpression           go to state 134
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 85
+
+   95 booleanAndExpression: booleanAndExpression BOOLEAN_AND . bitwiseOrExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitwiseOrExpression            go to state 135
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 86
+
+   97 equalityExpression: equalityExpression EQUALS . bitwiseOrExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitwiseOrExpression            go to state 136
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 87
+
+   98 equalityExpression: equalityExpression NOT_EQUALS . bitwiseOrExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitwiseOrExpression            go to state 137
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 88
+
+  100 bitwiseOrExpression: bitwiseOrExpression '|' . xorExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    xorExpression                  go to state 138
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 89
+
+  102 xorExpression: xorExpression '^' . bitwiseAndExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitwiseAndExpression           go to state 139
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 90
+
+  104 bitwiseAndExpression: bitwiseAndExpression '&' . comparisonExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    comparisonExpression           go to state 140
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 91
+
+  108 comparisonExpression: comparisonExpression LESS_THAN_OR_EQUAL_TO . bitShiftExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitShiftExpression             go to state 141
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 92
+
+  109 comparisonExpression: comparisonExpression GREATER_THAN_OR_EQUAL_TO . bitShiftExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitShiftExpression             go to state 142
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 93
+
+  106 comparisonExpression: comparisonExpression '<' . bitShiftExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitShiftExpression             go to state 143
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 94
+
+  107 comparisonExpression: comparisonExpression '>' . bitShiftExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    bitShiftExpression             go to state 144
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 95
+
+  111 bitShiftExpression: bitShiftExpression LEFT_SHIFT . additionExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    additionExpression             go to state 145
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 96
+
+  112 bitShiftExpression: bitShiftExpression RIGHT_SHIFT . additionExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    additionExpression             go to state 146
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 97
+
+  113 bitShiftExpression: bitShiftExpression UNSIGNED_RIGHT_SHIFT . additionExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    additionExpression             go to state 147
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 98
+
+  115 additionExpression: additionExpression '+' . multiplicationExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    multiplicationExpression       go to state 148
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 99
+
+  116 additionExpression: additionExpression '-' . multiplicationExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    multiplicationExpression       go to state 149
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 100
+
+  118 multiplicationExpression: multiplicationExpression '*' . castExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    castExpression                 go to state 150
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 101
+
+  119 multiplicationExpression: multiplicationExpression '/' . castExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    castExpression                 go to state 151
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 102
+
+  120 multiplicationExpression: multiplicationExpression '%' . castExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    castExpression                 go to state 152
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 81
+
+
+state 103
+
+   52 directIncrementExpression: parenthesesExpression DECREMENT .
+
+    $default  reduce using rule 52 (directIncrementExpression)
+
+
+state 104
+
+   51 directIncrementExpression: parenthesesExpression INCREMENT .
+
+    $default  reduce using rule 51 (directIncrementExpression)
+
+
+state 105
+
+   48 assignmentOperator: AND_ASSIGN .
+
+    $default  reduce using rule 48 (assignmentOperator)
+
+
+state 106
+
+   43 assignmentOperator: DIV_ASSIGN .
+
+    $default  reduce using rule 43 (assignmentOperator)
+
+
+state 107
+
+   45 assignmentOperator: LEFT_SHIFT_ASSIGN .
+
+    $default  reduce using rule 45 (assignmentOperator)
+
+
+state 108
+
+   41 assignmentOperator: MINUS_ASSIGN .
+
+    $default  reduce using rule 41 (assignmentOperator)
+
+
+state 109
+
+   44 assignmentOperator: MOD_ASSIGN .
+
+    $default  reduce using rule 44 (assignmentOperator)
+
+
+state 110
+
+   42 assignmentOperator: MULT_ASSIGN .
+
+    $default  reduce using rule 42 (assignmentOperator)
+
+
+state 111
+
+   49 assignmentOperator: OR_ASSIGN .
+
+    $default  reduce using rule 49 (assignmentOperator)
+
+
+state 112
+
+   40 assignmentOperator: PLUS_ASSIGN .
+
+    $default  reduce using rule 40 (assignmentOperator)
+
+
+state 113
+
+   46 assignmentOperator: RIGHT_SHIFT_ASSIGN .
+
+    $default  reduce using rule 46 (assignmentOperator)
+
+
+state 114
+
+   47 assignmentOperator: UNSIGNED_RIGHT_SHIFT_ASSIGN .
+
+    $default  reduce using rule 47 (assignmentOperator)
+
+
+state 115
+
+   50 assignmentOperator: XOR_ASSIGN .
+
+    $default  reduce using rule 50 (assignmentOperator)
+
+
+state 116
+
+   39 assignmentOperator: '=' .
+
+    $default  reduce using rule 39 (assignmentOperator)
+
+
+state 117
+
+  134 parenthesesExpression: parenthesesExpression '[' . expression ']'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 153
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 118
+
+  135 parenthesesExpression: parenthesesExpression '.' . LENGTH
+
+    LENGTH  shift, and go to state 154
+
+
+state 119
+
+   90 directAssignmentExpression: parenthesesExpression assignmentOperator . assignmentExpression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 155
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 120
+
+   17 methodDefinition: type IDENTIFIER '(' ')' methodBody .
+
+    $default  reduce using rule 17 (methodDefinition)
+
+
+state 121
+
+   15 methodDefinition: type IDENTIFIER '(' argList ')' . methodBody
+
+    '{'  shift, and go to state 67
+
+    methodBody  go to state 156
+
+
+state 122
+
+   23 methodBody: '{' statementList . '}'
+   24 statementList: statementList . statement
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    '}'          shift, and go to state 167
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 171
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 123
+
+   22 argItem: type IDENTIFIER '=' . expression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 183
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 124
+
+   19 argList: argList ',' argItem .
+
+    $default  reduce using rule 19 (argList)
+
+
+state 125
+
+   16 methodDefinition: VOID IDENTIFIER '(' argList ')' methodBody .
+
+    $default  reduce using rule 16 (methodDefinition)
+
+
+state 126
+
+   88 bracketExpressionList: '[' . expression ']'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 184
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 127
+
+   87 bracketExpressionList: bracketExpressionList . '[' expression ']'
+  131 castFriendlyUnaryExpression: NEW IDENTIFIER bracketExpressionList .
+
+    '['  shift, and go to state 185
+
+    $default  reduce using rule 131 (castFriendlyUnaryExpression)
+
+
+state 128
+
+  133 parenthesesExpression: '(' expression . ')'
+
+    ')'  shift, and go to state 186
+
+
+state 129
+
+   84 methodCall: IDENTIFIER '(' ')' .
+
+    $default  reduce using rule 84 (methodCall)
+
+
+state 130
+
+   83 methodCall: IDENTIFIER '(' expressionList . ')'
+   85 expressionList: expressionList . ',' expression
+
+    ','  shift, and go to state 132
+    ')'  shift, and go to state 187
+
+
+state 131
+
+  122 castExpression: '(' expression ')' . castFriendlyUnaryExpression
+  133 parenthesesExpression: '(' expression ')' .
+
+    FALSE        shift, and go to state 30
+    NEW          shift, and go to state 31
+    TRUE         shift, and go to state 32
+    IDENTIFIER   shift, and go to state 36
+    INT_LITERAL  shift, and go to state 37
+    '('          shift, and go to state 73
+    '~'          shift, and go to state 41
+    '!'          shift, and go to state 42
+
+    $default  reduce using rule 133 (parenthesesExpression)
+
+    literal                      go to state 44
+    methodCall                   go to state 45
+    castFriendlyUnaryExpression  go to state 188
+    parenthesesExpression        go to state 189
+
+
+state 132
+
+   85 expressionList: expressionList ',' . expression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 190
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 133
+
+  126 castUnfriendlyUnaryExpression: '[' expressionList ']' .
+
+    $default  reduce using rule 126 (castUnfriendlyUnaryExpression)
+
+
+state 134
+
+   93 booleanOrExpression: booleanOrExpression BOOLEAN_OR booleanAndExpression .
+   95 booleanAndExpression: booleanAndExpression . BOOLEAN_AND bitwiseOrExpression
+
+    BOOLEAN_AND  shift, and go to state 85
+
+    $default  reduce using rule 93 (booleanOrExpression)
+
+
+state 135
+
+   95 booleanAndExpression: booleanAndExpression BOOLEAN_AND bitwiseOrExpression .
+  100 bitwiseOrExpression: bitwiseOrExpression . '|' xorExpression
+
+    '|'  shift, and go to state 88
+
+    $default  reduce using rule 95 (booleanAndExpression)
+
+
+state 136
+
+   97 equalityExpression: equalityExpression EQUALS bitwiseOrExpression .
+  100 bitwiseOrExpression: bitwiseOrExpression . '|' xorExpression
+
+    '|'  shift, and go to state 88
+
+    $default  reduce using rule 97 (equalityExpression)
+
+
+state 137
+
+   98 equalityExpression: equalityExpression NOT_EQUALS bitwiseOrExpression .
+  100 bitwiseOrExpression: bitwiseOrExpression . '|' xorExpression
+
+    '|'  shift, and go to state 88
+
+    $default  reduce using rule 98 (equalityExpression)
+
+
+state 138
+
+  100 bitwiseOrExpression: bitwiseOrExpression '|' xorExpression .
+  102 xorExpression: xorExpression . '^' bitwiseAndExpression
+
+    '^'  shift, and go to state 89
+
+    $default  reduce using rule 100 (bitwiseOrExpression)
+
+
+state 139
+
+  102 xorExpression: xorExpression '^' bitwiseAndExpression .
+  104 bitwiseAndExpression: bitwiseAndExpression . '&' comparisonExpression
+
+    '&'  shift, and go to state 90
+
+    $default  reduce using rule 102 (xorExpression)
+
+
+state 140
+
+  104 bitwiseAndExpression: bitwiseAndExpression '&' comparisonExpression .
+  106 comparisonExpression: comparisonExpression . '<' bitShiftExpression
+  107                     | comparisonExpression . '>' bitShiftExpression
+  108                     | comparisonExpression . LESS_THAN_OR_EQUAL_TO bitShiftExpression
+  109                     | comparisonExpression . GREATER_THAN_OR_EQUAL_TO bitShiftExpression
+
+    LESS_THAN_OR_EQUAL_TO     shift, and go to state 91
+    GREATER_THAN_OR_EQUAL_TO  shift, and go to state 92
+    '<'                       shift, and go to state 93
+    '>'                       shift, and go to state 94
+
+    $default  reduce using rule 104 (bitwiseAndExpression)
+
+
+state 141
+
+  108 comparisonExpression: comparisonExpression LESS_THAN_OR_EQUAL_TO bitShiftExpression .
+  111 bitShiftExpression: bitShiftExpression . LEFT_SHIFT additionExpression
+  112                   | bitShiftExpression . RIGHT_SHIFT additionExpression
+  113                   | bitShiftExpression . UNSIGNED_RIGHT_SHIFT additionExpression
+
+    LEFT_SHIFT            shift, and go to state 95
+    RIGHT_SHIFT           shift, and go to state 96
+    UNSIGNED_RIGHT_SHIFT  shift, and go to state 97
+
+    $default  reduce using rule 108 (comparisonExpression)
+
+
+state 142
+
+  109 comparisonExpression: comparisonExpression GREATER_THAN_OR_EQUAL_TO bitShiftExpression .
+  111 bitShiftExpression: bitShiftExpression . LEFT_SHIFT additionExpression
+  112                   | bitShiftExpression . RIGHT_SHIFT additionExpression
+  113                   | bitShiftExpression . UNSIGNED_RIGHT_SHIFT additionExpression
+
+    LEFT_SHIFT            shift, and go to state 95
+    RIGHT_SHIFT           shift, and go to state 96
+    UNSIGNED_RIGHT_SHIFT  shift, and go to state 97
+
+    $default  reduce using rule 109 (comparisonExpression)
+
+
+state 143
+
+  106 comparisonExpression: comparisonExpression '<' bitShiftExpression .
+  111 bitShiftExpression: bitShiftExpression . LEFT_SHIFT additionExpression
+  112                   | bitShiftExpression . RIGHT_SHIFT additionExpression
+  113                   | bitShiftExpression . UNSIGNED_RIGHT_SHIFT additionExpression
+
+    LEFT_SHIFT            shift, and go to state 95
+    RIGHT_SHIFT           shift, and go to state 96
+    UNSIGNED_RIGHT_SHIFT  shift, and go to state 97
+
+    $default  reduce using rule 106 (comparisonExpression)
+
+
+state 144
+
+  107 comparisonExpression: comparisonExpression '>' bitShiftExpression .
+  111 bitShiftExpression: bitShiftExpression . LEFT_SHIFT additionExpression
+  112                   | bitShiftExpression . RIGHT_SHIFT additionExpression
+  113                   | bitShiftExpression . UNSIGNED_RIGHT_SHIFT additionExpression
+
+    LEFT_SHIFT            shift, and go to state 95
+    RIGHT_SHIFT           shift, and go to state 96
+    UNSIGNED_RIGHT_SHIFT  shift, and go to state 97
+
+    $default  reduce using rule 107 (comparisonExpression)
+
+
+state 145
+
+  111 bitShiftExpression: bitShiftExpression LEFT_SHIFT additionExpression .
+  115 additionExpression: additionExpression . '+' multiplicationExpression
+  116                   | additionExpression . '-' multiplicationExpression
+
+    '+'  shift, and go to state 98
+    '-'  shift, and go to state 99
+
+    $default  reduce using rule 111 (bitShiftExpression)
+
+
+state 146
+
+  112 bitShiftExpression: bitShiftExpression RIGHT_SHIFT additionExpression .
+  115 additionExpression: additionExpression . '+' multiplicationExpression
+  116                   | additionExpression . '-' multiplicationExpression
+
+    '+'  shift, and go to state 98
+    '-'  shift, and go to state 99
+
+    $default  reduce using rule 112 (bitShiftExpression)
+
+
+state 147
+
+  113 bitShiftExpression: bitShiftExpression UNSIGNED_RIGHT_SHIFT additionExpression .
+  115 additionExpression: additionExpression . '+' multiplicationExpression
+  116                   | additionExpression . '-' multiplicationExpression
+
+    '+'  shift, and go to state 98
+    '-'  shift, and go to state 99
+
+    $default  reduce using rule 113 (bitShiftExpression)
+
+
+state 148
+
+  115 additionExpression: additionExpression '+' multiplicationExpression .
+  118 multiplicationExpression: multiplicationExpression . '*' castExpression
+  119                         | multiplicationExpression . '/' castExpression
+  120                         | multiplicationExpression . '%' castExpression
+
+    '*'  shift, and go to state 100
+    '/'  shift, and go to state 101
+    '%'  shift, and go to state 102
+
+    $default  reduce using rule 115 (additionExpression)
+
+
+state 149
+
+  116 additionExpression: additionExpression '-' multiplicationExpression .
+  118 multiplicationExpression: multiplicationExpression . '*' castExpression
+  119                         | multiplicationExpression . '/' castExpression
+  120                         | multiplicationExpression . '%' castExpression
+
+    '*'  shift, and go to state 100
+    '/'  shift, and go to state 101
+    '%'  shift, and go to state 102
+
+    $default  reduce using rule 116 (additionExpression)
+
+
+state 150
+
+  118 multiplicationExpression: multiplicationExpression '*' castExpression .
+
+    $default  reduce using rule 118 (multiplicationExpression)
+
+
+state 151
+
+  119 multiplicationExpression: multiplicationExpression '/' castExpression .
+
+    $default  reduce using rule 119 (multiplicationExpression)
+
+
+state 152
+
+  120 multiplicationExpression: multiplicationExpression '%' castExpression .
+
+    $default  reduce using rule 120 (multiplicationExpression)
+
+
+state 153
+
+  134 parenthesesExpression: parenthesesExpression '[' expression . ']'
+
+    ']'  shift, and go to state 191
+
+
+state 154
+
+  135 parenthesesExpression: parenthesesExpression '.' LENGTH .
+
+    $default  reduce using rule 135 (parenthesesExpression)
+
+
+state 155
+
+   90 directAssignmentExpression: parenthesesExpression assignmentOperator assignmentExpression .
+
+    $default  reduce using rule 90 (directAssignmentExpression)
+
+
+state 156
+
+   15 methodDefinition: type IDENTIFIER '(' argList ')' methodBody .
+
+    $default  reduce using rule 15 (methodDefinition)
+
+
+state 157
+
+   77 controlFlowStatement: BREAK . ';'
+   78                     | BREAK . INT_LITERAL ';'
+
+    INT_LITERAL  shift, and go to state 192
+    ';'          shift, and go to state 193
+
+
+state 158
+
+   79 controlFlowStatement: CONTINUE . ';'
+   80                     | CONTINUE . INT_LITERAL ';'
+
+    INT_LITERAL  shift, and go to state 194
+    ';'          shift, and go to state 195
+
+
+state 159
+
+   66 doWhileStatement: DO . statement WHILE '(' expression ')' ';'
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 196
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 160
+
+   67 forStatement: FOR . '(' forStatementList ';' expression ';' forStatementList ')' statement
+   76 forInStatement: FOR . '(' type IDENTIFIER ':' expression ')' statement
+
+    '('  shift, and go to state 197
+
+
+state 161
+
+   55 ifStatement: IF . '(' expression ')' statement
+   56            | IF . '(' expression ')' statement ELSE statement
+
+    '('  shift, and go to state 198
+
+
+state 162
+
+   81 controlFlowStatement: RETURN . ';'
+   82                     | RETURN . expression ';'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    ';'                     shift, and go to state 199
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 200
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 163
+
+   57 switchStatement: SWITCH . '(' expression ')' '{' caseList '}'
+
+    '('  shift, and go to state 201
+
+
+state 164
+
+   65 whileStatement: WHILE . '(' expression ')' statement
+
+    '('  shift, and go to state 202
+
+
+state 165
+
+   13 type: IDENTIFIER .
+   83 methodCall: IDENTIFIER . '(' expressionList ')'
+   84           | IDENTIFIER . '(' ')'
+  138 parenthesesExpression: IDENTIFIER .
+
+    '('  shift, and go to state 76
+
+    OPEN_AND_CLOSE_BRACKET  reduce using rule 13 (type)
+    IDENTIFIER              reduce using rule 13 (type)
+    $default                reduce using rule 138 (parenthesesExpression)
+
+
+state 166
+
+   38 statement: '{' . statementList '}'
+
+    $default  reduce using rule 25 (statementList)
+
+    statementList  go to state 203
+
+
+state 167
+
+   23 methodBody: '{' statementList '}' .
+
+    $default  reduce using rule 23 (methodBody)
+
+
+state 168
+
+   26 statement: ';' .
+
+    $default  reduce using rule 26 (statement)
+
+
+state 169
+
+   27 statement: varDeclaration .
+
+    $default  reduce using rule 27 (statement)
+
+
+state 170
+
+    8 varDeclaration: type . varDeclarationList ';'
+   14 type: type . OPEN_AND_CLOSE_BRACKET
+
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 17
+    IDENTIFIER              shift, and go to state 65
+
+    varDeclarationList  go to state 19
+    varDeclarationItem  go to state 20
+
+
+state 171
+
+   24 statementList: statementList statement .
+
+    $default  reduce using rule 24 (statementList)
+
+
+state 172
+
+   29 statement: directIncrementExpression . ';'
+
+    ';'  shift, and go to state 204
+
+
+state 173
+
+   31 statement: ifStatement .
+
+    $default  reduce using rule 31 (statement)
+
+
+state 174
+
+   32 statement: switchStatement .
+
+    $default  reduce using rule 32 (statement)
+
+
+state 175
+
+   33 statement: whileStatement .
+
+    $default  reduce using rule 33 (statement)
+
+
+state 176
+
+   34 statement: doWhileStatement .
+
+    $default  reduce using rule 34 (statement)
+
+
+state 177
+
+   35 statement: forStatement .
+
+    $default  reduce using rule 35 (statement)
+
+
+state 178
+
+   36 statement: forInStatement .
+
+    $default  reduce using rule 36 (statement)
+
+
+state 179
+
+   37 statement: controlFlowStatement .
+
+    $default  reduce using rule 37 (statement)
+
+
+state 180
+
+   30 statement: methodCall . ';'
+  136 parenthesesExpression: methodCall .
+
+    ';'  shift, and go to state 205
+
+    $default  reduce using rule 136 (parenthesesExpression)
+
+
+state 181
+
+   28 statement: directAssignmentExpression . ';'
+
+    ';'  shift, and go to state 206
+
+
+state 182
+
+   51 directIncrementExpression: parenthesesExpression . INCREMENT
+   52                          | parenthesesExpression . DECREMENT
+   90 directAssignmentExpression: parenthesesExpression . assignmentOperator assignmentExpression
+  134 parenthesesExpression: parenthesesExpression . '[' expression ']'
+  135                      | parenthesesExpression . '.' LENGTH
+
+    DECREMENT                    shift, and go to state 103
+    INCREMENT                    shift, and go to state 104
+    AND_ASSIGN                   shift, and go to state 105
+    DIV_ASSIGN                   shift, and go to state 106
+    LEFT_SHIFT_ASSIGN            shift, and go to state 107
+    MINUS_ASSIGN                 shift, and go to state 108
+    MOD_ASSIGN                   shift, and go to state 109
+    MULT_ASSIGN                  shift, and go to state 110
+    OR_ASSIGN                    shift, and go to state 111
+    PLUS_ASSIGN                  shift, and go to state 112
+    RIGHT_SHIFT_ASSIGN           shift, and go to state 113
+    UNSIGNED_RIGHT_SHIFT_ASSIGN  shift, and go to state 114
+    XOR_ASSIGN                   shift, and go to state 115
+    '='                          shift, and go to state 116
+    '['                          shift, and go to state 117
+    '.'                          shift, and go to state 118
+
+    assignmentOperator  go to state 119
+
+
+state 183
+
+   22 argItem: type IDENTIFIER '=' expression .
+
+    $default  reduce using rule 22 (argItem)
+
+
+state 184
+
+   88 bracketExpressionList: '[' expression . ']'
+
+    ']'  shift, and go to state 207
+
+
+state 185
+
+   87 bracketExpressionList: bracketExpressionList '[' . expression ']'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 208
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 186
+
+  133 parenthesesExpression: '(' expression ')' .
+
+    $default  reduce using rule 133 (parenthesesExpression)
+
+
+state 187
+
+   83 methodCall: IDENTIFIER '(' expressionList ')' .
+
+    $default  reduce using rule 83 (methodCall)
+
+
+state 188
+
+  122 castExpression: '(' expression ')' castFriendlyUnaryExpression .
+
+    $default  reduce using rule 122 (castExpression)
+
+
+state 189
+
+  132 castFriendlyUnaryExpression: parenthesesExpression .
+  134 parenthesesExpression: parenthesesExpression . '[' expression ']'
+  135                      | parenthesesExpression . '.' LENGTH
+
+    '['  shift, and go to state 117
+    '.'  shift, and go to state 118
+
+    $default  reduce using rule 132 (castFriendlyUnaryExpression)
+
+
+state 190
+
+   85 expressionList: expressionList ',' expression .
+
+    $default  reduce using rule 85 (expressionList)
+
+
+state 191
+
+  134 parenthesesExpression: parenthesesExpression '[' expression ']' .
+
+    $default  reduce using rule 134 (parenthesesExpression)
+
+
+state 192
+
+   78 controlFlowStatement: BREAK INT_LITERAL . ';'
+
+    ';'  shift, and go to state 209
+
+
+state 193
+
+   77 controlFlowStatement: BREAK ';' .
+
+    $default  reduce using rule 77 (controlFlowStatement)
+
+
+state 194
+
+   80 controlFlowStatement: CONTINUE INT_LITERAL . ';'
+
+    ';'  shift, and go to state 210
+
+
+state 195
+
+   79 controlFlowStatement: CONTINUE ';' .
+
+    $default  reduce using rule 79 (controlFlowStatement)
+
+
+state 196
+
+   66 doWhileStatement: DO statement . WHILE '(' expression ')' ';'
+
+    WHILE  shift, and go to state 211
+
+
+state 197
+
+   67 forStatement: FOR '(' . forStatementList ';' expression ';' forStatementList ')' statement
+   76 forInStatement: FOR '(' . type IDENTIFIER ':' expression ')' statement
+
+    FALSE        shift, and go to state 30
+    TRUE         shift, and go to state 32
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '('          shift, and go to state 73
+
+    $default  reduce using rule 69 (forStatementList)
+
+    type                        go to state 212
+    directIncrementExpression   go to state 213
+    literal                     go to state 44
+    forStatementList            go to state 214
+    forNonEmptyStatementList    go to state 215
+    forComponentStatement       go to state 216
+    methodCall                  go to state 217
+    directAssignmentExpression  go to state 218
+    parenthesesExpression       go to state 182
+
+
+state 198
+
+   55 ifStatement: IF '(' . expression ')' statement
+   56            | IF '(' . expression ')' statement ELSE statement
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 219
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 199
+
+   81 controlFlowStatement: RETURN ';' .
+
+    $default  reduce using rule 81 (controlFlowStatement)
+
+
+state 200
+
+   82 controlFlowStatement: RETURN expression . ';'
+
+    ';'  shift, and go to state 220
+
+
+state 201
+
+   57 switchStatement: SWITCH '(' . expression ')' '{' caseList '}'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 221
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 202
+
+   65 whileStatement: WHILE '(' . expression ')' statement
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 222
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 203
+
+   24 statementList: statementList . statement
+   38 statement: '{' statementList . '}'
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    '}'          shift, and go to state 223
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 171
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 204
+
+   29 statement: directIncrementExpression ';' .
+
+    $default  reduce using rule 29 (statement)
+
+
+state 205
+
+   30 statement: methodCall ';' .
+
+    $default  reduce using rule 30 (statement)
+
+
+state 206
+
+   28 statement: directAssignmentExpression ';' .
+
+    $default  reduce using rule 28 (statement)
+
+
+state 207
+
+   88 bracketExpressionList: '[' expression ']' .
+
+    $default  reduce using rule 88 (bracketExpressionList)
+
+
+state 208
+
+   87 bracketExpressionList: bracketExpressionList '[' expression . ']'
+
+    ']'  shift, and go to state 224
+
+
+state 209
+
+   78 controlFlowStatement: BREAK INT_LITERAL ';' .
+
+    $default  reduce using rule 78 (controlFlowStatement)
+
+
+state 210
+
+   80 controlFlowStatement: CONTINUE INT_LITERAL ';' .
+
+    $default  reduce using rule 80 (controlFlowStatement)
+
+
+state 211
+
+   66 doWhileStatement: DO statement WHILE . '(' expression ')' ';'
+
+    '('  shift, and go to state 225
+
+
+state 212
+
+   14 type: type . OPEN_AND_CLOSE_BRACKET
+   75 forComponentStatement: type . IDENTIFIER '=' expression
+   76 forInStatement: FOR '(' type . IDENTIFIER ':' expression ')' statement
+
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 17
+    IDENTIFIER              shift, and go to state 226
+
+
+state 213
+
+   73 forComponentStatement: directIncrementExpression .
+
+    $default  reduce using rule 73 (forComponentStatement)
+
+
+state 214
+
+   67 forStatement: FOR '(' forStatementList . ';' expression ';' forStatementList ')' statement
+
+    ';'  shift, and go to state 227
+
+
+state 215
+
+   68 forStatementList: forNonEmptyStatementList .
+
+    $default  reduce using rule 68 (forStatementList)
+
+
+state 216
+
+   70 forNonEmptyStatementList: forComponentStatement . ',' forNonEmptyStatementList
+   71                         | forComponentStatement .
+
+    ','  shift, and go to state 228
+
+    $default  reduce using rule 71 (forNonEmptyStatementList)
+
+
+state 217
+
+   74 forComponentStatement: methodCall .
+  136 parenthesesExpression: methodCall .
+
+    ';'       reduce using rule 74 (forComponentStatement)
+    ','       reduce using rule 74 (forComponentStatement)
+    ')'       reduce using rule 74 (forComponentStatement)
+    $default  reduce using rule 136 (parenthesesExpression)
+
+
+state 218
+
+   72 forComponentStatement: directAssignmentExpression .
+
+    $default  reduce using rule 72 (forComponentStatement)
+
+
+state 219
+
+   55 ifStatement: IF '(' expression . ')' statement
+   56            | IF '(' expression . ')' statement ELSE statement
+
+    ')'  shift, and go to state 229
+
+
+state 220
+
+   82 controlFlowStatement: RETURN expression ';' .
+
+    $default  reduce using rule 82 (controlFlowStatement)
+
+
+state 221
+
+   57 switchStatement: SWITCH '(' expression . ')' '{' caseList '}'
+
+    ')'  shift, and go to state 230
+
+
+state 222
+
+   65 whileStatement: WHILE '(' expression . ')' statement
+
+    ')'  shift, and go to state 231
+
+
+state 223
+
+   38 statement: '{' statementList '}' .
+
+    $default  reduce using rule 38 (statement)
+
+
+state 224
+
+   87 bracketExpressionList: bracketExpressionList '[' expression ']' .
+
+    $default  reduce using rule 87 (bracketExpressionList)
+
+
+state 225
+
+   66 doWhileStatement: DO statement WHILE '(' . expression ')' ';'
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 232
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 226
+
+   75 forComponentStatement: type IDENTIFIER . '=' expression
+   76 forInStatement: FOR '(' type IDENTIFIER . ':' expression ')' statement
+
+    '='  shift, and go to state 233
+    ':'  shift, and go to state 234
+
+
+state 227
+
+   67 forStatement: FOR '(' forStatementList ';' . expression ';' forStatementList ')' statement
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 235
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 228
+
+   70 forNonEmptyStatementList: forComponentStatement ',' . forNonEmptyStatementList
+
+    FALSE        shift, and go to state 30
+    TRUE         shift, and go to state 32
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '('          shift, and go to state 73
+
+    type                        go to state 236
+    directIncrementExpression   go to state 213
+    literal                     go to state 44
+    forNonEmptyStatementList    go to state 237
+    forComponentStatement       go to state 216
+    methodCall                  go to state 217
+    directAssignmentExpression  go to state 218
+    parenthesesExpression       go to state 182
+
+
+state 229
+
+   55 ifStatement: IF '(' expression ')' . statement
+   56            | IF '(' expression ')' . statement ELSE statement
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 238
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 230
+
+   57 switchStatement: SWITCH '(' expression ')' . '{' caseList '}'
+
+    '{'  shift, and go to state 239
+
+
+state 231
+
+   65 whileStatement: WHILE '(' expression ')' . statement
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 240
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 232
+
+   66 doWhileStatement: DO statement WHILE '(' expression . ')' ';'
+
+    ')'  shift, and go to state 241
+
+
+state 233
+
+   75 forComponentStatement: type IDENTIFIER '=' . expression
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 242
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 234
+
+   76 forInStatement: FOR '(' type IDENTIFIER ':' . expression ')' statement
+
+    FALSE                   shift, and go to state 30
+    NEW                     shift, and go to state 31
+    TRUE                    shift, and go to state 32
+    DECREMENT               shift, and go to state 33
+    INCREMENT               shift, and go to state 34
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 35
+    IDENTIFIER              shift, and go to state 36
+    INT_LITERAL             shift, and go to state 37
+    '('                     shift, and go to state 38
+    '['                     shift, and go to state 39
+    '-'                     shift, and go to state 40
+    '~'                     shift, and go to state 41
+    '!'                     shift, and go to state 42
+
+    directIncrementExpression      go to state 43
+    literal                        go to state 44
+    methodCall                     go to state 45
+    expression                     go to state 243
+    directAssignmentExpression     go to state 47
+    assignmentExpression           go to state 48
+    booleanOrExpression            go to state 49
+    booleanAndExpression           go to state 50
+    equalityExpression             go to state 51
+    bitwiseOrExpression            go to state 52
+    xorExpression                  go to state 53
+    bitwiseAndExpression           go to state 54
+    comparisonExpression           go to state 55
+    bitShiftExpression             go to state 56
+    additionExpression             go to state 57
+    multiplicationExpression       go to state 58
+    castExpression                 go to state 59
+    castUnfriendlyUnaryExpression  go to state 60
+    castFriendlyUnaryExpression    go to state 61
+    parenthesesExpression          go to state 62
+
+
+state 235
+
+   67 forStatement: FOR '(' forStatementList ';' expression . ';' forStatementList ')' statement
+
+    ';'  shift, and go to state 244
+
+
+state 236
+
+   14 type: type . OPEN_AND_CLOSE_BRACKET
+   75 forComponentStatement: type . IDENTIFIER '=' expression
+
+    OPEN_AND_CLOSE_BRACKET  shift, and go to state 17
+    IDENTIFIER              shift, and go to state 245
+
+
+state 237
+
+   70 forNonEmptyStatementList: forComponentStatement ',' forNonEmptyStatementList .
+
+    $default  reduce using rule 70 (forNonEmptyStatementList)
+
+
+state 238
+
+   55 ifStatement: IF '(' expression ')' statement .
+   56            | IF '(' expression ')' statement . ELSE statement
+
+    ELSE  error (nonassociative)
+
+    $default  reduce using rule 55 (ifStatement)
+
+
+state 239
+
+   57 switchStatement: SWITCH '(' expression ')' '{' . caseList '}'
+
+    $default  reduce using rule 59 (caseList)
+
+    caseList  go to state 247
+
+
+state 240
+
+   65 whileStatement: WHILE '(' expression ')' statement .
+
+    $default  reduce using rule 65 (whileStatement)
+
+
+state 241
+
+   66 doWhileStatement: DO statement WHILE '(' expression ')' . ';'
+
+    ';'  shift, and go to state 248
+
+
+state 242
+
+   75 forComponentStatement: type IDENTIFIER '=' expression .
+
+    $default  reduce using rule 75 (forComponentStatement)
+
+
+state 243
+
+   76 forInStatement: FOR '(' type IDENTIFIER ':' expression . ')' statement
+
+    ')'  shift, and go to state 249
+
+
+state 244
+
+   67 forStatement: FOR '(' forStatementList ';' expression ';' . forStatementList ')' statement
+
+    FALSE        shift, and go to state 30
+    TRUE         shift, and go to state 32
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '('          shift, and go to state 73
+
+    $default  reduce using rule 69 (forStatementList)
+
+    type                        go to state 236
+    directIncrementExpression   go to state 213
+    literal                     go to state 44
+    forStatementList            go to state 250
+    forNonEmptyStatementList    go to state 215
+    forComponentStatement       go to state 216
+    methodCall                  go to state 217
+    directAssignmentExpression  go to state 218
+    parenthesesExpression       go to state 182
+
+
+state 245
+
+   75 forComponentStatement: type IDENTIFIER . '=' expression
+
+    '='  shift, and go to state 233
+
+
+state 246
+
+   56 ifStatement: IF '(' expression ')' statement ELSE . statement
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 251
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 247
+
+   57 switchStatement: SWITCH '(' expression ')' '{' caseList . '}'
+   58 caseList: caseList . caseClause ':' statementList
+
+    CASE     shift, and go to state 252
+    DEFAULT  shift, and go to state 253
+    '}'      shift, and go to state 254
+
+    caseClause  go to state 255
+
+
+state 248
+
+   66 doWhileStatement: DO statement WHILE '(' expression ')' ';' .
+
+    $default  reduce using rule 66 (doWhileStatement)
+
+
+state 249
+
+   76 forInStatement: FOR '(' type IDENTIFIER ':' expression ')' . statement
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 256
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 250
+
+   67 forStatement: FOR '(' forStatementList ';' expression ';' forStatementList . ')' statement
+
+    ')'  shift, and go to state 257
+
+
+state 251
+
+   56 ifStatement: IF '(' expression ')' statement ELSE statement .
+
+    $default  reduce using rule 56 (ifStatement)
+
+
+state 252
+
+   60 caseClause: CASE . literal
+
+    FALSE        shift, and go to state 30
+    TRUE         shift, and go to state 32
+    INT_LITERAL  shift, and go to state 37
+
+    literal  go to state 258
+
+
+state 253
+
+   61 caseClause: DEFAULT .
+
+    $default  reduce using rule 61 (caseClause)
+
+
+state 254
+
+   57 switchStatement: SWITCH '(' expression ')' '{' caseList '}' .
+
+    $default  reduce using rule 57 (switchStatement)
+
+
+state 255
+
+   58 caseList: caseList caseClause . ':' statementList
+
+    ':'  shift, and go to state 259
+
+
+state 256
+
+   76 forInStatement: FOR '(' type IDENTIFIER ':' expression ')' statement .
+
+    $default  reduce using rule 76 (forInStatement)
+
+
+state 257
+
+   67 forStatement: FOR '(' forStatementList ';' expression ';' forStatementList ')' . statement
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 260
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
+
+
+state 258
+
+   60 caseClause: CASE literal .
+
+    $default  reduce using rule 60 (caseClause)
+
+
+state 259
+
+   58 caseList: caseList caseClause ':' . statementList
+
+    $default  reduce using rule 25 (statementList)
+
+    statementList  go to state 261
+
+
+state 260
+
+   67 forStatement: FOR '(' forStatementList ';' expression ';' forStatementList ')' statement .
+
+    $default  reduce using rule 67 (forStatement)
+
+
+state 261
+
+   24 statementList: statementList . statement
+   58 caseList: caseList caseClause ':' statementList .
+
+    BREAK        shift, and go to state 157
+    CONTINUE     shift, and go to state 158
+    DO           shift, and go to state 159
+    FALSE        shift, and go to state 30
+    FOR          shift, and go to state 160
+    IF           shift, and go to state 161
+    RETURN       shift, and go to state 162
+    SWITCH       shift, and go to state 163
+    TRUE         shift, and go to state 32
+    WHILE        shift, and go to state 164
+    DECREMENT    shift, and go to state 33
+    INCREMENT    shift, and go to state 34
+    IDENTIFIER   shift, and go to state 165
+    INT_LITERAL  shift, and go to state 37
+    '{'          shift, and go to state 166
+    ';'          shift, and go to state 168
+    '('          shift, and go to state 73
+
+    $default  reduce using rule 58 (caseList)
+
+    varDeclaration              go to state 169
+    type                        go to state 170
+    statement                   go to state 171
+    directIncrementExpression   go to state 172
+    ifStatement                 go to state 173
+    switchStatement             go to state 174
+    literal                     go to state 44
+    whileStatement              go to state 175
+    doWhileStatement            go to state 176
+    forStatement                go to state 177
+    forInStatement              go to state 178
+    controlFlowStatement        go to state 179
+    methodCall                  go to state 180
+    directAssignmentExpression  go to state 181
+    parenthesesExpression       go to state 182
