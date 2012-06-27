@@ -2,6 +2,7 @@ extern "C" {
     #include "ast.h"
 }
 
+#include <algorithm>
 #include <assert.h>
 #include <iostream>
 #include <stdlib.h>
@@ -214,6 +215,29 @@ private:
      * Compiles statements causing us to jump to "trueLabel" if the expression
      * indicated by the specified node evaluates to true and to "falseLabel"
      * otherwise.
+     * 
+     * Of course, we could simply use "compileExpression" to achieve the same
+     * effect, but sometimes "createConditionalJump" can avoid the use of
+     * temporary boolean variables.  For example, "createConditionalJump" would
+     * compile "if (x && y) foo(); else bar();" to the following:
+     * 
+     *     if (x) goto intermediateLabel; else goto barLabel;
+     * intermediateLabel:
+     *     if (y) goto fooLabel; else goto barLabel;
+     * 
+     * By contrast, if we were to use "compileExpression", we would get the
+     * following:
+     * 
+     *     if (x) goto intermediateLabel; else goto setToFalseLabel;
+     * intermediateLabel:
+     *     if (y) goto setToTrueLabel; else goto setToFalseLabel;
+     * setToTrueLabel:
+     *     temp = true;
+     *     goto checkTemp;
+     * setToFalseLabel:
+     *     temp = false;
+     * checkTemp:
+     *     if (temp) goto fooLabel; else goto barLabel;
      */
     void compileConditionalJump(
         AST* node,
@@ -256,6 +280,8 @@ private:
             default:
             {
                 CFGOperand* operand = compileExpression(node);
+                if (!operand->type->isBool())
+                    emitError(node, "Boolean result is required");
                 CFGStatement* statement = new CFGStatement(
                     CFG_IF,
                     NULL,
@@ -410,6 +436,31 @@ private:
     }
     
     /**
+     * Returns the type that is the lowest common ancestor of "type1" and
+     * "type2".  To put it another way, returns the type of the expression
+     * "foo() ? objectOfType1 : objectOfType2".
+     */
+    CFGType* getLeastCommonType(CFGType* type1, CFGType* type2) {
+        if (type1->numDimensions > 0 || type2->numDimensions > 0) {
+            if (type1->numDimensions == type2->numDimensions &&
+                type1->className == type2->className)
+                return type1;
+            else
+                return new CFGType(
+                    "Object",
+                    min(type1->numDimensions, type2->numDimensions));
+        } else if (type1->isBool() && type2->isBool())
+            return type1;
+        else if (type1->isNumeric() && type2->isNumeric()) {
+            if (type1->isMorePromotedThan(type2))
+                return type1;
+            else
+                return type2;
+        } else
+            return new CFGType("Object");
+    }
+    
+    /**
      * Compiles the specified expression.
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
@@ -467,6 +518,30 @@ private:
                         opForExpressionType(node->type),
                         destination,
                         operand));
+                return destination;
+            }
+            case AST_BOOLEAN_AND:
+            case AST_BOOLEAN_OR:
+            {
+                CFGOperand* destination = createVar(CFGType::boolType());
+                CFGLabel* trueLabel = new CFGLabel();
+                CFGLabel* falseLabel = new CFGLabel();
+                CFGLabel* endLabel = new CFGLabel();
+                compileConditionalJump(node, trueLabel, falseLabel);
+                statements->push_back(CFGStatement::fromLabel(trueLabel));
+                statements->push_back(
+                    new CFGStatement(
+                        CFG_ASSIGN,
+                        destination,
+                        CFGOperand::fromBool(true)));
+                statements->push_back(CFGStatement::jump(endLabel));
+                statements->push_back(CFGStatement::fromLabel(falseLabel));
+                statements->push_back(
+                    new CFGStatement(
+                        CFG_ASSIGN,
+                        destination,
+                        CFGOperand::fromBool(false)));
+                statements->push_back(CFGStatement::fromLabel(endLabel));
                 return destination;
             }
             case AST_CAST:
@@ -536,6 +611,27 @@ private:
             case AST_PRE_DECREMENT:
             case AST_PRE_INCREMENT:
                 return compileIncrementExpression(node);
+            case AST_TERNARY:
+            {
+                CFGOperand* destination = createVar(new CFGType("Int"));
+                CFGLabel* trueLabel = new CFGLabel();
+                CFGLabel* falseLabel = new CFGLabel();
+                CFGLabel* endLabel = new CFGLabel();
+                compileConditionalJump(node->child1, trueLabel, falseLabel);
+                statements->push_back(CFGStatement::fromLabel(trueLabel));
+                CFGOperand* trueValue = compileExpression(node->child2);
+                statements->push_back(
+                    new CFGStatement(CFG_ASSIGN, destination, trueValue));
+                statements->push_back(CFGStatement::jump(endLabel));
+                statements->push_back(CFGStatement::fromLabel(falseLabel));
+                CFGOperand* falseValue = compileExpression(node->child3);
+                statements->push_back(
+                    new CFGStatement(CFG_ASSIGN, destination, falseValue));
+                destination->type = getLeastCommonType(
+                    trueValue->type,
+                    falseValue->type);
+                return destination;
+            }
             default:
                 assert(!"Unhandled expression type");
         }

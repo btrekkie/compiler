@@ -253,8 +253,13 @@ directAssignmentExpression : parenthesesExpression assignmentOperator
                                    AST_ASSIGNMENT_EXPRESSION, $1, $2, $3); };
 assignmentExpression : directAssignmentExpression
                        { $$ = $1; }
-                     | booleanOrExpression
+                     | ternaryExpression
                        { $$ = $1; };
+ternaryExpression : booleanOrExpression '?' ternaryExpression ':'
+                      ternaryExpression
+                    { $$ = astNew3(AST_TERNARY, $1, $2, $3); }
+                  | booleanOrExpression
+                    { $$ = $1; }
 booleanOrExpression : booleanOrExpression BOOLEAN_OR booleanAndExpression
                        { $$ = astNew2(AST_BOOLEAN_OR, $1, $3); }
                     | booleanAndExpression
