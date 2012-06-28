@@ -218,7 +218,6 @@ private:
         
         switch (statement->op) {
             case CFG_ASSIGN:
-                outputVarDeclarationIfNecessary(statement->destination);
                 outputIndentation(1);
                 outputOperand(statement->destination);
                 *output << " = ";
@@ -228,7 +227,6 @@ private:
             case CFG_BITWISE_INVERT:
             case CFG_NEGATE:
             case CFG_NOT:
-                outputVarDeclarationIfNecessary(statement->destination);
                 outputIndentation(1);
                 outputOperand(statement->destination);
                 *output << " = ";
@@ -261,7 +259,6 @@ private:
             case CFG_NOP:
                 break;
             case CFG_UNSIGNED_RIGHT_SHIFT:
-                outputVarDeclarationIfNecessary(statement->destination);
                 outputIndentation(1);
                 outputOperand(statement->destination);
                 *output << " = (";
@@ -275,7 +272,6 @@ private:
                 *output << ");\n";
                 break;
             default:
-                outputVarDeclarationIfNecessary(statement->destination);
                 outputIndentation(1);
                 outputOperand(statement->destination);
                 *output << " = ";
@@ -293,6 +289,13 @@ private:
      * Outputs the C++ code for the specified sequence of statements.
      */
     void outputStatements(vector<CFGStatement*>& statements) {
+        for (vector<CFGStatement*>::const_iterator iterator =
+                 statements.begin();
+             iterator != statements.end();
+             iterator++) {
+            if ((*iterator)->destination != NULL)
+                outputVarDeclarationIfNecessary((*iterator)->destination);
+        }
         for (vector<CFGStatement*>::const_iterator iterator =
                  statements.begin();
              iterator != statements.end();

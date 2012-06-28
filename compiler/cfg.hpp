@@ -136,6 +136,12 @@ private:
     explicit CFGOperand(bool value);
 public:
     /**
+     * Constructs a new CFGOperand for a temporary variable: a variable that
+     * does not appear in the source file, but rather is an intermediate
+     * variable for an expression.
+     */
+    explicit CFGOperand(CFGType* type2);
+    /**
      * Coinstructs a new CFGOperand for a variable.
      */
     CFGOperand(CFGType* type2, std::string identifier2, bool isField2);

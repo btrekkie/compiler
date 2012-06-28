@@ -84,31 +84,26 @@ private:
     /**
      * Creates and returns a new CFGOperand for a variable.
      * @param type the type of the variable.
-     * @param node if this is variable that is named in the source file, as
-     *     opposed to a temporary variable for a subexpression, the node in
-     *     which the variable is declared.  The method emits an error if there
-     *     is already a variable with the same identifier.
-     * @param identifier if "node" is non-null, the variable's identifier.
+     * @param node the node in which the variable is declared.  The method emits
+     *     an error if there is already a variable with the same identifier.
+     * @param identifier the variable's identifier.
      * @param isField whether the variable is a class field.
      * @return the operand.
      */
     CFGOperand* createVar(
         CFGType* type,
-        AST* node = NULL,
-        string identifier = "",
-        bool isField = false) {
-        
-        if (identifier != "" && allVars.count(identifier) > 0) {
+        AST* node,
+        string identifier,
+        bool isField) {
+        if (allVars.count(identifier) > 0) {
             if (isField)
                 emitError(node, "Multiple fields with the same identifier");
             else
                 emitError(node, "Multiple variables with the same identifier");
         }
         CFGOperand* var = new CFGOperand(type, identifier, isField);
-        if (identifier != "") {
-            (*(frameVars.back()))[identifier] = var;
-            allVars[identifier] = var;
-        }
+        (*(frameVars.back()))[identifier] = var;
+        allVars[identifier] = var;
         return var;
     }
     
@@ -186,7 +181,7 @@ private:
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
             {
-                CFGOperand* result = createVar(operand->type);
+                CFGOperand* result = new CFGOperand(operand->type);
                 appendAssignmentStatement(node, result, operand);
                 statements->push_back(
                     new CFGStatement(
@@ -429,7 +424,7 @@ private:
                     destinationType = source2->type;
                 break;
         }
-        CFGOperand* destination = createVar(destinationType);
+        CFGOperand* destination = new CFGOperand(destinationType);
         statements->push_back(
             new CFGStatement(operation, destination, source1, source2));
         return destination;
@@ -441,15 +436,9 @@ private:
      * "foo() ? objectOfType1 : objectOfType2".
      */
     CFGType* getLeastCommonType(CFGType* type1, CFGType* type2) {
-        if (type1->numDimensions > 0 || type2->numDimensions > 0) {
-            if (type1->numDimensions == type2->numDimensions &&
-                type1->className == type2->className)
-                return type1;
-            else
-                return new CFGType(
-                    "Object",
-                    min(type1->numDimensions, type2->numDimensions));
-        } else if (type1->isBool() && type2->isBool())
+        if (type1->numDimensions > 0 || type2->numDimensions > 0)
+            return new CFGType("Object");
+        else if (type1->isBool() && type2->isBool())
             return type1;
         else if (type1->isNumeric() && type2->isNumeric()) {
             if (type1->isMorePromotedThan(type2))
@@ -512,7 +501,7 @@ private:
                 CFGOperand* operand = compileExpression(node->child1);
                 if (!operand->type->isIntegerLike())
                     emitError(node, "Operand must be of an integer-like type");
-                CFGOperand* destination = createVar(operand->type);
+                CFGOperand* destination = new CFGOperand(operand->type);
                 statements->push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
@@ -523,7 +512,7 @@ private:
             case AST_BOOLEAN_AND:
             case AST_BOOLEAN_OR:
             {
-                CFGOperand* destination = createVar(CFGType::boolType());
+                CFGOperand* destination = new CFGOperand(CFGType::boolType());
                 CFGLabel* trueLabel = new CFGLabel();
                 CFGLabel* falseLabel = new CFGLabel();
                 CFGLabel* endLabel = new CFGLabel();
@@ -553,7 +542,7 @@ private:
                 // TODO (classes) type checking
                 CFGOperand* source1 = compileExpression(node->child1);
                 CFGOperand* source2 = compileExpression(node->child2);
-                CFGOperand* destination = createVar(CFGType::boolType());
+                CFGOperand* destination = new CFGOperand(CFGType::boolType());
                 statements->push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
@@ -576,7 +565,7 @@ private:
                 CFGOperand* source2 = compileExpression(node->child2);
                 if (!source2->type->isNumeric())
                     emitError(node, "Operand must be a number");
-                CFGOperand* destination = createVar(CFGType::boolType());
+                CFGOperand* destination = new CFGOperand(CFGType::boolType());
                 statements->push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
@@ -598,7 +587,7 @@ private:
                 CFGOperand* operand = compileExpression(node->child1);
                 if (!operand->type->isBool())
                     emitError(node, "Operand must be a boolean");
-                CFGOperand* destination = createVar(CFGType::boolType());
+                CFGOperand* destination = new CFGOperand(CFGType::boolType());
                 statements->push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
@@ -613,7 +602,7 @@ private:
                 return compileIncrementExpression(node);
             case AST_TERNARY:
             {
-                CFGOperand* destination = createVar(new CFGType("Int"));
+                CFGOperand* destination = new CFGOperand((CFGType*)NULL);
                 CFGLabel* trueLabel = new CFGLabel();
                 CFGLabel* falseLabel = new CFGLabel();
                 CFGLabel* endLabel = new CFGLabel();
@@ -890,7 +879,8 @@ private:
         return createVar(
             getCFGType(node->child1),
             node,
-            node->child2->tokenStr);
+            node->child2->tokenStr,
+            false);
     }
     
     /**
@@ -921,7 +911,7 @@ private:
             method->returnVar = NULL;
         else {
             CFGType* type = getCFGType(node->child1);
-            method->returnVar = createVar(type);
+            method->returnVar = new CFGOperand(type);
         }
         returnVar = method->returnVar;
         returnLabel = new CFGLabel();

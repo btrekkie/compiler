@@ -81,6 +81,12 @@ CFGOperand::CFGOperand(bool value) {
     type = CFGType::boolType();
 }
 
+CFGOperand::CFGOperand(CFGType* type2) {
+    type = type2;
+    isVar = true;
+    isField = false;
+}
+
 CFGOperand::CFGOperand(CFGType* type2, string identifier2, bool isField2) {
     type = type2;
     identifier = identifier2;
