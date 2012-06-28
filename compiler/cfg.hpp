@@ -32,6 +32,7 @@ enum CFGOperation {
     CFG_NOP, // No-op; statement has no effect
     CFG_PLUS,
     CFG_RIGHT_SHIFT,
+    CFG_SWITCH,
     CFG_UNSIGNED_RIGHT_SHIFT,
     CFG_XOR,
 };
@@ -194,17 +195,40 @@ public:
      */
     CFGLabel* label;
     /**
-     * A CFGLabel indicating where to jump in the event that the results of the
-     * operation are true, if any.  For CFG_JUMP operations, this is the label
-     * to which to jump.
+     * A vector of the literal CFGOperand values indicating the conditions under
+     * which to jump to the labels in "switchLabels".  See the comments for
+     * "switchLabels" for more information.
      */
-    CFGLabel* trueLabel;
+    std::vector<CFGOperand*> switchValues;
     /**
-     * A CFGLabel indicating where to jump in the event that the results of the
-     * operation are false, if any.  For CFG_JUMP operations, this is the label
-     * to which to jump.
+     * A vector of the CFGLabels to which to jump as a consequence of this
+     * operation.  If the operation is not a jumping operation, this and
+     * "switchValues", are empty.  If it is CFG_JUMP, this consists of a single
+     * element indicating the jump target, and "switchValues" consists of a
+     * single NULL element.  If it is CFG_IF, this consists of two elements: the
+     * label to which to jump if "arg1" evaluates to true, and the label to
+     * which to jump if it evaluates to false, respecitvely.  "switchValues"
+     * consists of two elements: a CFGOperand for true and NULL respectively.
+     * 
+     * If it is CFG_SWITCH, this consists of the labels to jump in each of the
+     * cases.  If "arg1" is equal to switchValues[i], then we jump to
+     * switchLabels[i].  A NULL element in "switchValues" indicates a default
+     * label to which to jump if "arg1" does not match any of the other values.
+     * All non-NULL elements of "switchValues" are literals of type Int.
+     * 
+     * Here is a C++ approximation of the CFG_SWITCH operation:
+     * 
+     * switch (arg1) {
+     *     case switchValues[0]:
+     *         goto switchLabels[0];
+     *     case switchValues[1]:
+     *         goto switchLabels[1];
+     *     ...
+     *     case switchValues[n]:
+     *         goto switchLabels[n];
+     * }
      */
-    CFGLabel* falseLabel;
+    std::vector<CFGLabel*> switchLabels;
     
     CFGStatement(
         CFGOperation op2,

@@ -173,16 +173,10 @@ caseList : caseList caseClause ':' statementList
            { $$ = astNew3(AST_CASE_LIST, $1, $2, $4); }
          |
            { $$ = astNew0(AST_EMPTY_CASE_LIST); };
-caseClause : CASE literal
+caseClause : CASE INT_LITERAL
              { $$ = astNew1(AST_CASE_LABEL, $2); }
            | DEFAULT
              { $$ = astNew0(AST_CASE_LABEL_DEFAULT); };
-literal : INT_LITERAL
-          { $$ = $1; }
-        | TRUE
-          { $$ = astNew0(AST_TRUE); }
-        | FALSE
-          { $$ = astNew0(AST_FALSE); };
 whileStatement : WHILE '(' expression ')' statement
                  { $$ = astNew2(AST_WHILE, $3, $5); };
 doWhileStatement : DO statement WHILE '(' expression ')' ';'
@@ -351,7 +345,11 @@ parenthesesExpression : '(' expression ')'
                         { $$ = astNew1(AST_ARRAY_LENGTH, $1); }
                       | methodCall
                         { $$ = $1; }
-                      | literal
-                        { $$ = $1; }
                       | IDENTIFIER
-                        { $$ = $1; };
+                        { $$ = $1; }
+                      | INT_LITERAL
+                        { $$ = $1; }
+                      | TRUE
+                        { $$ = astNew0(AST_TRUE); }
+                      | FALSE
+                        { $$ = astNew0(AST_FALSE); };

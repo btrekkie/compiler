@@ -5,6 +5,7 @@ extern "C" {
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
+#include <set>
 #include <stdlib.h>
 #include <string>
 #include <vector>
@@ -281,8 +282,10 @@ private:
                     CFG_IF,
                     NULL,
                     operand);
-                statement->trueLabel = trueLabel;
-                statement->falseLabel = falseLabel;
+                statement->switchValues.push_back(CFGOperand::fromBool(true));
+                statement->switchLabels.push_back(trueLabel);
+                statement->switchValues.push_back(NULL);
+                statement->switchLabels.push_back(falseLabel);
                 statements->push_back(statement);
                 break;
             }
@@ -449,6 +452,20 @@ private:
             return new CFGType("Object");
     }
     
+    CFGOperand* getOperandForLiteral(AST* node) {
+        switch (node->type) {
+            case AST_FALSE:
+                return CFGOperand::fromBool(false);
+            case AST_INT_LITERAL:
+                return new CFGOperand(atoi(node->tokenStr));
+            case AST_TRUE:
+                return CFGOperand::fromBool(true);
+            default:
+                assert(!"Unhandled literal type");
+        }
+        return NULL;
+    }
+    
     /**
      * Compiles the specified expression.
      * @param node the node to compile.
@@ -552,8 +569,9 @@ private:
                 return destination;
             }
             case AST_FALSE:
+            case AST_INT_LITERAL:
             case AST_TRUE:
-                return CFGOperand::fromBool(node->type == AST_TRUE);
+                return getOperandForLiteral(node);
             case AST_GREATER_THAN:
             case AST_GREATER_THAN_OR_EQUAL_TO:
             case AST_LESS_THAN:
@@ -576,8 +594,6 @@ private:
             }
             case AST_IDENTIFIER:
                 return getVarOperand(node);
-            case AST_INT_LITERAL:
-                return new CFGOperand(atoi(node->tokenStr));
             case AST_METHOD_CALL:
             case AST_NEW:
                 assert(!"TODO classes");
@@ -748,6 +764,59 @@ private:
     }
     
     /**
+     * Compiles the specified case list list node (the "caseList" rule in
+     * grammar.y).
+     * @param node the node.
+     * @param switchValues a vector to which to append the values for the case
+     *     statements.  See the comments for CFGStatement.switchValues for more
+     *     information.
+     * @param switchLabels a vector to which to append the labels associated
+     *     with the case statements.  See the comments for
+     *     CFGStatement.switchValues for more information.
+     * @param switchValueInts a set of the values for the case labels in the
+     *     enclosing switch statement that we have encountered thus far.
+     * @param haveEncounteredDefault whether we have encountered a derault label
+     *     in the enclosing switch statement.
+     */
+    void compileCaseList(
+        AST* node,
+        vector<CFGOperand*>& switchValues,
+        vector<CFGLabel*>& switchLabels,
+        set<int>& switchValueInts,
+        bool& haveEncounteredDefault) {
+        if (node->type == AST_EMPTY_CASE_LIST)
+            return;
+        assert(node->type == AST_CASE_LIST || !"Not a case list");
+        compileCaseList(
+            node->child1,
+            switchValues,
+            switchLabels,
+            switchValueInts,
+            haveEncounteredDefault);
+        if (node->child2->type == AST_CASE_LABEL_DEFAULT) {
+            if (haveEncounteredDefault)
+                emitError(node, "Duplicate default label");
+            haveEncounteredDefault = true;
+            switchValues.push_back(NULL);
+        } else {
+            CFGOperand* value = getOperandForLiteral(node->child2->child1);
+            assert(
+                (value->type->className == "Int" &&
+                 value->type->numDimensions == 0) ||
+                !"Type of integer literal must be Int");
+            if (switchValueInts.count(value->intValue) > 0)
+                emitError(node, "Duplicate case label");
+            switchValueInts.insert(value->intValue);
+            switchValues.push_back(value);
+        }
+        
+        // TODO emit a compiler error if the program falls through
+        CFGLabel* label = new CFGLabel();
+        statements->push_back(CFGStatement::fromLabel(label));
+        compileStatementList(node->child3);
+    }
+    
+    /**
      * Compiles the specified statement node (the "statement" rule in
      * grammar.y).
      */
@@ -845,8 +914,28 @@ private:
                 statements->push_back(CFGStatement::jump(returnLabel));
                 break;
             case AST_SWITCH:
-                assert(!"TODO switch statement");
+            {
+                CFGLabel* finishLabel = new CFGLabel();
+                breakLabels.push_back(finishLabel);
+                CFGOperand* operand = compileExpression(node->child1);
+                if (!operand->type->isIntegerLike())
+                    emitError(node, "Operand must be of an integer-like type");
+                CFGStatement* statement = new CFGStatement(
+                    CFG_SWITCH,
+                    NULL,
+                    operand);
+                set<int> switchValueInts;
+                bool haveEncounteredDefault;
+                compileCaseList(
+                    node->child2,
+                    statement->switchValues,
+                    statement->switchLabels,
+                    switchValueInts,
+                    haveEncounteredDefault);
+                breakLabels.pop_back();
+                statements->push_back(CFGStatement::fromLabel(finishLabel));
                 break;
+            }
             case AST_VAR_DECLARATION:
                 compileVarDeclarationList(
                     node->child2,

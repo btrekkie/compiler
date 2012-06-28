@@ -119,8 +119,6 @@ CFGStatement::CFGStatement(
     arg1 = arg1b;
     arg2 = arg2b;
     label = NULL;
-    trueLabel = NULL;
-    falseLabel = NULL;
 }
 
 CFGStatement* CFGStatement::fromLabel(CFGLabel* label2) {
@@ -131,8 +129,8 @@ CFGStatement* CFGStatement::fromLabel(CFGLabel* label2) {
 
 CFGStatement* CFGStatement::jump(CFGLabel* label2) {
     CFGStatement* statement = new CFGStatement(CFG_JUMP, NULL, NULL);
-    statement->trueLabel = label2;
-    statement->falseLabel = label2;
+    statement->switchValues.push_back(NULL);
+    statement->switchLabels.push_back(label2);
     return statement;
 }
 
