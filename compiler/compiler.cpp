@@ -169,6 +169,8 @@ private:
     
     /**
      * Compiles the specified node of type AST_[PRE|POST]_[INCREMENT|DECREMENT].
+     * @param node the node to compile.
+     * @return a CFGOperand storing the results of the expression.
      */
     CFGOperand* compileIncrementExpression(AST* node) {
         assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
@@ -452,6 +454,9 @@ private:
             return new CFGType("Object");
     }
     
+    /**
+     * Returns a CFGOperand for the specified node indicating a literal value.
+     */
     CFGOperand* getOperandForLiteral(AST* node) {
         switch (node->type) {
             case AST_FALSE:
@@ -467,31 +472,12 @@ private:
     }
     
     /**
-     * Compiles the specified expression.
+     * Compiles a node for performing a "mathematical" operation.
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
-    CFGOperand* compileExpression(AST* node) {
+    CFGOperand* compileMathExpression(AST* node) {
         switch (node->type) {
-            case AST_ARRAY:
-            case AST_ARRAY_GET:
-            case AST_ARRAY_LENGTH:
-                assert(!"TODO arrays");
-                return NULL;
-            case AST_ASSIGNMENT_EXPRESSION:
-            {
-                assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
-                CFGOperand* destination = getVarOperand(node->child1);
-                CFGOperand* source = compileExpression(node->child3);
-                if (node->child2->type != AST_ASSIGN)
-                    source = appendBinaryArithmeticExpression(
-                        node,
-                        opForAssignmentType(node->child2->type),
-                        destination,
-                        source);
-                appendAssignmentStatement(node, destination, source);
-                break;
-            }
             case AST_BITWISE_AND:
             case AST_BITWISE_OR:
             case AST_DIV:
@@ -526,6 +512,39 @@ private:
                         operand));
                 return destination;
             }
+            case AST_GREATER_THAN:
+            case AST_GREATER_THAN_OR_EQUAL_TO:
+            case AST_LESS_THAN:
+            case AST_LESS_THAN_OR_EQUAL_TO:
+            {
+                CFGOperand* source1 = compileExpression(node->child1);
+                if (!source1->type->isNumeric())
+                    emitError(node, "Operand must be a number");
+                CFGOperand* source2 = compileExpression(node->child2);
+                if (!source2->type->isNumeric())
+                    emitError(node, "Operand must be a number");
+                CFGOperand* destination = new CFGOperand(CFGType::boolType());
+                statements->push_back(
+                    new CFGStatement(
+                        opForExpressionType(node->type),
+                        destination,
+                        source1,
+                        source2));
+                return destination;
+            }
+            default:
+                assert(!"Unhandled math expression");
+        }
+        return NULL;
+    }
+    
+    /**
+     * Compiles a node for performing a boolean-related operation.
+     * @param node the node to compile.
+     * @return a CFGOperand storing the results of the expression.
+     */
+    CFGOperand* compileBooleanExpression(AST* node) {
+        switch (node->type) {
             case AST_BOOLEAN_AND:
             case AST_BOOLEAN_OR:
             {
@@ -550,9 +569,6 @@ private:
                 statements->push_back(CFGStatement::fromLabel(endLabel));
                 return destination;
             }
-            case AST_CAST:
-                assert(!"TODO classes");
-                return NULL;
             case AST_EQUALS:
             case AST_NOT_EQUALS:
             {
@@ -568,36 +584,6 @@ private:
                         source2));
                 return destination;
             }
-            case AST_FALSE:
-            case AST_INT_LITERAL:
-            case AST_TRUE:
-                return getOperandForLiteral(node);
-            case AST_GREATER_THAN:
-            case AST_GREATER_THAN_OR_EQUAL_TO:
-            case AST_LESS_THAN:
-            case AST_LESS_THAN_OR_EQUAL_TO:
-            {
-                CFGOperand* source1 = compileExpression(node->child1);
-                if (!source1->type->isNumeric())
-                    emitError(node, "Operand must be a number");
-                CFGOperand* source2 = compileExpression(node->child2);
-                if (!source2->type->isNumeric())
-                    emitError(node, "Operand must be a number");
-                CFGOperand* destination = new CFGOperand(CFGType::boolType());
-                statements->push_back(
-                    new CFGStatement(
-                        opForExpressionType(node->type),
-                        destination,
-                        source1,
-                        source2));
-                return destination;
-            }
-            case AST_IDENTIFIER:
-                return getVarOperand(node);
-            case AST_METHOD_CALL:
-            case AST_NEW:
-                assert(!"TODO classes");
-                return NULL;
             case AST_NOT:
             {
                 CFGOperand* operand = compileExpression(node->child1);
@@ -611,11 +597,6 @@ private:
                         operand));
                 return destination;
             }
-            case AST_POST_DECREMENT:
-            case AST_POST_INCREMENT:
-            case AST_PRE_DECREMENT:
-            case AST_PRE_INCREMENT:
-                return compileIncrementExpression(node);
             case AST_TERNARY:
             {
                 CFGOperand* destination = new CFGOperand((CFGType*)NULL);
@@ -637,6 +618,91 @@ private:
                     falseValue->type);
                 return destination;
             }
+            default:
+                assert(!"Unhanded boolean expression");
+        }
+        return NULL;
+    }
+    
+    /**
+     * Compiles the specified node of type AST_ASSIGNMENT_EXPRESSION.
+     * @param node the node to compile.
+     * @return a CFGOperand storing the results of the expression.
+     */
+    CFGOperand* compileAssignmentExpression(AST* node) {
+        assert(
+            node->type == AST_ASSIGNMENT_EXPRESSION ||
+                !"Not an assignment expression");
+        assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
+        CFGOperand* destination = getVarOperand(node->child1);
+        CFGOperand* source = compileExpression(node->child3);
+        if (node->child2->type != AST_ASSIGN)
+            source = appendBinaryArithmeticExpression(
+                node,
+                opForAssignmentType(node->child2->type),
+                destination,
+                source);
+        appendAssignmentStatement(node, destination, source);
+        return destination;
+    }
+    
+    /**
+     * Compiles the specified expression.
+     * @param node the node to compile.
+     * @return a CFGOperand storing the results of the expression.
+     */
+    CFGOperand* compileExpression(AST* node) {
+        switch (node->type) {
+            case AST_ARRAY:
+            case AST_ARRAY_GET:
+            case AST_ARRAY_LENGTH:
+                assert(!"TODO arrays");
+                return NULL;
+            case AST_ASSIGNMENT_EXPRESSION:
+                return compileAssignmentExpression(node);
+            case AST_BITWISE_AND:
+            case AST_BITWISE_INVERT:
+            case AST_BITWISE_OR:
+            case AST_DIV:
+            case AST_GREATER_THAN:
+            case AST_GREATER_THAN_OR_EQUAL_TO:
+            case AST_LEFT_SHIFT:
+            case AST_LESS_THAN:
+            case AST_LESS_THAN_OR_EQUAL_TO:
+            case AST_MINUS:
+            case AST_MOD:
+            case AST_MULT:
+            case AST_NEGATE:
+            case AST_PLUS:
+            case AST_RIGHT_SHIFT:
+            case AST_UNSIGNED_RIGHT_SHIFT:
+            case AST_XOR:
+                return compileMathExpression(node);
+            case AST_BOOLEAN_AND:
+            case AST_BOOLEAN_OR:
+            case AST_EQUALS:
+            case AST_NOT:
+            case AST_NOT_EQUALS:
+            case AST_TERNARY:
+                return compileBooleanExpression(node);
+            case AST_CAST:
+                assert(!"TODO classes");
+                return NULL;
+            case AST_FALSE:
+            case AST_INT_LITERAL:
+            case AST_TRUE:
+                return getOperandForLiteral(node);
+            case AST_IDENTIFIER:
+                return getVarOperand(node);
+            case AST_METHOD_CALL:
+            case AST_NEW:
+                assert(!"TODO classes");
+                return NULL;
+            case AST_POST_DECREMENT:
+            case AST_POST_INCREMENT:
+            case AST_PRE_DECREMENT:
+            case AST_PRE_INCREMENT:
+                return compileIncrementExpression(node);
             default:
                 assert(!"Unhandled expression type");
         }
