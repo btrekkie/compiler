@@ -208,6 +208,62 @@ private:
     }
     
     /**
+     * Outputs the C++ code for the specified jump or conditional jump
+     * statement, excluding the label name.
+     */
+    void outputJumpStatement(CFGStatement* statement) {
+        switch (statement->op) {
+            case CFG_IF:
+                outputIndentation(1);
+                *output << "if (";
+                outputOperand(statement->arg1);
+                *output << ")\n";
+                outputIndentation(2);
+                *output << "goto ";
+                outputLabelName(statement->switchLabels.at(0));
+                *output << ";\n";
+                outputIndentation(1);
+                *output << "else\n";
+                outputIndentation(2);
+                *output << "goto ";
+                outputLabelName(statement->switchLabels.at(1));
+                *output << ";\n";
+                break;
+            case CFG_JUMP:
+                outputIndentation(1);
+                *output << "goto ";
+                outputLabelName(statement->switchLabels.at(0));
+                *output << ";\n";
+                break;
+            case CFG_SWITCH:
+                outputIndentation(1);
+                *output << "switch (";
+                outputOperand(statement->arg1);
+                *output << ") {\n";
+                for (int i = 0; i < (int)statement->switchValues.size(); i++) {
+                    outputIndentation(1);
+                    CFGOperand* value = statement->switchValues[i];
+                    if (value == NULL)
+                        *output << "default:\n";
+                    else {
+                        *output << "case ";
+                        outputOperand(value);
+                        *output << ":\n";
+                    }
+                    outputIndentation(1);
+                    *output << "goto ";
+                    outputLabelName(statement->switchLabels[i]);
+                    *output << ";\n";
+                }
+                outputIndentation(1);
+                *output << "}\n";
+                break;
+            default:
+                assert(!"Unhandled jump statement");
+        }
+    }
+    
+    /**
      * Outputs the C++ code for the specified statement.
      */
     void outputStatement(CFGStatement* statement) {
@@ -235,51 +291,12 @@ private:
                 *output << ";\n";
                 break;
             case CFG_IF:
-                outputIndentation(1);
-                *output << "if (";
-                outputOperand(statement->arg1);
-                *output << ")\n";
-                outputIndentation(2);
-                *output << "goto ";
-                outputLabelName(statement->switchLabels.at(0));
-                *output << ";\n";
-                outputIndentation(1);
-                *output << "else\n";
-                outputIndentation(2);
-                *output << "goto ";
-                outputLabelName(statement->switchLabels.at(1));
-                *output << ";\n";
-                break;
             case CFG_JUMP:
-                outputIndentation(1);
-                *output << "goto ";
-                outputLabelName(statement->switchLabels.at(0));
-                *output << ";\n";
+            case CFG_SWITCH:
+                outputJumpStatement(statement);
                 break;
             case CFG_NOP:
                 break;
-            case CFG_SWITCH:
-                outputIndentation(1);
-                *output << "switch (";
-                outputOperand(statement->arg1);
-                *output << ") {\n";
-                for (int i = 0; i < (int)statement->switchValues.size(); i++) {
-                    outputIndentation(1);
-                    CFGOperand* value = statement->switchValues[i];
-                    if (value == NULL)
-                        *output << "default:\n";
-                    else {
-                        *output << "case ";
-                        outputOperand(value);
-                        *output << ":\n";
-                    }
-                    outputIndentation(1);
-                    *output << "goto ";
-                    outputLabelName(statement->switchLabels[i]);
-                    *output << ";\n";
-                }
-                outputIndentation(1);
-                *output << "}\n";
             case CFG_UNSIGNED_RIGHT_SHIFT:
                 outputIndentation(1);
                 outputOperand(statement->destination);
