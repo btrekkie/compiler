@@ -883,19 +883,11 @@ private:
     }
     
     /**
-     * Compiles the specified statement node (the "statement" rule in
-     * grammar.y).
+     * Compiles the specified control flow statement node (a break, continue, or
+     * return statement).
      */
-    void compileStatement(AST* node) {
+    void compileControlFlowStatement(AST* node) {
         switch (node->type) {
-            case AST_ASSIGNMENT_EXPRESSION:
-                compileExpression(node);
-                break;
-            case AST_BLOCK:
-                pushFrame();
-                compileStatementList(node->child1);
-                popFrame();
-                break;
             case AST_BREAK:
             {
                 int numLoops;
@@ -930,14 +922,25 @@ private:
                         continueLabels.at(continueLabels.size() - numLoops)));
                 break;
             }
-            case AST_DO_WHILE:
-            case AST_FOR:
-            case AST_FOR_IN:
-            case AST_WHILE:
-                compileLoop(node);
+            case AST_RETURN:
+                if (node->child1 != NULL) {
+                    CFGOperand* operand = compileExpression(node->child1);
+                    appendAssignmentStatement(node, returnVar, operand);
+                } else if (returnVar != NULL)
+                    emitError(node, "Must return a non-void value");
+                statements->push_back(CFGStatement::jump(returnLabel));
                 break;
-            case AST_EMPTY_STATEMENT:
-                break;
+            default:
+                assert(!"Unhanded control flow statement type");
+        }
+    }
+    
+    /**
+     * Compiles the specified selection statement node (an if or switch
+     * statement).
+     */
+    void compileSelectionStatement(AST* node) {
+        switch (node->type) {
             case AST_IF:
             {
                 CFGLabel* trueLabel = new CFGLabel();
@@ -962,23 +965,6 @@ private:
                 statements->push_back(CFGStatement::fromLabel(finishLabel));
                 break;
             }
-            case AST_METHOD_CALL:
-                assert(!"TODO classes");
-                break;
-            case AST_POST_DECREMENT:
-            case AST_POST_INCREMENT:
-            case AST_PRE_DECREMENT:
-            case AST_PRE_INCREMENT:
-                compileIncrementExpression(node);
-                break;
-            case AST_RETURN:
-                if (node->child1 != NULL) {
-                    CFGOperand* operand = compileExpression(node->child1);
-                    appendAssignmentStatement(node, returnVar, operand);
-                } else if (returnVar != NULL)
-                    emitError(node, "Must return a non-void value");
-                statements->push_back(CFGStatement::jump(returnLabel));
-                break;
             case AST_SWITCH:
             {
                 CFGLabel* finishLabel = new CFGLabel();
@@ -1002,6 +988,52 @@ private:
                 statements->push_back(CFGStatement::fromLabel(finishLabel));
                 break;
             }
+            default:
+                assert(!"Unhanded selection statement type");
+        }
+    }
+    
+    /**
+     * Compiles the specified statement node (the "statement" rule in
+     * grammar.y).
+     */
+    void compileStatement(AST* node) {
+        switch (node->type) {
+            case AST_ASSIGNMENT_EXPRESSION:
+                compileExpression(node);
+                break;
+            case AST_BLOCK:
+                pushFrame();
+                compileStatementList(node->child1);
+                popFrame();
+                break;
+            case AST_BREAK:
+            case AST_CONTINUE:
+            case AST_RETURN:
+                compileControlFlowStatement(node);
+                break;
+            case AST_DO_WHILE:
+            case AST_FOR:
+            case AST_FOR_IN:
+            case AST_WHILE:
+                compileLoop(node);
+                break;
+            case AST_EMPTY_STATEMENT:
+                break;
+            case AST_IF:
+            case AST_IF_ELSE:
+            case AST_SWITCH:
+                compileSelectionStatement(node);
+                break;
+            case AST_METHOD_CALL:
+                assert(!"TODO classes");
+                break;
+            case AST_POST_DECREMENT:
+            case AST_POST_INCREMENT:
+            case AST_PRE_DECREMENT:
+            case AST_PRE_INCREMENT:
+                compileIncrementExpression(node);
+                break;
             case AST_VAR_DECLARATION:
                 compileVarDeclarationList(
                     node->child2,
