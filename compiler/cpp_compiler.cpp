@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <map>
 #include <sstream>
+#include "cfg.hpp"
 #include "cpp_compiler.hpp"
 
 using namespace std;

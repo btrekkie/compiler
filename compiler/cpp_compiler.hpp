@@ -2,7 +2,8 @@
 #define CPP_COMPILER_HPP_INCLUDED
 
 #include <iostream>
-#include "cfg.hpp"
+
+class CFGFile;
 
 /**
  * Appends the C++ header file corresponding to the C++ source file suggested by

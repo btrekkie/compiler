@@ -1,14 +1,11 @@
-extern "C" {
-    #include "ast.h"
-}
-
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
 #include <set>
-#include <stdlib.h>
 #include <string>
 #include <vector>
+#include "ast_util.hpp"
+#include "break_evaluator.hpp"
 #include "cfg.hpp"
 #include "compiler.hpp"
 #include "cpp_compiler.hpp"
@@ -42,24 +39,11 @@ private:
      */
     vector<map<string, CFGOperand*>*> frameVars;
     /**
-     * A stack of the labels that are the targets of any break statements we
-     * encounter.
+     * A BreakEvaluator maintaining compiler state pertaining to control flow
+     * statements in the current method, if any: break statements, continue
+     * statements, and return statements.
      */
-    vector<CFGLabel*> breakLabels;
-    /**
-     * A stack of the labels that are the targets of any continue statements we
-     * encounter.
-     */
-    vector<CFGLabel*> continueLabels;
-    /**
-     * The variable in which to store the return value of the method we are
-     * currently compiling, or NULL if the method has no return value.
-     */
-    CFGOperand* returnVar;
-    /**
-     * The label indicating the end of method we are currently compiling.
-     */
-    CFGLabel* returnLabel;
+    BreakEvaluator* breakEvaluator;
     
     /**
      * Outputs a compiler error.
@@ -462,7 +446,7 @@ private:
             case AST_FALSE:
                 return CFGOperand::fromBool(false);
             case AST_INT_LITERAL:
-                return new CFGOperand(atoi(node->tokenStr));
+                return new CFGOperand(ASTUtil::getIntLiteralValue(node));
             case AST_TRUE:
                 return CFGOperand::fromBool(true);
             default:
@@ -768,8 +752,8 @@ private:
     void compileLoop(ASTNode* node) {
         CFGLabel* continueLabel = new CFGLabel();
         CFGLabel* endLabel = new CFGLabel();
-        breakLabels.push_back(endLabel);
-        continueLabels.push_back(continueLabel);
+        breakEvaluator->pushBreakLabel(endLabel);
+        breakEvaluator->pushContinueLabel(continueLabel);
         switch (node->type) {
             case AST_DO_WHILE:
             {
@@ -812,14 +796,15 @@ private:
                 break;
         }
         statements->push_back(CFGStatement::fromLabel(endLabel));
-        breakLabels.pop_back();
-        continueLabels.pop_back();
+        breakEvaluator->popBreakLabel();
+        breakEvaluator->popContinueLabel();
     }
     
     /**
-     * Compiles the specified case list list node (the "caseList" rule in
-     * grammar.y).
+     * Compiles the specified case list node (the "caseList" rule in grammar.y).
      * @param node the node.
+     * @param nextCaseLabelNode the node for the following case label in the
+     *     switch statement, if any.
      * @param switchValues a vector to which to append the values for the case
      *     statements.  See the comments for CFGStatement.switchValues for more
      *     information.
@@ -833,6 +818,7 @@ private:
      */
     void compileCaseList(
         ASTNode* node,
+        ASTNode* nextCaseLabelNode,
         vector<CFGOperand*>& switchValues,
         vector<CFGLabel*>& switchLabels,
         set<int>& switchValueInts,
@@ -842,6 +828,7 @@ private:
         assert(node->type == AST_CASE_LIST || !"Not a case list");
         compileCaseList(
             node->child1,
+            node->child2,
             switchValues,
             switchLabels,
             switchValueInts,
@@ -863,7 +850,13 @@ private:
             switchValues.push_back(value);
         }
         
-        // TODO emit a compiler error if the program falls through
+        if (node->child3->type != AST_EMPTY_STATEMENT_LIST &&
+            nextCaseLabelNode != NULL &&
+            !breakEvaluator->alwaysBreaks(node->child3))
+            emitError(
+                nextCaseLabelNode,
+                "Falling through in a switch statement is not permitted.  "
+                "Perhaps you are missing a break statement.");
         CFGLabel* label = new CFGLabel();
         statements->push_back(CFGStatement::fromLabel(label));
         compileStatementList(node->child3);
@@ -882,14 +875,15 @@ private:
                     numLoops = 1;
                 else {
                     numLoops = atoi(node->child1->tokenStr);
-                    if (numLoops <= 0)
+                    if (numLoops <= 0) {
                         emitError(node, "Must break out of at least one loop");
+                        break;
+                    }
                 }
-                if (numLoops > (int)breakLabels.size())
+                CFGLabel* breakLabel = breakEvaluator->getBreakLabel(numLoops);
+                if (breakLabel == NULL)
                     emitError(node, "Attempting to break out of non-loop");
-                statements->push_back(
-                    CFGStatement::jump(
-                        breakLabels.at(breakLabels.size() - numLoops)));
+                statements->push_back(CFGStatement::jump(breakLabel));
                 break;
             }
             case AST_CONTINUE:
@@ -899,23 +893,35 @@ private:
                     numLoops = 1;
                 else {
                     numLoops = atoi(node->child1->tokenStr);
-                    if (numLoops <= 0)
+                    if (numLoops <= 0) {
                         emitError(node, "Must continue at least one loop");
+                        break;
+                    }
                 }
-                if (numLoops > (int)continueLabels.size())
+                CFGLabel* continueLabel = breakEvaluator->getContinueLabel(
+                    numLoops);
+                if (continueLabel == NULL)
                     emitError(node, "Attempting to continue non-loop");
-                statements->push_back(
-                    CFGStatement::jump(
-                        continueLabels.at(continueLabels.size() - numLoops)));
+                statements->push_back(CFGStatement::jump(continueLabel));
                 break;
             }
             case AST_RETURN:
                 if (node->child1 != NULL) {
                     CFGOperand* operand = compileExpression(node->child1);
-                    appendAssignmentStatement(node, returnVar, operand);
-                } else if (returnVar != NULL)
+                    if (breakEvaluator->getReturnVar() == NULL) {
+                        emitError(
+                            node,
+                            "Cannot return a value from a void method");
+                        break;
+                    }
+                    appendAssignmentStatement(
+                        node,
+                        breakEvaluator->getReturnVar(),
+                        operand);
+                } else if (breakEvaluator->getReturnVar() != NULL)
                     emitError(node, "Must return a non-void value");
-                statements->push_back(CFGStatement::jump(returnLabel));
+                statements->push_back(
+                    CFGStatement::jump(breakEvaluator->getReturnLabel()));
                 break;
             default:
                 assert(!"Unhanded control flow statement type");
@@ -955,7 +961,7 @@ private:
             case AST_SWITCH:
             {
                 CFGLabel* finishLabel = new CFGLabel();
-                breakLabels.push_back(finishLabel);
+                breakEvaluator->pushBreakLabel(finishLabel);
                 CFGOperand* operand = compileExpression(node->child1);
                 if (!operand->type->isIntegerLike())
                     emitError(node, "Operand must be of an integer-like type");
@@ -967,11 +973,12 @@ private:
                 bool haveEncounteredDefault;
                 compileCaseList(
                     node->child2,
+                    NULL,
                     statement->switchValues,
                     statement->switchLabels,
                     switchValueInts,
                     haveEncounteredDefault);
-                breakLabels.pop_back();
+                breakEvaluator->popBreakLabel();
                 statements->push_back(CFGStatement::fromLabel(finishLabel));
                 break;
             }
@@ -1087,8 +1094,8 @@ private:
             CFGType* type = getCFGType(node->child1);
             method->returnVar = new CFGOperand(type);
         }
-        returnVar = method->returnVar;
-        returnLabel = new CFGLabel();
+        CFGLabel* returnLabel = new CFGLabel();
+        breakEvaluator = new BreakEvaluator(method->returnVar, returnLabel);
         statements = &(method->statements);
         if (node->child4 != NULL)
             compileStatementList(node->child4);
@@ -1096,6 +1103,8 @@ private:
             compileStatementList(node->child3);
         popFrame();
         method->statements.push_back(CFGStatement::fromLabel(returnLabel));
+        delete breakEvaluator;
+        breakEvaluator = NULL;
         return method;
     }
     
@@ -1143,6 +1152,10 @@ private:
         return clazz;
     }
 public:
+    Compiler() {
+        breakEvaluator = NULL;
+    }
+    
     CFGFile* compileFile(ASTNode* node) {
         CFGFile* file = new CFGFile();
         file->clazz = compileClass(node->child1);

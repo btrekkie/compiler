@@ -169,14 +169,14 @@ ifStatement : IF '(' expression ')' statement %prec IFX
               { $$ = astNew3(AST_IF_ELSE, $3, $5, $7); };
 switchStatement : SWITCH '(' expression ')' '{' caseList '}'
                   { $$ = astNew2(AST_SWITCH, $3, $6); }
-caseList : caseList caseClause ':' statementList
+caseList : caseList caseLabel ':' statementList
            { $$ = astNew3(AST_CASE_LIST, $1, $2, $4); }
          |
            { $$ = astNew0(AST_EMPTY_CASE_LIST); };
-caseClause : CASE INT_LITERAL
-             { $$ = astNew1(AST_CASE_LABEL, $2); }
-           | DEFAULT
-             { $$ = astNew0(AST_CASE_LABEL_DEFAULT); };
+caseLabel : CASE INT_LITERAL
+            { $$ = astNew1(AST_CASE_LABEL, $2); }
+          | DEFAULT
+            { $$ = astNew0(AST_CASE_LABEL_DEFAULT); };
 whileStatement : WHILE '(' expression ')' statement
                  { $$ = astNew2(AST_WHILE, $3, $5); };
 doWhileStatement : DO statement WHILE '(' expression ')' ';'
