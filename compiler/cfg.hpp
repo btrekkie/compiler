@@ -81,8 +81,7 @@ public:
      */
     bool isNumeric();
     /**
-     * Returns whether this is an integer-like value: "Byte", "Int", or "Long"
-     * (but not "Char").
+     * Returns whether this is an integer-like value: "Byte", "Int", or "Long".
      */
     bool isIntegerLike();
     /**

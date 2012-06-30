@@ -41,8 +41,6 @@ bool CFGType::isNumeric() {
         return true;
     else if (className == "Double")
         return true;
-    else if (className == "Char")
-        return true;
     else
         return false;
 }
@@ -63,16 +61,14 @@ bool CFGType::isIntegerLike() {
 int CFGType::getPromotionLevel() {
     if (className == "Byte")
         return 1;
-    else if (className == "Char")
-        return 2;
     else if (className == "Int")
-        return 3;
+        return 2;
     else if (className == "Long")
-        return 4;
+        return 3;
     else if (className == "Float")
-        return 5;
+        return 4;
     else if (className == "Double")
-        return 6;
+        return 5;
     else {
         assert(!"Promotion only applies to numbers");
         return 0;
