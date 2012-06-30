@@ -43,14 +43,6 @@ enum CFGOperation {
 class CFGType {
 private:
     /**
-     * Returns an integer indicating the relative level of promotion of this
-     * type.  A greater number indicates a more promoted type.  Assumes
-     * isNumeric() is true.  See the comments for "isMorePromotedThan" for more
-     * information regardin promotion.
-     */
-    int getPromotionLevel();
-public:
-    /**
      * The type's class name.  If this is an array, "name" is the class name of
      * the array's (leaf) elements.
      */
@@ -60,8 +52,17 @@ public:
      * "numDimensions" is 0.
      */
     int numDimensions;
-    
+    /**
+     * Returns an integer indicating the relative level of promotion of this
+     * type.  A greater number indicates a more promoted type.  Assumes
+     * isNumeric() is true.  See the comments for "isMorePromotedThan" for more
+     * information regardin promotion.
+     */
+    int getPromotionLevel();
+public:
     CFGType(std::string name2, int numDimensions2 = 0);
+    std::string getClassName();
+    int getNumDimensions();
     /**
      * Returns a new CFGType for "Bool" values.
      */
@@ -102,7 +103,7 @@ public:
  * literal value.
  */
 class CFGOperand {
-public:
+private:
     /**
      * Whether this is a variable, as opposed to a literal value.
      */
@@ -130,7 +131,7 @@ public:
      * The integer value of this operand, if this is a literal integer.
      */
     int intValue;
-private:
+    
     /**
      * Constructs a new CFGOperand for a literal boolean value.
      */
@@ -150,12 +151,23 @@ public:
      * Constructs a new CFGOperand for a literal integer value.
      */
     explicit CFGOperand(int value);
+    bool getIsVar();
+    bool getIsField();
+    CFGType* getType();
+    std::string getIdentifier();
+    bool getBoolValue();
+    int getIntValue();
+    /**
+     * Sets the compile-time type of this operand.  This may only be called
+     * once, and only if a null type was passed to the constructor.
+     */
+    void setType(CFGType* type);
     /**
      * Returns a new CFGOperand for the literal Int value 1.
      */
     static CFGOperand* one();
     /**
-     * Returns a new CFGOperand for a literal boolean value.
+     * Returns a new CFGOperand for a literal Bool value.
      */
     static CFGOperand* fromBool(bool value);
 };
@@ -173,11 +185,11 @@ class CFGLabel {
  * but it probably will be in the future; the naming scheme is forward-looking.
  */
 class CFGStatement {
-public:
+private:
     /**
      * The operation the statement performs.
      */
-    CFGOperation op;
+    CFGOperation operation;
     /**
      * The variable in which to store the results of the operation, if any.
      */
@@ -229,12 +241,39 @@ public:
      * }
      */
     std::vector<CFGLabel*> switchLabels;
-    
+public:
     CFGStatement(
-        CFGOperation op2,
+        CFGOperation operation2,
         CFGOperand* destination2,
         CFGOperand* arg1b,
         CFGOperand* arg2b = NULL);
+    CFGOperation getOperation();
+    CFGOperand* getDestination();
+    CFGOperand* getArg1();
+    CFGOperand* getArg2();
+    CFGLabel* getLabel();
+    /**
+     * Returns the size of "switchLabels".  See the comments for that field for
+     * more information.
+     */
+    int getNumSwitchLabels();
+    /**
+     * Returns switchValues.at(index).  See the comments for "switchValues" for
+     * more information.
+     */
+    CFGOperand* getSwitchValue(int index);
+    /**
+     * Returns switchLabels.at(index).  See the comments for "switchLabels" for
+     * more information.
+     */
+    CFGLabel* getSwitchLabel(int index);
+    /**
+     * Sets "switchValues" and "switchLabels".  This may only be called once,
+     * and it must be called with non-empty vectors.
+     */
+    void setSwitchValuesAndLabels(
+        std::vector<CFGOperand*> switchValues2,
+        std::vector<CFGLabel*> switchLabels2);
     /**
      * Returns a new CFGStatement of type CFG_NOP, associated with the specified
      * label.
@@ -251,7 +290,7 @@ public:
  * A compiled method implementation.
  */
 class CFGMethod {
-public:
+private:
     /**
      * The method's (unqualified) identifier.
      */
@@ -270,6 +309,16 @@ public:
      * implementation.
      */
     std::vector<CFGStatement*> statements;
+public:
+    CFGMethod(
+        std::string identifier2,
+        CFGOperand* returnVar2,
+        std::vector<CFGOperand*> args2,
+        std::vector<CFGStatement*> statements2);
+    std::string getIdentifier();
+    CFGOperand* getReturnVar();
+    std::vector<CFGOperand*> getArgs();
+    std::vector<CFGStatement*> getStatements();
 };
 
 /**
@@ -280,23 +329,6 @@ public:
 class CFGClass {
 private:
     /**
-     * A map from the (unqualified) identifiers of the class's methods to their
-     * compiled implementations.  The way we store methods will need to change
-     * when we add support for method overloading.
-     */
-    std::map<std::string, CFGMethod*> methods;
-    
-    /**
-     * Deallocates the specified CFGStatements and their labels.
-     * @param statements the statements.
-     * @param operands a set to which to add the statements' operands (including
-     *     null operands).
-     */
-    void deleteStatements(
-        std::vector<CFGStatement*>& statements,
-        std::set<CFGOperand*>& operands);
-public:
-    /**
      * The class's identifier.
      */
     std::string identifier;
@@ -305,6 +337,12 @@ public:
      * CFGOperands for those variables.
      */
     std::map<std::string, CFGOperand*> fields;
+    /**
+     * A map from the (unqualified) identifiers of the class's methods to their
+     * compiled implementations.  The way we store methods will need to change
+     * when we add support for method overloading.
+     */
+    std::map<std::string, CFGMethod*> methods;
     /**
      * The sequence of compiled statements indicating the class's initialization
      * statements.  The initialization statements differ from the constructors
@@ -317,28 +355,48 @@ public:
      */
     std::vector<CFGStatement*> initStatements;
     
-    ~CFGClass();
     /**
      * Adds the specified compiled method to the list of this class's methods.
      */
     void addMethod(CFGMethod* method);
     /**
+     * Deallocates the specified CFGStatements and their labels.
+     * @param statements the statements.
+     * @param operands a set to which to add the statements' operands (including
+     *     null operands).
+     */
+    void deleteStatements(
+        std::vector<CFGStatement*> statements,
+        std::set<CFGOperand*> operands);
+public:
+    CFGClass(
+        std::string identifier2,
+        std::map<std::string, CFGOperand*> fields2,
+        std::vector<CFGMethod*> methods2,
+        std::vector<CFGStatement*> initStatements2);
+    ~CFGClass();
+    std::string getIdentifier();
+    std::map<std::string, CFGOperand*> getFields();
+    /**
      * Returns a list of this class's methods, in an arbitrary order.
      */
     std::vector<CFGMethod*> getMethods();
+    std::vector<CFGStatement*> getInitStatements();
 };
 
 /**
  * A compiled representation of a source code file.
  */
 class CFGFile {
-public:
+private:
     /**
      * The compiled implementation of the file's class.
      */
     CFGClass* clazz;
-    
+public:
+    CFGFile(CFGClass* clazz2);
     ~CFGFile();
+    CFGClass* getClass();
 };
 
 #endif

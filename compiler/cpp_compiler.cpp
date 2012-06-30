@@ -47,16 +47,16 @@ private:
      * Outputs the C++ type corresponding to the specified source code type.
      */
     void outputType(CFGType* type) {
-        assert(type->numDimensions == 0 || !"TODO arrays");
-        if (type->className == "Int")
+        assert(type->getNumDimensions() == 0 || !"TODO arrays");
+        if (type->getClassName() == "Int")
             *output << "int";
-        else if (type->className == "Long")
+        else if (type->getClassName() == "Long")
             *output << "long long";
-        else if (type->className == "Float")
+        else if (type->getClassName() == "Float")
             *output << "float";
-        else if (type->className == "Double")
+        else if (type->getClassName() == "Double")
             *output << "double";
-        else if (type->className == "Bool")
+        else if (type->getClassName() == "Bool")
             *output << "bool";
         else
             assert(!"TODO classes");
@@ -64,37 +64,39 @@ private:
     
     void createNewLocalVarDeclaration(CFGOperand* operand) {
         assert(
-            (operand->isVar && !operand->isField) || !"Not a local variable");
+            (operand->getIsVar() && !operand->getIsField()) ||
+                !"Not a local variable");
         assert(
             localVarIdentifiers.count(operand) == 0 ||
             !"Variable is already declared");
-        if (operand->identifier == "") {
+        if (operand->getIdentifier() == "") {
             stringstream varIdentifier;
             varIdentifier << "e_" << numExpressionSuffixes;
             numExpressionSuffixes++;
             localVarIdentifiers[operand] = varIdentifier.str();
         } else {
             int numSuffixes;
-            if (numLocalVarSuffixes.count(operand->identifier) == 0) {
+            if (numLocalVarSuffixes.count(operand->getIdentifier()) == 0) {
                 numSuffixes = 0;
-                numLocalVarSuffixes[operand->identifier] = 1;
+                numLocalVarSuffixes[operand->getIdentifier()] = 1;
             } else {
-                numSuffixes = numLocalVarSuffixes[operand->identifier];
-                numLocalVarSuffixes[operand->identifier]++;
+                numSuffixes = numLocalVarSuffixes[operand->getIdentifier()];
+                numLocalVarSuffixes[operand->getIdentifier()]++;
             }
             stringstream varIdentifier;
-            varIdentifier << "v_" << operand->identifier << '_' << numSuffixes;
+            varIdentifier << "v_" << operand->getIdentifier() << '_' <<
+                numSuffixes;
             localVarIdentifiers[operand] = varIdentifier.str();
         }
     }
     
     void outputVarDeclarationIfNecessary(CFGOperand* operand) {
-        assert(operand->isVar || !"Not a variable");
-        if (operand->isField || localVarIdentifiers.count(operand) > 0)
+        assert(operand->getIsVar() || !"Not a variable");
+        if (operand->getIsField() || localVarIdentifiers.count(operand) > 0)
             return;
         createNewLocalVarDeclaration(operand);
         outputIndentation(1);
-        outputType(operand->type);
+        outputType(operand->getType());
         *output << ' ' << localVarIdentifiers[operand] << ";\n";
     }
     
@@ -102,19 +104,19 @@ private:
      * Outputs the C++ code for the specified operand.
      */
     void outputOperand(CFGOperand* operand) {
-        if (operand->isVar) {
-            if (operand->isField)
-                *output << "f_" << operand->identifier;
+        if (operand->getIsVar()) {
+            if (operand->getIsField())
+                *output << "f_" << operand->getIdentifier();
             else {
                 assert(
                     localVarIdentifiers.count(operand) > 0 ||
                         !"Missing local variable declaration");
                 *output << localVarIdentifiers[operand];
             }
-        } else if (operand->type->className == "Int")
-            *output << operand->intValue;
-        else if (operand->type->className == "Bool") {
-            if (operand->boolValue)
+        } else if (operand->getType()->getClassName() == "Int")
+            *output << operand->getIntValue();
+        else if (operand->getType()->getClassName() == "Bool") {
+            if (operand->getBoolValue())
                 *output << "true";
             else
                 *output << "false";
@@ -213,37 +215,37 @@ private:
      * statement, excluding the label name.
      */
     void outputJumpStatement(CFGStatement* statement) {
-        switch (statement->op) {
+        switch (statement->getOperation()) {
             case CFG_IF:
                 outputIndentation(1);
                 *output << "if (";
-                outputOperand(statement->arg1);
+                outputOperand(statement->getArg1());
                 *output << ")\n";
                 outputIndentation(2);
                 *output << "goto ";
-                outputLabelName(statement->switchLabels.at(0));
+                outputLabelName(statement->getSwitchLabel(0));
                 *output << ";\n";
                 outputIndentation(1);
                 *output << "else\n";
                 outputIndentation(2);
                 *output << "goto ";
-                outputLabelName(statement->switchLabels.at(1));
+                outputLabelName(statement->getSwitchLabel(1));
                 *output << ";\n";
                 break;
             case CFG_JUMP:
                 outputIndentation(1);
                 *output << "goto ";
-                outputLabelName(statement->switchLabels.at(0));
+                outputLabelName(statement->getSwitchLabel(0));
                 *output << ";\n";
                 break;
             case CFG_SWITCH:
                 outputIndentation(1);
                 *output << "switch (";
-                outputOperand(statement->arg1);
+                outputOperand(statement->getArg1());
                 *output << ") {\n";
-                for (int i = 0; i < (int)statement->switchValues.size(); i++) {
+                for (int i = 0; i < statement->getNumSwitchLabels(); i++) {
                     outputIndentation(1);
-                    CFGOperand* value = statement->switchValues[i];
+                    CFGOperand* value = statement->getSwitchValue(i);
                     if (value == NULL)
                         *output << "default:\n";
                     else {
@@ -253,7 +255,7 @@ private:
                     }
                     outputIndentation(1);
                     *output << "goto ";
-                    outputLabelName(statement->switchLabels[i]);
+                    outputLabelName(statement->getSwitchLabel(i));
                     *output << ";\n";
                 }
                 outputIndentation(1);
@@ -268,27 +270,27 @@ private:
      * Outputs the C++ code for the specified statement.
      */
     void outputStatement(CFGStatement* statement) {
-        if (statement->label != NULL) {
-            outputLabelName(statement->label);
+        if (statement->getLabel() != NULL) {
+            outputLabelName(statement->getLabel());
             *output << ":;\n";
         }
         
-        switch (statement->op) {
+        switch (statement->getOperation()) {
             case CFG_ASSIGN:
                 outputIndentation(1);
-                outputOperand(statement->destination);
+                outputOperand(statement->getDestination());
                 *output << " = ";
-                outputOperand(statement->arg1);
+                outputOperand(statement->getArg1());
                 *output << ";\n";
                 break;
             case CFG_BITWISE_INVERT:
             case CFG_NEGATE:
             case CFG_NOT:
                 outputIndentation(1);
-                outputOperand(statement->destination);
+                outputOperand(statement->getDestination());
                 *output << " = ";
-                outputUnaryOperation(statement->op);
-                outputOperand(statement->arg1);
+                outputUnaryOperation(statement->getOperation());
+                outputOperand(statement->getArg1());
                 *output << ";\n";
                 break;
             case CFG_IF:
@@ -300,26 +302,26 @@ private:
                 break;
             case CFG_UNSIGNED_RIGHT_SHIFT:
                 outputIndentation(1);
-                outputOperand(statement->destination);
+                outputOperand(statement->getDestination());
                 *output << " = (";
-                outputType(statement->destination->type);
+                outputType(statement->getDestination()->getType());
                 *output << ")(((unsigned ";
-                outputType(statement->destination->type);
+                outputType(statement->getDestination()->getType());
                 *output << ")";
-                outputOperand(statement->arg1);
+                outputOperand(statement->getArg1());
                 *output << ") >> ";
-                outputOperand(statement->arg2);
+                outputOperand(statement->getArg2());
                 *output << ");\n";
                 break;
             default:
                 outputIndentation(1);
-                outputOperand(statement->destination);
+                outputOperand(statement->getDestination());
                 *output << " = ";
-                outputOperand(statement->arg1);
+                outputOperand(statement->getArg1());
                 *output << ' ';
-                outputBinaryOperation(statement->op);
+                outputBinaryOperation(statement->getOperation());
                 *output << ' ';
-                outputOperand(statement->arg2);
+                outputOperand(statement->getArg2());
                 *output << ";\n";
                 break;
         }
@@ -328,13 +330,13 @@ private:
     /**
      * Outputs the C++ code for the specified sequence of statements.
      */
-    void outputStatements(vector<CFGStatement*>& statements) {
+    void outputStatements(vector<CFGStatement*> statements) {
         for (vector<CFGStatement*>::const_iterator iterator =
                  statements.begin();
              iterator != statements.end();
              iterator++) {
-            if ((*iterator)->destination != NULL)
-                outputVarDeclarationIfNecessary((*iterator)->destination);
+            if ((*iterator)->getDestination() != NULL)
+                outputVarDeclarationIfNecessary((*iterator)->getDestination());
         }
         for (vector<CFGStatement*>::const_iterator iterator =
                  statements.begin();
@@ -344,7 +346,7 @@ private:
     }
     
     void outputMethodIdentifier(CFGMethod* method) {
-        *output << "m_" << method->identifier;
+        *output << "m_" << method->getIdentifier();
     }
     
     /**
@@ -373,10 +375,10 @@ private:
         numLocalVarSuffixes.clear();
         labelIndices.clear();
         outputIndentation(indentation);
-        if (method->returnVar == NULL)
+        if (method->getReturnVar() == NULL)
             *output << "void ";
         else {
-            outputType(method->returnVar->type);
+            outputType(method->getReturnVar()->getType());
             *output << ' ';
         }
         if (classIdentifier != "") {
@@ -385,16 +387,16 @@ private:
         }
         outputMethodIdentifier(method);
         *output << '(';
-        if (!method->args.empty()) {
-            for (vector<CFGOperand*>::const_iterator iterator =
-                     method->args.begin();
-                 iterator != method->args.end();
+        vector<CFGOperand*> args = method->getArgs();
+        if (!args.empty()) {
+            for (vector<CFGOperand*>::const_iterator iterator = args.begin();
+                 iterator != args.end();
                  iterator++) {
-                if (iterator != method->args.begin())
+                if (iterator != args.begin())
                     *output << ',';
                 *output << '\n';
                 outputIndentation(indentation + 1);
-                outputType((*iterator)->type);
+                outputType((*iterator)->getType());
                 *output << ' ';
                 createNewLocalVarDeclaration(*iterator);
                 outputOperand(*iterator);
@@ -407,12 +409,12 @@ private:
      * Outputs the C++ code declaring the specified class's fields.
      */
     void outputFieldDeclarations(CFGClass* clazz) {
-        for (map<string, CFGOperand*>::const_iterator iterator =
-                 clazz->fields.begin();
-             iterator != clazz->fields.end();
+        map<string, CFGOperand*> fields = clazz->getFields();
+        for (map<string, CFGOperand*>::const_iterator iterator = fields.begin();
+             iterator != fields.end();
              iterator++) {
             outputIndentation(1);
-            outputType(iterator->second->type);
+            outputType(iterator->second->getType());
             *output << " ";
             outputOperand(iterator->second);
             *output << ";\n";
@@ -428,19 +430,19 @@ private:
     void outputMethod(CFGMethod* method, string classIdentifier) {
         outputMethodSignature(method, classIdentifier, 0);
         *output << " {\n";
-        if (method->returnVar != NULL) {
-            createNewLocalVarDeclaration(method->returnVar);
+        if (method->getReturnVar() != NULL) {
+            createNewLocalVarDeclaration(method->getReturnVar());
             outputIndentation(1);
-            outputType(method->returnVar->type);
+            outputType(method->getReturnVar()->getType());
             *output << ' ';
-            outputOperand(method->returnVar);
+            outputOperand(method->getReturnVar());
             *output << ";\n";
         }
-        outputStatements(method->statements);
-        if (method->returnVar != NULL) {
+        outputStatements(method->getStatements());
+        if (method->getReturnVar() != NULL) {
             outputIndentation(1);
             *output << "return ";
-            outputOperand(method->returnVar);
+            outputOperand(method->getReturnVar());
             *output << ";\n";
         }
         *output << "}\n";
@@ -452,7 +454,7 @@ private:
      */
     void outputClassHeaderFile(CFGClass* clazz) {
         *output << "class ";
-        outputClassIdentifier(clazz->identifier);
+        outputClassIdentifier(clazz->getIdentifier());
         *output << " {\n"
             << "public:\n";
         outputFieldDeclarations(clazz);
@@ -474,13 +476,13 @@ private:
         for (vector<CFGMethod*>::const_iterator iterator = methods.begin();
              iterator != methods.end();
              iterator++) {
-            outputMethod(*iterator, clazz->identifier);
+            outputMethod(*iterator, clazz->getIdentifier());
             *output << "\n";
         }
         *output << "void ";
-        outputClassIdentifier(clazz->identifier);
+        outputClassIdentifier(clazz->getIdentifier());
         *output << "::init() {\n";
-        outputStatements(clazz->initStatements);
+        outputStatements(clazz->getInitStatements());
         *output << "}\n";
     }
 public:
@@ -490,12 +492,12 @@ public:
     
     void outputHeaderFile(CFGFile* file, ostream& output2) {
         output = &output2;
-        outputClassHeaderFile(file->clazz);
+        outputClassHeaderFile(file->getClass());
     }
     
     void outputImplementationFile(CFGFile* file, ostream& output2) {
         output = &output2;
-        outputClass(file->clazz);
+        outputClass(file->getClass());
     }
 };
 

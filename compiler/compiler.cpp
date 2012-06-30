@@ -24,9 +24,9 @@ using namespace std;
 class Compiler {
 private:
     /**
-     * An array to which to append the compiled statements.
+     * A vector to which to append the compiled statements.
      */
-    vector<CFGStatement*>* statements;
+    vector<CFGStatement*> statements;
     /**
      * A map from the identifiers of fields and local variables to their
      * corresponding CFGOperands.
@@ -129,8 +129,9 @@ private:
             sourceType->isNumeric() &&
             !sourceType->isMorePromotedThan(destinationType))
             return;
-        if (destinationType->className != sourceType->className ||
-            destinationType->numDimensions != sourceType->numDimensions)
+        if (destinationType->getClassName() != sourceType->getClassName() ||
+            destinationType->getNumDimensions() !=
+              sourceType->getNumDimensions())
             emitError(node, "Incompatible types in assignment");
     }
     
@@ -146,8 +147,11 @@ private:
         CFGOperand* destination,
         CFGOperand* source) {
         
-        assertAssignmentTypeValid(node, destination->type, source->type);
-        statements->push_back(
+        assertAssignmentTypeValid(
+            node,
+            destination->getType(),
+            source->getType());
+        statements.push_back(
             new CFGStatement(CFG_ASSIGN, destination, source));
     }
     
@@ -159,7 +163,7 @@ private:
     CFGOperand* compileIncrementExpression(ASTNode* node) {
         assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
         CFGOperand* operand = getVarOperand(node->child1);
-        if (!operand->type->isNumeric())
+        if (!operand->getType()->isNumeric())
             emitError(
                 node,
                 "Increment / decrement postfix / prefix operator may only be "
@@ -168,9 +172,9 @@ private:
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
             {
-                CFGOperand* result = new CFGOperand(operand->type);
+                CFGOperand* result = new CFGOperand(operand->getType());
                 appendAssignmentStatement(node, result, operand);
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(
                         node->type == AST_POST_INCREMENT ? CFG_PLUS : CFG_MINUS,
                         operand,
@@ -180,7 +184,7 @@ private:
             }
             case AST_PRE_DECREMENT:
             case AST_PRE_INCREMENT:
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(
                         node->type == AST_PRE_INCREMENT ? CFG_PLUS : CFG_MINUS,
                         operand,
@@ -233,7 +237,7 @@ private:
                     node->child1,
                     intermediateLabel,
                     falseLabel);
-                statements->push_back(
+                statements.push_back(
                     CFGStatement::fromLabel(intermediateLabel));
                 compileConditionalJump(node->child2, trueLabel, falseLabel);
                 break;
@@ -245,34 +249,37 @@ private:
                     node->child1,
                     trueLabel,
                     intermediateLabel);
-                statements->push_back(
+                statements.push_back(
                     CFGStatement::fromLabel(intermediateLabel));
                 compileConditionalJump(node->child2, trueLabel, falseLabel);
                 break;
             }
             case AST_FALSE:
-                statements->push_back(CFGStatement::jump(falseLabel));
+                statements.push_back(CFGStatement::jump(falseLabel));
                 break;
             case AST_NOT:
                 compileConditionalJump(node->child1, falseLabel, trueLabel);
                 break;
             case AST_TRUE:
-                statements->push_back(CFGStatement::jump(trueLabel));
+                statements.push_back(CFGStatement::jump(trueLabel));
                 break;
             default:
             {
                 CFGOperand* operand = compileExpression(node);
-                if (!operand->type->isBool())
+                if (!operand->getType()->isBool())
                     emitError(node, "Boolean result is required");
                 CFGStatement* statement = new CFGStatement(
                     CFG_IF,
                     NULL,
                     operand);
-                statement->switchValues.push_back(CFGOperand::fromBool(true));
-                statement->switchLabels.push_back(trueLabel);
-                statement->switchValues.push_back(NULL);
-                statement->switchLabels.push_back(falseLabel);
-                statements->push_back(statement);
+                vector<CFGOperand*> switchValues;
+                vector<CFGLabel*> switchLabels;
+                switchValues.push_back(CFGOperand::fromBool(true));
+                switchLabels.push_back(trueLabel);
+                switchValues.push_back(NULL);
+                switchLabels.push_back(falseLabel);
+                statement->setSwitchValuesAndLabels(switchValues, switchLabels);
+                statements.push_back(statement);
                 break;
             }
         }
@@ -377,7 +384,8 @@ private:
         CFGOperation operation,
         CFGOperand* source1,
         CFGOperand* source2) {
-        if (!source1->type->isNumeric() || !source2->type->isNumeric())
+        if (!source1->getType()->isNumeric() ||
+            !source2->getType()->isNumeric())
             emitError(node, "Operands to arithmetic operator must be numbers");
         
         CFGType* destinationType;
@@ -385,36 +393,36 @@ private:
             case CFG_BITWISE_AND:
             case CFG_BITWISE_OR:
             case CFG_XOR:
-                if (!source1->type->isIntegerLike() ||
-                    !source2->type->isIntegerLike())
+                if (!source1->getType()->isIntegerLike() ||
+                    !source2->getType()->isIntegerLike())
                     emitError(node, "Operand must be of an integer-like type");
-                if (source1->type->isMorePromotedThan(source2->type))
-                    destinationType = source1->type;
+                if (source1->getType()->isMorePromotedThan(source2->getType()))
+                    destinationType = source1->getType();
                 else
-                    destinationType = source2->type;
+                    destinationType = source2->getType();
                 break;
             case CFG_LEFT_SHIFT:
             case CFG_RIGHT_SHIFT:
             case CFG_UNSIGNED_RIGHT_SHIFT:
-                if (!source1->type->isIntegerLike())
+                if (!source1->getType()->isIntegerLike())
                     emitError(node, "Operand must be of an integer-like type");
-                if (source2->type->numDimensions > 0 ||
-                    (source2->type->className != "Int" &&
-                     source2->type->className != "Byte"))
+                if (source2->getType()->getNumDimensions() > 0 ||
+                    (source2->getType()->getClassName() != "Int" &&
+                     source2->getType()->getClassName() != "Byte"))
                     emitError(
                         node,
                         "Operand to bit shift must be integer or byte");
-                destinationType = source1->type;
+                destinationType = source1->getType();
                 break;
             default:
-                if (source1->type->isMorePromotedThan(source2->type))
-                    destinationType = source1->type;
+                if (source1->getType()->isMorePromotedThan(source2->getType()))
+                    destinationType = source1->getType();
                 else
-                    destinationType = source2->type;
+                    destinationType = source2->getType();
                 break;
         }
         CFGOperand* destination = new CFGOperand(destinationType);
-        statements->push_back(
+        statements.push_back(
             new CFGStatement(operation, destination, source1, source2));
         return destination;
     }
@@ -425,7 +433,7 @@ private:
      * "foo() ? objectOfType1 : objectOfType2".
      */
     CFGType* getLeastCommonType(CFGType* type1, CFGType* type2) {
-        if (type1->numDimensions > 0 || type2->numDimensions > 0)
+        if (type1->getNumDimensions() > 0 || type2->getNumDimensions() > 0)
             return new CFGType("Object");
         else if (type1->isBool() && type2->isBool())
             return type1;
@@ -486,10 +494,10 @@ private:
             case AST_NEGATE:
             {
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->type->isIntegerLike())
+                if (!operand->getType()->isIntegerLike())
                     emitError(node, "Operand must be of an integer-like type");
-                CFGOperand* destination = new CFGOperand(operand->type);
-                statements->push_back(
+                CFGOperand* destination = new CFGOperand(operand->getType());
+                statements.push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
                         destination,
@@ -502,13 +510,13 @@ private:
             case AST_LESS_THAN_OR_EQUAL_TO:
             {
                 CFGOperand* source1 = compileExpression(node->child1);
-                if (!source1->type->isNumeric())
+                if (!source1->getType()->isNumeric())
                     emitError(node, "Operand must be a number");
                 CFGOperand* source2 = compileExpression(node->child2);
-                if (!source2->type->isNumeric())
+                if (!source2->getType()->isNumeric())
                     emitError(node, "Operand must be a number");
                 CFGOperand* destination = new CFGOperand(CFGType::boolType());
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
                         destination,
@@ -537,20 +545,20 @@ private:
                 CFGLabel* falseLabel = new CFGLabel();
                 CFGLabel* endLabel = new CFGLabel();
                 compileConditionalJump(node, trueLabel, falseLabel);
-                statements->push_back(CFGStatement::fromLabel(trueLabel));
-                statements->push_back(
+                statements.push_back(CFGStatement::fromLabel(trueLabel));
+                statements.push_back(
                     new CFGStatement(
                         CFG_ASSIGN,
                         destination,
                         CFGOperand::fromBool(true)));
-                statements->push_back(CFGStatement::jump(endLabel));
-                statements->push_back(CFGStatement::fromLabel(falseLabel));
-                statements->push_back(
+                statements.push_back(CFGStatement::jump(endLabel));
+                statements.push_back(CFGStatement::fromLabel(falseLabel));
+                statements.push_back(
                     new CFGStatement(
                         CFG_ASSIGN,
                         destination,
                         CFGOperand::fromBool(false)));
-                statements->push_back(CFGStatement::fromLabel(endLabel));
+                statements.push_back(CFGStatement::fromLabel(endLabel));
                 return destination;
             }
             case AST_EQUALS:
@@ -560,7 +568,7 @@ private:
                 CFGOperand* source1 = compileExpression(node->child1);
                 CFGOperand* source2 = compileExpression(node->child2);
                 CFGOperand* destination = new CFGOperand(CFGType::boolType());
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
                         destination,
@@ -571,10 +579,10 @@ private:
             case AST_NOT:
             {
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->type->isBool())
+                if (!operand->getType()->isBool())
                     emitError(node, "Operand must be a boolean");
                 CFGOperand* destination = new CFGOperand(CFGType::boolType());
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(
                         opForExpressionType(node->type),
                         destination,
@@ -588,18 +596,19 @@ private:
                 CFGLabel* falseLabel = new CFGLabel();
                 CFGLabel* endLabel = new CFGLabel();
                 compileConditionalJump(node->child1, trueLabel, falseLabel);
-                statements->push_back(CFGStatement::fromLabel(trueLabel));
+                statements.push_back(CFGStatement::fromLabel(trueLabel));
                 CFGOperand* trueValue = compileExpression(node->child2);
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(CFG_ASSIGN, destination, trueValue));
-                statements->push_back(CFGStatement::jump(endLabel));
-                statements->push_back(CFGStatement::fromLabel(falseLabel));
+                statements.push_back(CFGStatement::jump(endLabel));
+                statements.push_back(CFGStatement::fromLabel(falseLabel));
                 CFGOperand* falseValue = compileExpression(node->child3);
-                statements->push_back(
+                statements.push_back(
                     new CFGStatement(CFG_ASSIGN, destination, falseValue));
-                destination->type = getLeastCommonType(
-                    trueValue->type,
-                    falseValue->type);
+                destination->setType(
+                    getLeastCommonType(
+                        trueValue->getType(),
+                        falseValue->getType()));
                 return destination;
             }
             default:
@@ -737,8 +746,11 @@ private:
      */
     CFGType* getCFGType(ASTNode* node) {
         if (node->type == AST_TYPE_ARRAY) {
-            CFGType* type = getCFGType(node->child1);
-            type->numDimensions++;
+            CFGType* childType = getCFGType(node->child1);
+            CFGType* type = new CFGType(
+                childType->getClassName(),
+                childType->getNumDimensions() + 1);
+            delete childType;
             return type;
         } else {
             assert(node->type == AST_TYPE || !"Not a type node");
@@ -758,9 +770,9 @@ private:
             case AST_DO_WHILE:
             {
                 CFGLabel* startLabel = new CFGLabel();
-                statements->push_back(CFGStatement::fromLabel(startLabel));
+                statements.push_back(CFGStatement::fromLabel(startLabel));
                 compileStatement(node->child2);
-                statements->push_back(CFGStatement::fromLabel(continueLabel));
+                statements.push_back(CFGStatement::fromLabel(continueLabel));
                 compileConditionalJump(node->child1, startLabel, endLabel);
                 break;
             }
@@ -769,12 +781,12 @@ private:
                 CFGLabel* startLabel = new CFGLabel();
                 CFGLabel* conditionLabel = new CFGLabel();
                 compileStatementList(node->child1);
-                statements->push_back(CFGStatement::jump(conditionLabel));
-                statements->push_back(CFGStatement::fromLabel(startLabel));
+                statements.push_back(CFGStatement::jump(conditionLabel));
+                statements.push_back(CFGStatement::fromLabel(startLabel));
                 compileStatement(node->child4);
-                statements->push_back(CFGStatement::fromLabel(continueLabel));
+                statements.push_back(CFGStatement::fromLabel(continueLabel));
                 compileStatementList(node->child3);
-                statements->push_back(CFGStatement::fromLabel(conditionLabel));
+                statements.push_back(CFGStatement::fromLabel(conditionLabel));
                 compileConditionalJump(node->child2, startLabel, endLabel);
                 break;
             }
@@ -784,10 +796,10 @@ private:
             case AST_WHILE:
             {
                 CFGLabel* startLabel = new CFGLabel();
-                statements->push_back(CFGStatement::jump(continueLabel));
-                statements->push_back(CFGStatement::fromLabel(startLabel));
+                statements.push_back(CFGStatement::jump(continueLabel));
+                statements.push_back(CFGStatement::fromLabel(startLabel));
                 compileStatement(node->child2);
-                statements->push_back(CFGStatement::fromLabel(continueLabel));
+                statements.push_back(CFGStatement::fromLabel(continueLabel));
                 compileConditionalJump(node->child1, startLabel, endLabel);
                 break;
             }
@@ -795,7 +807,7 @@ private:
                 assert(!"Unhandled loop type");
                 break;
         }
-        statements->push_back(CFGStatement::fromLabel(endLabel));
+        statements.push_back(CFGStatement::fromLabel(endLabel));
         breakEvaluator->popBreakLabel();
         breakEvaluator->popContinueLabel();
     }
@@ -841,12 +853,12 @@ private:
         } else {
             CFGOperand* value = getOperandForLiteral(node->child2->child1);
             assert(
-                (value->type->className == "Int" &&
-                 value->type->numDimensions == 0) ||
+                (value->getType()->getClassName() == "Int" &&
+                 value->getType()->getNumDimensions() == 0) ||
                 !"Type of integer literal must be Int");
-            if (switchValueInts.count(value->intValue) > 0)
+            if (switchValueInts.count(value->getIntValue()) > 0)
                 emitError(node, "Duplicate case label");
-            switchValueInts.insert(value->intValue);
+            switchValueInts.insert(value->getIntValue());
             switchValues.push_back(value);
         }
         
@@ -858,7 +870,7 @@ private:
                 "Falling through in a switch statement is not permitted.  "
                 "Perhaps you are missing a break statement.");
         CFGLabel* label = new CFGLabel();
-        statements->push_back(CFGStatement::fromLabel(label));
+        statements.push_back(CFGStatement::fromLabel(label));
         compileStatementList(node->child3);
     }
     
@@ -883,7 +895,7 @@ private:
                 CFGLabel* breakLabel = breakEvaluator->getBreakLabel(numLoops);
                 if (breakLabel == NULL)
                     emitError(node, "Attempting to break out of non-loop");
-                statements->push_back(CFGStatement::jump(breakLabel));
+                statements.push_back(CFGStatement::jump(breakLabel));
                 break;
             }
             case AST_CONTINUE:
@@ -902,7 +914,7 @@ private:
                     numLoops);
                 if (continueLabel == NULL)
                     emitError(node, "Attempting to continue non-loop");
-                statements->push_back(CFGStatement::jump(continueLabel));
+                statements.push_back(CFGStatement::jump(continueLabel));
                 break;
             }
             case AST_RETURN:
@@ -920,7 +932,7 @@ private:
                         operand);
                 } else if (breakEvaluator->getReturnVar() != NULL)
                     emitError(node, "Must return a non-void value");
-                statements->push_back(
+                statements.push_back(
                     CFGStatement::jump(breakEvaluator->getReturnLabel()));
                 break;
             default:
@@ -939,9 +951,9 @@ private:
                 CFGLabel* trueLabel = new CFGLabel();
                 CFGLabel* falseLabel = new CFGLabel();
                 compileConditionalJump(node->child1, trueLabel, falseLabel);
-                statements->push_back(CFGStatement::fromLabel(trueLabel));
+                statements.push_back(CFGStatement::fromLabel(trueLabel));
                 compileStatement(node->child2);
-                statements->push_back(CFGStatement::fromLabel(falseLabel));
+                statements.push_back(CFGStatement::fromLabel(falseLabel));
                 break;
             }
             case AST_IF_ELSE:
@@ -950,12 +962,12 @@ private:
                 CFGLabel* falseLabel = new CFGLabel();
                 CFGLabel* finishLabel = new CFGLabel();
                 compileConditionalJump(node->child1, trueLabel, falseLabel);
-                statements->push_back(CFGStatement::fromLabel(trueLabel));
+                statements.push_back(CFGStatement::fromLabel(trueLabel));
                 compileStatement(node->child2);
-                statements->push_back(CFGStatement::jump(finishLabel));
-                statements->push_back(CFGStatement::fromLabel(falseLabel));
+                statements.push_back(CFGStatement::jump(finishLabel));
+                statements.push_back(CFGStatement::fromLabel(falseLabel));
                 compileStatement(node->child3);
-                statements->push_back(CFGStatement::fromLabel(finishLabel));
+                statements.push_back(CFGStatement::fromLabel(finishLabel));
                 break;
             }
             case AST_SWITCH:
@@ -963,23 +975,27 @@ private:
                 CFGLabel* finishLabel = new CFGLabel();
                 breakEvaluator->pushBreakLabel(finishLabel);
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->type->isIntegerLike())
+                if (!operand->getType()->isIntegerLike())
                     emitError(node, "Operand must be of an integer-like type");
                 CFGStatement* statement = new CFGStatement(
                     CFG_SWITCH,
                     NULL,
                     operand);
+                statements.push_back(statement);
+                vector<CFGOperand*> switchValues;
+                vector<CFGLabel*> switchLabels;
                 set<int> switchValueInts;
                 bool haveEncounteredDefault;
                 compileCaseList(
                     node->child2,
                     NULL,
-                    statement->switchValues,
-                    statement->switchLabels,
+                    switchValues,
+                    switchLabels,
                     switchValueInts,
                     haveEncounteredDefault);
+                statement->setSwitchValuesAndLabels(switchValues, switchLabels);
+                statements.push_back(CFGStatement::fromLabel(finishLabel));
                 breakEvaluator->popBreakLabel();
-                statements->push_back(CFGStatement::fromLabel(finishLabel));
                 break;
             }
             default:
@@ -1083,29 +1099,34 @@ private:
      * already available in "allVars".)
      */
     CFGMethod* compileMethodDefinition(ASTNode* node) {
-        CFGMethod* method = new CFGMethod();
-        method->identifier = node->child2->tokenStr;
+        string identifier = node->child2->tokenStr;
         pushFrame();
+        vector<CFGOperand*> args;
         if (node->child4 != NULL)
-            createArgListVars(node->child3, method->args);
+            createArgListVars(node->child3, args);
+        CFGOperand* returnVar;
         if (node->child1->type == AST_VOID)
-            method->returnVar = NULL;
+            returnVar = NULL;
         else {
             CFGType* type = getCFGType(node->child1);
-            method->returnVar = new CFGOperand(type);
+            returnVar = new CFGOperand(type);
         }
         CFGLabel* returnLabel = new CFGLabel();
-        breakEvaluator = new BreakEvaluator(method->returnVar, returnLabel);
-        statements = &(method->statements);
+        breakEvaluator = new BreakEvaluator(returnVar, returnLabel);
+        statements.clear();
         if (node->child4 != NULL)
             compileStatementList(node->child4);
         else
             compileStatementList(node->child3);
         popFrame();
-        method->statements.push_back(CFGStatement::fromLabel(returnLabel));
+        statements.push_back(CFGStatement::fromLabel(returnLabel));
         delete breakEvaluator;
         breakEvaluator = NULL;
-        return method;
+        return new CFGMethod(
+            node->child2->tokenStr,
+            returnVar,
+            args,
+            statements);
     }
     
     /**
@@ -1128,12 +1149,12 @@ private:
      * specified class body item node (the "classBodyItem" rule in grammar.y) to
      * "clazz".
      */
-    void compileMethodDefinitions(ASTNode* node, CFGClass* clazz) {
+    void compileMethodDefinitions(ASTNode* node, vector<CFGMethod*>& methods) {
         if (node->type == AST_EMPTY_CLASS_BODY_ITEM_LIST)
             return;
-        compileMethodDefinitions(node->child1, clazz);
+        compileMethodDefinitions(node->child1, methods);
         if (node->child2->type == AST_METHOD_DEFINITION)
-            clazz->addMethod(compileMethodDefinition(node->child2));
+            methods.push_back(compileMethodDefinition(node->child2));
     }
     
     /**
@@ -1141,15 +1162,19 @@ private:
      * type AST_CLASS_DEFINITION.
      */
     CFGClass* compileClass(ASTNode* node) {
-        CFGClass* clazz = new CFGClass();
-        clazz->identifier = node->child1->tokenStr;
-        statements = &(clazz->initStatements);
+        statements.clear();
         pushFrame();
         compileFieldDeclarations(node->child2);
-        clazz->fields = allVars;
+        map<string, CFGOperand*> fields = allVars;
         popFrame();
-        compileMethodDefinitions(node->child2, clazz);
-        return clazz;
+        vector<CFGStatement*> initStatements = statements;
+        vector<CFGMethod*> methods;
+        compileMethodDefinitions(node->child2, methods);
+        return new CFGClass(
+            node->child1->tokenStr,
+            fields,
+            methods,
+            initStatements);
     }
 public:
     Compiler() {
@@ -1157,9 +1182,7 @@ public:
     }
     
     CFGFile* compileFile(ASTNode* node) {
-        CFGFile* file = new CFGFile();
-        file->clazz = compileClass(node->child1);
-        return file;
+        return new CFGFile(compileClass(node->child1));
     }
 };
 
