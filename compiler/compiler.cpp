@@ -66,7 +66,7 @@ private:
      * @param node the node at which error appears.
      * @param error the text of the error.
      */
-    void emitError(AST* node, string error) {
+    void emitError(ASTNode* node, string error) {
         cerr << "Error at node of type " << node->type << ": " << error << '\n';
         assert(false);
     }
@@ -75,7 +75,7 @@ private:
      * Returns the CFGOperand for the specified node of type AST_IDENTIFIER.
      * Emits a compiler error if the variable is not declared.
      */
-    CFGOperand* getVarOperand(AST* node) {
+    CFGOperand* getVarOperand(ASTNode* node) {
         assert(node->type == AST_IDENTIFIER || !"Not a variable");
         if (allVars.count(node->tokenStr) == 0)
             emitError(node, "Variable not declared in this scope");
@@ -93,7 +93,7 @@ private:
      */
     CFGOperand* createVar(
         CFGType* type,
-        AST* node,
+        ASTNode* node,
         string identifier,
         bool isField) {
         if (allVars.count(identifier) > 0) {
@@ -136,7 +136,7 @@ private:
      * @param sourceType the source type.
      */
     void assertAssignmentTypeValid(
-        AST* node,
+        ASTNode* node,
         CFGType* destinationType,
         CFGType* sourceType) {
         
@@ -158,7 +158,7 @@ private:
      * @param source the source value.
      */
     void appendAssignmentStatement(
-        AST* node,
+        ASTNode* node,
         CFGOperand* destination,
         CFGOperand* source) {
         
@@ -172,7 +172,7 @@ private:
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
-    CFGOperand* compileIncrementExpression(AST* node) {
+    CFGOperand* compileIncrementExpression(ASTNode* node) {
         assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
         CFGOperand* operand = getVarOperand(node->child1);
         if (!operand->type->isNumeric())
@@ -238,7 +238,7 @@ private:
      *     if (temp) goto fooLabel; else goto barLabel;
      */
     void compileConditionalJump(
-        AST* node,
+        ASTNode* node,
         CFGLabel* trueLabel,
         CFGLabel* falseLabel) {
         switch (node->type) {
@@ -389,7 +389,7 @@ private:
      * @return a CFGOperand storing the results of the operation.
      */
     CFGOperand* appendBinaryArithmeticExpression(
-        AST* node,
+        ASTNode* node,
         CFGOperation operation,
         CFGOperand* source1,
         CFGOperand* source2) {
@@ -457,7 +457,7 @@ private:
     /**
      * Returns a CFGOperand for the specified node indicating a literal value.
      */
-    CFGOperand* getOperandForLiteral(AST* node) {
+    CFGOperand* getOperandForLiteral(ASTNode* node) {
         switch (node->type) {
             case AST_FALSE:
                 return CFGOperand::fromBool(false);
@@ -476,7 +476,7 @@ private:
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
-    CFGOperand* compileMathExpression(AST* node) {
+    CFGOperand* compileMathExpression(ASTNode* node) {
         switch (node->type) {
             case AST_BITWISE_AND:
             case AST_BITWISE_OR:
@@ -543,7 +543,7 @@ private:
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
-    CFGOperand* compileBooleanExpression(AST* node) {
+    CFGOperand* compileBooleanExpression(ASTNode* node) {
         switch (node->type) {
             case AST_BOOLEAN_AND:
             case AST_BOOLEAN_OR:
@@ -629,7 +629,7 @@ private:
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
-    CFGOperand* compileAssignmentExpression(AST* node) {
+    CFGOperand* compileAssignmentExpression(ASTNode* node) {
         assert(
             node->type == AST_ASSIGNMENT_EXPRESSION ||
                 !"Not an assignment expression");
@@ -651,7 +651,7 @@ private:
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
-    CFGOperand* compileExpression(AST* node) {
+    CFGOperand* compileExpression(ASTNode* node) {
         switch (node->type) {
             case AST_ARRAY:
             case AST_ARRAY_GET:
@@ -717,7 +717,7 @@ private:
      * @param isField whether we are declaring a field, as opposed to a local
      *     variable.
      */
-    void compileVarDeclarationItem(AST* node, CFGType* type, bool isField) {
+    void compileVarDeclarationItem(ASTNode* node, CFGType* type, bool isField) {
         string identifier;
         if (node->type == AST_ASSIGNMENT_EXPRESSION)
             identifier = node->child1->tokenStr;
@@ -738,7 +738,7 @@ private:
      * @param isField whether we are declaring a field, as opposed to a local
      *     variable.
      */
-    void compileVarDeclarationList(AST* node, CFGType* type, bool isField) {
+    void compileVarDeclarationList(ASTNode* node, CFGType* type, bool isField) {
         if (node->type != AST_VAR_DECLARATION_LIST)
             compileVarDeclarationItem(node, type, isField);
         else {
@@ -751,7 +751,7 @@ private:
      * Returns the CFGType representation of the specified type node (the "type"
      * rule in grammar.y).
      */
-    CFGType* getCFGType(AST* node) {
+    CFGType* getCFGType(ASTNode* node) {
         if (node->type == AST_TYPE_ARRAY) {
             CFGType* type = getCFGType(node->child1);
             type->numDimensions++;
@@ -765,32 +765,25 @@ private:
     /**
      * Compiles the specified loop node (a while or for loop).
      */
-    void compileLoop(AST* node) {
+    void compileLoop(ASTNode* node) {
+        CFGLabel* continueLabel = new CFGLabel();
+        CFGLabel* endLabel = new CFGLabel();
+        breakLabels.push_back(endLabel);
+        continueLabels.push_back(continueLabel);
         switch (node->type) {
             case AST_DO_WHILE:
             {
                 CFGLabel* startLabel = new CFGLabel();
-                CFGLabel* continueLabel = new CFGLabel();
-                CFGLabel* endLabel = new CFGLabel();
-                breakLabels.push_back(endLabel);
-                continueLabels.push_back(continueLabel);
                 statements->push_back(CFGStatement::fromLabel(startLabel));
                 compileStatement(node->child2);
                 statements->push_back(CFGStatement::fromLabel(continueLabel));
                 compileConditionalJump(node->child1, startLabel, endLabel);
-                statements->push_back(CFGStatement::fromLabel(endLabel));
-                breakLabels.pop_back();
-                continueLabels.pop_back();
                 break;
             }
             case AST_FOR:
             {
                 CFGLabel* startLabel = new CFGLabel();
-                CFGLabel* continueLabel = new CFGLabel();
                 CFGLabel* conditionLabel = new CFGLabel();
-                CFGLabel* endLabel = new CFGLabel();
-                breakLabels.push_back(endLabel);
-                continueLabels.push_back(continueLabel);
                 compileStatementList(node->child1);
                 statements->push_back(CFGStatement::jump(conditionLabel));
                 statements->push_back(CFGStatement::fromLabel(startLabel));
@@ -799,9 +792,6 @@ private:
                 compileStatementList(node->child3);
                 statements->push_back(CFGStatement::fromLabel(conditionLabel));
                 compileConditionalJump(node->child2, startLabel, endLabel);
-                statements->push_back(CFGStatement::fromLabel(endLabel));
-                breakLabels.pop_back();
-                continueLabels.pop_back();
                 break;
             }
             case AST_FOR_IN:
@@ -810,23 +800,20 @@ private:
             case AST_WHILE:
             {
                 CFGLabel* startLabel = new CFGLabel();
-                CFGLabel* conditionLabel = new CFGLabel();
-                CFGLabel* endLabel = new CFGLabel();
-                breakLabels.push_back(endLabel);
-                continueLabels.push_back(conditionLabel);
-                statements->push_back(CFGStatement::jump(conditionLabel));
+                statements->push_back(CFGStatement::jump(continueLabel));
+                statements->push_back(CFGStatement::fromLabel(startLabel));
                 compileStatement(node->child2);
-                statements->push_back(CFGStatement::fromLabel(conditionLabel));
+                statements->push_back(CFGStatement::fromLabel(continueLabel));
                 compileConditionalJump(node->child1, startLabel, endLabel);
-                statements->push_back(CFGStatement::fromLabel(endLabel));
-                breakLabels.pop_back();
-                continueLabels.pop_back();
                 break;
             }
             default:
                 assert(!"Unhandled loop type");
                 break;
         }
+        statements->push_back(CFGStatement::fromLabel(endLabel));
+        breakLabels.pop_back();
+        continueLabels.pop_back();
     }
     
     /**
@@ -845,7 +832,7 @@ private:
      *     in the enclosing switch statement.
      */
     void compileCaseList(
-        AST* node,
+        ASTNode* node,
         vector<CFGOperand*>& switchValues,
         vector<CFGLabel*>& switchLabels,
         set<int>& switchValueInts,
@@ -886,7 +873,7 @@ private:
      * Compiles the specified control flow statement node (a break, continue, or
      * return statement).
      */
-    void compileControlFlowStatement(AST* node) {
+    void compileControlFlowStatement(ASTNode* node) {
         switch (node->type) {
             case AST_BREAK:
             {
@@ -939,7 +926,7 @@ private:
      * Compiles the specified selection statement node (an if or switch
      * statement).
      */
-    void compileSelectionStatement(AST* node) {
+    void compileSelectionStatement(ASTNode* node) {
         switch (node->type) {
             case AST_IF:
             {
@@ -997,7 +984,7 @@ private:
      * Compiles the specified statement node (the "statement" rule in
      * grammar.y).
      */
-    void compileStatement(AST* node) {
+    void compileStatement(ASTNode* node) {
         switch (node->type) {
             case AST_ASSIGNMENT_EXPRESSION:
                 compileExpression(node);
@@ -1050,7 +1037,7 @@ private:
      * Compiles the specified statement list node (the "statementList" rule in
      * grammar.y).
      */
-    void compileStatementList(AST* node) {
+    void compileStatementList(ASTNode* node) {
         if (node->type != AST_EMPTY_STATEMENT_LIST) {
             compileStatementList(node->child1);
             compileStatement(node->child2);
@@ -1061,7 +1048,7 @@ private:
      * Creates and returns a CFGOperand for the argument indicated by the
      * specified argument item node (the "argItem" rule in grammar.y).
      */
-    CFGOperand* createArgItemVar(AST* node) {
+    CFGOperand* createArgItemVar(ASTNode* node) {
         assert(node->child3 == NULL || !"TODO default arguments");
         return createVar(
             getCFGType(node->child1),
@@ -1074,7 +1061,7 @@ private:
      * Creates CFGOperands for the arguments indicated by the specified argument
      * list node (the "argList" rule in grammar.y) and appends them to "args".
      */
-    void createArgListVars(AST* node, vector<CFGOperand*>& args) {
+    void createArgListVars(ASTNode* node, vector<CFGOperand*>& args) {
         if (node->type != AST_ARG_LIST)
             args.push_back(createArgItemVar(node));
         else {
@@ -1088,7 +1075,7 @@ private:
      * type AST_METHOD_DEFINITION.  (Assumes that all of the class's fields are
      * already available in "allVars".)
      */
-    CFGMethod* compileMethodDefinition(AST* node) {
+    CFGMethod* compileMethodDefinition(ASTNode* node) {
         CFGMethod* method = new CFGMethod();
         method->identifier = node->child2->tokenStr;
         pushFrame();
@@ -1116,7 +1103,7 @@ private:
      * Adds the fields declared in the specified class body item node (the
      * "classBodyItem" rule in grammar.y) to "allVars" and "frameVars".
      */
-    void compileFieldDeclarations(AST* node) {
+    void compileFieldDeclarations(ASTNode* node) {
         if (node->type == AST_EMPTY_CLASS_BODY_ITEM_LIST)
             return;
         compileFieldDeclarations(node->child1);
@@ -1132,7 +1119,7 @@ private:
      * specified class body item node (the "classBodyItem" rule in grammar.y) to
      * "clazz".
      */
-    void compileMethodDefinitions(AST* node, CFGClass* clazz) {
+    void compileMethodDefinitions(ASTNode* node, CFGClass* clazz) {
         if (node->type == AST_EMPTY_CLASS_BODY_ITEM_LIST)
             return;
         compileMethodDefinitions(node->child1, clazz);
@@ -1144,7 +1131,7 @@ private:
      * Returns the compiled CFGMethod representation of the specified node of
      * type AST_CLASS_DEFINITION.
      */
-    CFGClass* compileClass(AST* node) {
+    CFGClass* compileClass(ASTNode* node) {
         CFGClass* clazz = new CFGClass();
         clazz->identifier = node->child1->tokenStr;
         statements = &(clazz->initStatements);
@@ -1156,14 +1143,14 @@ private:
         return clazz;
     }
 public:
-    CFGFile* compileFile(AST* node) {
+    CFGFile* compileFile(ASTNode* node) {
         CFGFile* file = new CFGFile();
         file->clazz = compileClass(node->child1);
         return file;
     }
 };
 
-void processFile(AST* node) {
+void processFile(ASTNode* node) {
     Compiler compiler;
     CFGFile* file = compiler.compileFile(node);
     outputCPPHeaderFile(file, cout);

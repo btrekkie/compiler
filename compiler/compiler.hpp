@@ -8,6 +8,6 @@ extern "C" {
 /**
  * Compiles the specified AST into C++ code, and writes the results to cout.
  */
-void processFile(AST* node);
+void processFile(ASTNode* node);
 
 #endif

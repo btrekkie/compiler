@@ -2,43 +2,43 @@
 #include <string.h>
 #include "ast.h"
 
-AST* astNew() {
-    AST* ast = (AST*)malloc(sizeof(AST));
-    memset(ast, 0, sizeof(AST));
+ASTNode* astNew() {
+    ASTNode* ast = (ASTNode*)malloc(sizeof(ASTNode));
+    memset(ast, 0, sizeof(ASTNode));
     return ast;
 }
 
-AST* astNewStr(int type, const char* tokenStr) {
-    AST* ast = astNew();
+ASTNode* astNewStr(int type, const char* tokenStr) {
+    ASTNode* ast = astNew();
     ast->type = type;
     ast->tokenStr = (char*)malloc(strlen(tokenStr) + 1);
     memcpy(ast->tokenStr, tokenStr, strlen(tokenStr) + 1);
     return ast;
 }
 
-AST* astNew0(int type) {
-    AST* ast = astNew();
+ASTNode* astNew0(int type) {
+    ASTNode* ast = astNew();
     ast->type = type;
     return ast;
 }
 
-AST* astNew1(int type, AST* child1) {
-    AST* ast = astNew();
+ASTNode* astNew1(int type, ASTNode* child1) {
+    ASTNode* ast = astNew();
     ast->type = type;
     ast->child1 = child1;
     return ast;
 }
 
-AST* astNew2(int type, AST* child1, AST* child2) {
-    AST* ast = astNew();
+ASTNode* astNew2(int type, ASTNode* child1, ASTNode* child2) {
+    ASTNode* ast = astNew();
     ast->type = type;
     ast->child1 = child1;
     ast->child2 = child2;
     return ast;
 }
 
-AST* astNew3(int type, AST* child1, AST* child2, AST* child3) {
-    AST* ast = astNew();
+ASTNode* astNew3(int type, ASTNode* child1, ASTNode* child2, ASTNode* child3) {
+    ASTNode* ast = astNew();
     ast->type = type;
     ast->child1 = child1;
     ast->child2 = child2;
@@ -46,8 +46,13 @@ AST* astNew3(int type, AST* child1, AST* child2, AST* child3) {
     return ast;
 }
 
-AST* astNew4(int type, AST* child1, AST* child2, AST* child3, AST* child4) {
-    AST* ast = astNew();
+ASTNode* astNew4(
+    int type,
+    ASTNode* child1,
+    ASTNode* child2,
+    ASTNode* child3,
+    ASTNode* child4) {
+    ASTNode* ast = astNew();
     ast->type = type;
     ast->child1 = child1;
     ast->child2 = child2;
@@ -56,7 +61,7 @@ AST* astNew4(int type, AST* child1, AST* child2, AST* child3, AST* child4) {
     return ast;
 }
 
-void astFree(AST* ast) {
+void astFree(ASTNode* ast) {
     if (ast->tokenStr != NULL)
         free(ast->tokenStr);
     else if (ast->child1 != NULL) {

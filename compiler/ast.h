@@ -94,7 +94,7 @@ enum ASTType {
 /**
  * A node in the AST (abstract syntax tree) for a code file.
  */
-typedef struct ASTStruct {
+typedef struct ASTNodeStruct {
     /**
      * The ASTType of the node.
      */
@@ -106,50 +106,54 @@ typedef struct ASTStruct {
     /**
      * The first child of this node, if any.
      */
-    struct ASTStruct* child1;
+    struct ASTNodeStruct* child1;
     /**
      * The second child of this node, if any.
      */
-    struct ASTStruct* child2;
+    struct ASTNodeStruct* child2;
     /**
      * The third child of this node, if any.
      */
-    struct ASTStruct* child3;
+    struct ASTNodeStruct* child3;
     /**
      * The fourth child of this node, if any.
      */
-    struct ASTStruct* child4;
-} AST;
+    struct ASTNodeStruct* child4;
+} ASTNode;
 
-#define YYSTYPE AST*
+#define YYSTYPE ASTNode*
 
 /**
  * Returns a new AST for a token.
  */
-AST* astNewStr(int type, const char* tokenStr);
+ASTNode* astNewStr(int type, const char* tokenStr);
 /**
  * Returns a new AST with no children.
  */
-AST* astNew0(int type);
+ASTNode* astNew0(int type);
 /**
  * Returns a new AST with one child.
  */
-AST* astNew1(int type, AST* child1);
+ASTNode* astNew1(int type, ASTNode* child1);
 /**
  * Returns a new AST with two children.
  */
-AST* astNew2(int type, AST* child1, AST* child2);
+ASTNode* astNew2(int type, ASTNode* child1, ASTNode* child2);
 /**
  * Returns a new AST with three children.
  */
-AST* astNew3(int type, AST* child1, AST* child2, AST* child3);
+ASTNode* astNew3(int type, ASTNode* child1, ASTNode* child2, ASTNode* child3);
 /**
  * Returns a new AST with four children.
  */
-AST* astNew4(int type, AST* child1, AST* child2, AST* child3, AST* child4);
+ASTNode* astNew4(
+    int type, ASTNode* child1,
+    ASTNode* child2,
+    ASTNode* child3,
+    ASTNode* child4);
 /**
  * Deallocates the specified AST.
  */
-void astFree(AST* ast);
+void astFree(ASTNode* ast);
 
 #endif

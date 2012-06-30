@@ -9,7 +9,7 @@ extern "C" {
 #include <stdio.h>
 #include "compiler.hpp"
 
-#define YYSTYPE AST*
+#define YYSTYPE ASTNode*
 
 extern char yytext[];
 extern int column;
