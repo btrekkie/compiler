@@ -196,7 +196,7 @@ bool JSONDecoder::hexDigitToInt(char c, int& value) {
 }
 
 bool JSONDecoder::readStr(std::istream& input, std::string& value) {
-    stringstream output;
+    ostringstream output;
     char c;
     while ((c = input.get()) != input.eof()) {
         if (c == '"') {
@@ -284,7 +284,7 @@ char JSONDecoder::readScalarOrSeparator(
         }
         default:
         {
-            stringstream token;
+            ostringstream token;
             token << c;
             while ((c = input.peek()) != input.eof()) {
                 if (isWhitespace(c) ||

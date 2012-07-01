@@ -86,7 +86,7 @@ bool CFGType::isMorePromotedThan(CFGType* other) {
 }
 
 string CFGType::toString() {
-    stringstream output;
+    ostringstream output;
     output << className;
     for (int i = 0; i < numDimensions; i++)
         output << "[]";

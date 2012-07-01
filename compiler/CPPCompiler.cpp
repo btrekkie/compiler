@@ -71,7 +71,7 @@ private:
             localVarIdentifiers.count(operand) == 0 ||
             !"Variable is already declared");
         if (operand->getIdentifier() == "") {
-            stringstream varIdentifier;
+            ostringstream varIdentifier;
             varIdentifier << "e_" << numExpressionSuffixes;
             numExpressionSuffixes++;
             localVarIdentifiers[operand] = varIdentifier.str();
@@ -84,7 +84,7 @@ private:
                 numSuffixes = numLocalVarSuffixes[operand->getIdentifier()];
                 numLocalVarSuffixes[operand->getIdentifier()]++;
             }
-            stringstream varIdentifier;
+            ostringstream varIdentifier;
             varIdentifier << "v_" << operand->getIdentifier() << '_' <<
                 numSuffixes;
             localVarIdentifiers[operand] = varIdentifier.str();
