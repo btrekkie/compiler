@@ -10,5 +10,6 @@ c++ -c CFG.cpp -Wall -o CFG.o
 c++ -c Compiler.cpp -Wall -o Compiler.o
 c++ -c CPPCompiler.cpp -Wall -o CPPCompiler.o
 c++ -c Interface.cpp -Wall -o Interface.o
+c++ -c JSON.cpp -Wall -o JSON.o
 c++ lex.yy.o grammar.cpp ASTNode.o ASTUtil.o BreakEvaluator.o CFG.o Compiler.o \
     CPPCompiler.o Interface.o -Wall -o compiler
