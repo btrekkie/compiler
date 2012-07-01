@@ -64,6 +64,9 @@ public:
      * values of the same type.
      */
     bool isMorePromotedThan(CFGType* other);
+    /**
+     * Returns the code string representation of this type, e.g. "Int[][]".
+     */
     std::string toString();
 };
 

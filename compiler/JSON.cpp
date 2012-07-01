@@ -29,23 +29,23 @@ JSONValue::JSONValue(bool boolValue2) {
     boolValue = boolValue2;
 }
 
-JSONValue::JSONValue() {
-    type = JSON_TYPE_NULL;
-}
-
 JSONValue::~JSONValue() {
     if (arrayValue != NULL) {
         for (vector<JSONValue*>::const_iterator iterator = arrayValue->begin();
              iterator != arrayValue->end();
-             iterator++)
-            delete *iterator;
+             iterator++) {
+            if (*iterator)
+                delete *iterator;
+        }
         delete arrayValue;
     } else if (objectValue != NULL) {
         for (map<string, JSONValue*>::const_iterator iterator =
                  objectValue->begin();
              iterator != objectValue->end();
-             iterator++)
-            delete iterator->second;
+             iterator++) {
+            if (iterator->second)
+                delete iterator->second;
+        }
         delete objectValue;
     } else if (strValue != NULL)
         delete strValue;
@@ -278,7 +278,7 @@ char JSONDecoder::readScalarOrSeparator(
             }
             string tokenStr = token.str();
             if (tokenStr == "null")
-                value = new JSONValue();
+                value = NULL;
             else if (tokenStr == "true")
                 value = new JSONValue(true);
             else if (tokenStr == "false")
@@ -344,6 +344,7 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
                 }
                 first = false;
                 if (type != JSON_DECODE_TYPE_VALUE ||
+                    key == NULL ||
                     key->getType() != JSON_TYPE_STR) {
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;

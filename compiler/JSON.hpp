@@ -11,8 +11,7 @@ enum JSONValueType {
     JSON_TYPE_OBJECT,
     JSON_TYPE_STR,
     JSON_TYPE_NUMBER,
-    JSON_TYPE_BOOL,
-    JSON_TYPE_NULL
+    JSON_TYPE_BOOL
 };
 
 /**
@@ -47,10 +46,6 @@ public:
     explicit JSONValue(double numberValue2);
     explicit JSONValue(std::string strValue2);
     explicit JSONValue(bool boolValue2);
-    /**
-     * Constructs a new JSONValue for a NULL value.
-     */
-    JSONValue();
     ~JSONValue();
     JSONValueType getType();
     std::vector<JSONValue*> getArrayValue();
