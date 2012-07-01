@@ -68,6 +68,11 @@ public:
      * Returns the code string representation of this type, e.g. "Int[][]".
      */
     std::string toString();
+    /**
+     * Returns the CFGType represented by the specified string, or NULL if the
+     * string does not represent a CFGType.  This is the inverse of toString().
+     */
+    static CFGType* fromString(std::string str);
 };
 
 /**

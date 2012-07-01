@@ -10,9 +10,10 @@ c++ -c CFG.cpp -Wall -o CFG.o
 c++ -c Compiler.cpp -Wall -o Compiler.o
 c++ -c CPPCompiler.cpp -Wall -o CPPCompiler.o
 c++ -c Interface.cpp -Wall -o Interface.o
+c++ -c InterfaceInput.cpp -Wall -o InterfaceInput.o
 c++ -c InterfaceOutput.cpp -Wall -o InterfaceOutput.o
 c++ -c JSONDecoder.cpp -Wall -o JSONDecoder.o
 c++ -c JSONEncoder.cpp -Wall -o JSONEncoder.o
 c++ lex.yy.o grammar.cpp ASTNode.o ASTUtil.o BreakEvaluator.o CFG.o Compiler.o \
-    CPPCompiler.o Interface.o InterfaceOutput.o JSONDecoder.o JSONEncoder.o \
-    -Wall -o compiler
+    CPPCompiler.o Interface.o InterfaceInput.o InterfaceOutput.o JSONDecoder.o \
+    JSONEncoder.o -Wall -o compiler

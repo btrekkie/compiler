@@ -9,8 +9,8 @@ class JSONEncoder;
 class MethodInterface;
 
 /**
- * Class for serializing a ClassInterface to an ostream.
- * TODO add InterfaceInput
+ * Class for serializing a ClassInterface to an ostream.  The ClassInterface may
+ * later be deserialized using InterfaceInput.
  */
 /* A ClassInterface is serialized using JSON.
  */

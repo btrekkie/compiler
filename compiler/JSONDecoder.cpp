@@ -7,26 +7,38 @@ using namespace std;
 JSONValue::JSONValue(vector<JSONValue*> arrayValue2) {
     type = JSON_TYPE_ARRAY;
     arrayValue = new vector<JSONValue*>(arrayValue2);
+    objectValue = NULL;
+    strValue = NULL;
 }
 
 JSONValue::JSONValue(map<string, JSONValue*> objectValue2) {
     type = JSON_TYPE_OBJECT;
     objectValue = new map<string, JSONValue*>(objectValue2);
+    arrayValue = NULL;
+    strValue = NULL;
 }
 
 JSONValue::JSONValue(string strValue2) {
     type = JSON_TYPE_STR;
     strValue = new string(strValue2);
+    arrayValue = NULL;
+    objectValue = NULL;
 }
 
 JSONValue::JSONValue(double numberValue2) {
     type = JSON_TYPE_NUMBER;
     numberValue = numberValue2;
+    arrayValue = NULL;
+    objectValue = NULL;
+    strValue = NULL;
 }
 
 JSONValue::JSONValue(bool boolValue2) {
     type = JSON_TYPE_BOOL;
     boolValue = boolValue2;
+    arrayValue = NULL;
+    objectValue = NULL;
+    strValue = NULL;
 }
 
 JSONValue::~JSONValue() {
@@ -83,6 +95,14 @@ int JSONValue::getIntValue() {
 bool JSONValue::getBoolValue() {
     assert(type == JSON_TYPE_NUMBER || !"Not a boolean value");
     return boolValue;
+}
+
+JSONValue* JSONValue::getField(string key) {
+    assert(type == JSON_TYPE_OBJECT || !"Not an object value");
+    if (objectValue->count(key) > 0)
+        return (*objectValue)[key];
+    else
+        return NULL;
 }
 
 void JSONDecoder::deleteVector(vector<JSONValue*> value) {
@@ -245,7 +265,7 @@ char JSONDecoder::readScalarOrSeparator(
     std::istream& input,
     JSONValue*& value) {
     char c;
-    for (char c = input.get(); isWhitespace(c); c = input.get());
+    for (c = input.get(); isWhitespace(c); c = input.get());
     switch (c) {
         case '[':
         case ',':
@@ -260,7 +280,7 @@ char JSONDecoder::readScalarOrSeparator(
             if (!readStr(input, str))
                 return JSON_DECODE_TYPE_ERROR;
             value = new JSONValue(str);
-            break;
+            return JSON_DECODE_TYPE_VALUE;
         }
         default:
         {
@@ -303,8 +323,7 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
         {
             JSONValue* element;
             char type = readValueOrSeparator(input, element);
-            if (type == JSON_DECODE_TYPE_ERROR ||
-                (type != JSON_DECODE_TYPE_VALUE && type != ']'))
+            if (type != JSON_DECODE_TYPE_VALUE && type != ']')
                 return JSON_DECODE_TYPE_ERROR;
             vector<JSONValue*> array;
             bool first = true;
@@ -317,10 +336,10 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
                     return JSON_DECODE_TYPE_ERROR;
                 }
                 array.push_back(element);
-                JSONValue* tempValue;
+                JSONValue* tempValue = NULL;
                 type = readScalarOrSeparator(input, tempValue);
                 if (type != ',' && type != ']') {
-                    if (type == JSON_DECODE_TYPE_VALUE)
+                    if (tempValue != NULL)
                         delete tempValue;
                     deleteVector(array);
                     return JSON_DECODE_TYPE_ERROR;
@@ -333,39 +352,41 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
         {
             JSONValue* key;
             char type = readValueOrSeparator(input, key);
-            if (type == JSON_DECODE_TYPE_ERROR ||
-                (type != JSON_DECODE_TYPE_VALUE && type != '}'))
+            if (type != JSON_DECODE_TYPE_VALUE && type != '}')
                 return JSON_DECODE_TYPE_ERROR;
             map<string, JSONValue*> object;
             bool first = true;
             while (type != '}') {
-                if (!first) {
+                if (!first)
                     type = readScalarOrSeparator(input, key);
-                }
                 first = false;
                 if (type != JSON_DECODE_TYPE_VALUE ||
                     key == NULL ||
                     key->getType() != JSON_TYPE_STR) {
+                    if (key != NULL)
+                        delete key;
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;
                 }
-                JSONValue* tempValue;
-                type = readScalarOrSeparator(input, value);
+                JSONValue* tempValue = NULL;
+                type = readScalarOrSeparator(input, tempValue);
                 if (type != ':') {
-                    if (tempValue)
+                    if (tempValue != NULL)
                         delete tempValue;
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;
                 }
-                JSONValue* value;
-                type = readScalarOrSeparator(input, value);
+                JSONValue* objectValue;
+                type = readValueOrSeparator(input, objectValue);
                 if (type != JSON_DECODE_TYPE_VALUE) {
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;
                 }
-                object[key->getStrValue()] = value;
-                type = readScalarOrSeparator(input, value);
+                object[key->getStrValue()] = objectValue;
+                type = readScalarOrSeparator(input, tempValue);
                 if (type != ',' && type != '}') {
+                    if (tempValue != NULL)
+                        delete tempValue;
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;
                 }

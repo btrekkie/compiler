@@ -165,7 +165,7 @@ vector<CFGStatement*> CFGMethod::getStatements() {
 MethodInterface* CFGMethod::getInterface() {
     CFGType* returnType;
     if (returnVar != NULL)
-        returnType = returnVar->getType();
+        returnType = new CFGType(returnVar->getType());
     else
         returnType = NULL;
     vector<CFGType*> argTypes;

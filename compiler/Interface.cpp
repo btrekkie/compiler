@@ -93,6 +93,24 @@ string CFGType::toString() {
     return output.str();
 }
 
+CFGType* CFGType::fromString(string str) {
+    int i;
+    for (i = 0; i < (int)str.length(); i++) {
+        char c = str.at(i);
+        if (c == '[')
+            break;
+    }
+    string className = str.substr(0, i);
+    int numDimensions = (((int)str.length()) - i) / 2;
+    while (i < (int)str.length()) {
+        if (i + 1 >= (int)str.length() ||
+            str.at(i) != '[' ||
+            str.at(i + 1) != ']')
+            return NULL;
+    }
+    return new CFGType(className, numDimensions);
+}
+
 FieldInterface::FieldInterface(CFGType* type2, string identifier2) {
     type = type2;
     identifier = identifier2;

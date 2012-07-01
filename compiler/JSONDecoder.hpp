@@ -54,6 +54,11 @@ public:
     double getDoubleValue();
     int getIntValue();
     bool getBoolValue();
+    /**
+     * Returns the field value associated with the specified key.  Assumes that
+     * this is a value of type JSON_TYPE_OBJECT.
+     */
+    JSONValue* getField(std::string key);
 };
 
 /**
@@ -121,9 +126,9 @@ public:
     /**
      * Returns the value encoded in the JSON string contained in the specified
      * input stream.  Returns NULL if the input stream does not contain a JSON-
-     * encoded string.  (Returns NULL if there is something other than
-     * whitespace at the end of the input, after a validly encoded JSON string.)
-     * At present, JSONDecoder does not support non-ASCII characters in decoded
+     * encoded string.  Returns NULL if there is something other than whitespace
+     * at the end of the input, after a validly encoded JSON string.  At
+     * present, JSONDecoder does not support non-ASCII characters in decoded
      * strings, so it will return NULL if it encounters one.
      */
     static JSONValue* decode(std::istream& input);
