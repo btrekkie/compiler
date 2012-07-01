@@ -1,6 +1,6 @@
 #include "Interface.hpp"
-#include "InterfaceIO.hpp"
-#include "JSON.hpp"
+#include "InterfaceOutput.hpp"
+#include "JSONEncoder.hpp"
 
 using namespace std;
 
