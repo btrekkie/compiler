@@ -6,6 +6,10 @@
 #include <string>
 #include <vector>
 
+class CFGType;
+class ClassInterface;
+class MethodInterface;
+
 /**
  * A type of operation performed by CFGStatements.
  */
@@ -35,66 +39,6 @@ enum CFGOperation {
     CFG_SWITCH,
     CFG_UNSIGNED_RIGHT_SHIFT,
     CFG_XOR,
-};
-
-/**
- * The compile-time type of a CFGOperand.
- */
-class CFGType {
-private:
-    /**
-     * The type's class name.  If this is an array, "name" is the class name of
-     * the array's (leaf) elements.
-     */
-    std::string className;
-    /**
-     * If this is an array, the number of dimensions in the array.  Otherwise,
-     * "numDimensions" is 0.
-     */
-    int numDimensions;
-    /**
-     * Returns an integer indicating the relative level of promotion of this
-     * type.  A greater number indicates a more promoted type.  Assumes
-     * isNumeric() is true.  See the comments for "isMorePromotedThan" for more
-     * information regardin promotion.
-     */
-    int getPromotionLevel();
-public:
-    CFGType(std::string name2, int numDimensions2 = 0);
-    std::string getClassName();
-    int getNumDimensions();
-    /**
-     * Returns a new CFGType for "Bool" values.
-     */
-    static CFGType* boolType();
-    /**
-     * Returns a new CFGType for "Int" values.
-     */
-    static CFGType* intType();
-    /**
-     * Returns whether this is the "Bool" type.
-     */
-    bool isBool();
-    /**
-     * Returns whether this is a numeric type; that is, whether it can be an
-     * operation to addition.
-     */
-    bool isNumeric();
-    /**
-     * Returns whether this is an integer-like value: "Byte", "Int", or "Long".
-     */
-    bool isIntegerLike();
-    /**
-     * Returns whether "other" can be promoted to this.  Assumes that
-     * isNumeric() and other->isNumeric() are true.  Returns false if this is
-     * the same type as "other".
-     * 
-     * Promotion is a "widening" of a data type to make it compatible in an
-     * arithmetic expression.  For example, in the expression 1 + 2.0, we
-     * promote the first operand from an Int to a Double, so that we may add two
-     * values of the same type.
-     */
-    bool isMorePromotedThan(CFGType* other);
 };
 
 /**
@@ -318,6 +262,10 @@ public:
     CFGOperand* getReturnVar();
     std::vector<CFGOperand*> getArgs();
     std::vector<CFGStatement*> getStatements();
+    /**
+     * Returns the method's externally exposed interface.
+     */
+    MethodInterface* getInterface();
 };
 
 /**
@@ -381,6 +329,10 @@ public:
      */
     std::vector<CFGMethod*> getMethods();
     std::vector<CFGStatement*> getInitStatements();
+    /**
+     * Returns the class's externally exposed interface.
+     */
+    ClassInterface* getInterface();
 };
 
 /**

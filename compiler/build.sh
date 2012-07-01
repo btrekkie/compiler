@@ -9,5 +9,6 @@ c++ -c break_evaluator.cpp -Wall -o break_evaluator.o
 c++ -c cfg.cpp -Wall -o cfg.o
 c++ -c compiler.cpp -Wall -o compiler.o
 c++ -c cpp_compiler.cpp -Wall -o cpp_compiler.o
+c++ -c interface.cpp -Wall -o interface.o
 c++ lex.yy.o grammar.cpp ast.o ast_util.o break_evaluator.o cfg.o  compiler.o \
-    cpp_compiler.o -Wall -o compiler
+    cpp_compiler.o interface.o -Wall -o compiler

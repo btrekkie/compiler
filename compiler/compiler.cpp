@@ -9,6 +9,7 @@
 #include "cfg.hpp"
 #include "compiler.hpp"
 #include "cpp_compiler.hpp"
+#include "interface.hpp"
 
 using namespace std;
 

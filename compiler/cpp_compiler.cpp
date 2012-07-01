@@ -3,6 +3,7 @@
 #include <sstream>
 #include "cfg.hpp"
 #include "cpp_compiler.hpp"
+#include "interface.hpp"
 
 using namespace std;
 

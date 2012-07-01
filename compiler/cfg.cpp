@@ -1,83 +1,8 @@
 #include <assert.h>
 #include "cfg.hpp"
+#include "interface.hpp"
 
 using namespace std;
-
-CFGType::CFGType(string className2, int numDimensions2) {
-    className = className2;
-    numDimensions = numDimensions2;
-}
-
-string CFGType::getClassName() {
-    return className;
-}
-
-int CFGType::getNumDimensions() {
-    return numDimensions;
-}
-
-CFGType* CFGType::boolType() {
-    return new CFGType("Bool");
-}
-
-CFGType* CFGType::intType() {
-    return new CFGType("Int");
-}
-
-bool CFGType::isBool() {
-    return numDimensions == 0 && className == "Bool";
-}
-
-bool CFGType::isNumeric() {
-    if (numDimensions > 0)
-        return false;
-    else if (className == "Int")
-        return true;
-    else if (className == "Long")
-        return true;
-    else if (className == "Byte")
-        return true;
-    else if (className == "Float")
-        return true;
-    else if (className == "Double")
-        return true;
-    else
-        return false;
-}
-
-bool CFGType::isIntegerLike() {
-    if (numDimensions > 0)
-        return false;
-    else if (className == "Int")
-        return true;
-    else if (className == "Long")
-        return true;
-    else if (className == "Byte")
-        return true;
-    else
-        return false;
-}
-
-int CFGType::getPromotionLevel() {
-    if (className == "Byte")
-        return 1;
-    else if (className == "Int")
-        return 2;
-    else if (className == "Long")
-        return 3;
-    else if (className == "Float")
-        return 4;
-    else if (className == "Double")
-        return 5;
-    else {
-        assert(!"Promotion only applies to numbers");
-        return 0;
-    }
-}
-
-bool CFGType::isMorePromotedThan(CFGType* other) {
-    return getPromotionLevel() > other->getPromotionLevel();
-}
 
 CFGOperand::CFGOperand(bool value) {
     isVar = false;
@@ -237,6 +162,20 @@ vector<CFGStatement*> CFGMethod::getStatements() {
     return statements;
 }
 
+MethodInterface* CFGMethod::getInterface() {
+    CFGType* returnType;
+    if (returnVar != NULL)
+        returnType = returnVar->getType();
+    else
+        returnType = NULL;
+    vector<CFGType*> argTypes;
+    for (vector<CFGOperand*>::const_iterator iterator = args.begin();
+         iterator != args.end();
+         iterator++)
+        argTypes.push_back(new CFGType((*iterator)->getType()));
+    return new MethodInterface(returnType, argTypes, identifier);
+}
+
 CFGClass::CFGClass(
     string identifier2,
     map<string, CFGOperand*> fields2,
@@ -327,6 +266,26 @@ vector<CFGMethod*> CFGClass::getMethods() {
 
 vector<CFGStatement*> CFGClass::getInitStatements() {
     return initStatements;
+}
+
+ClassInterface* CFGClass::getInterface() {
+    vector<FieldInterface*> fieldInterfaces;
+    for (map<string, CFGOperand*>::const_iterator iterator = fields.begin();
+         iterator != fields.end();
+         iterator++) {
+        CFGOperand* field = iterator->second;
+        fieldInterfaces.push_back(
+            new FieldInterface(
+                new CFGType(field->getType()), field->getIdentifier()));
+    }
+    vector<MethodInterface*> methodInterfaces;
+    vector<CFGMethod*> methodsVector = getMethods();
+    for (map<std::string, CFGMethod*>::const_iterator iterator =
+             methods.begin();
+         iterator != methods.end();
+         iterator++)
+        methodInterfaces.push_back(iterator->second->getInterface());
+    return new ClassInterface(fieldInterfaces, methodInterfaces, identifier);
 }
 
 CFGFile::CFGFile(CFGClass* clazz2) {
