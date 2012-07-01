@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <sstream>
 #include "Interface.hpp"
 
 using namespace std;
@@ -82,6 +83,14 @@ int CFGType::getPromotionLevel() {
 
 bool CFGType::isMorePromotedThan(CFGType* other) {
     return getPromotionLevel() > other->getPromotionLevel();
+}
+
+string CFGType::toString() {
+    stringstream output;
+    output << className;
+    for (int i = 0; i < numDimensions; i++)
+        output << "[]";
+    return output.str();
 }
 
 FieldInterface::FieldInterface(CFGType* type2, string identifier2) {

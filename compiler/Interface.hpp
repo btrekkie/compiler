@@ -64,6 +64,7 @@ public:
      * values of the same type.
      */
     bool isMorePromotedThan(CFGType* other);
+    std::string toString();
 };
 
 /**

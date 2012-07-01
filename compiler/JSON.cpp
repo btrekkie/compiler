@@ -161,7 +161,7 @@ bool JSONDecoder::isWhitespace(char c) {
     }
 }
 
-bool hexDigitToInt(char c, int& value) {
+bool JSONDecoder::hexDigitToInt(char c, int& value) {
     if (c >= '0' && c <= '9') {
         value = c - '0';
         return true;
@@ -283,10 +283,9 @@ char JSONDecoder::readScalarOrSeparator(
                 value = new JSONValue(true);
             else if (tokenStr == "false")
                 value = new JSONValue(false);
-            else if (isNumber(tokenStr)) {
-                char* endPointer;
-                value = new JSONValue(strtod(tokenStr.c_str(), &endPointer));
-            } else
+            else if (isNumber(tokenStr))
+                value = new JSONValue(strtod(tokenStr.c_str(), NULL));
+            else
                 return JSON_DECODE_TYPE_ERROR;
             return JSON_DECODE_TYPE_VALUE;
         }
@@ -394,6 +393,7 @@ JSONValue* JSONDecoder::decode(std::istream& input) {
 
 JSONEncoder::JSONEncoder(ostream& output2) {
     output = &output2;
+    indentationLevel = 0;
 }
 
 void JSONEncoder::outputIndentation() {
@@ -410,7 +410,6 @@ void JSONEncoder::outputHexChar(int value) {
 }
 
 void JSONEncoder::startArray() {
-    outputIndentation();
     *output << '[';
     indentationLevel++;
     justStartedArrayOrObject = true;
@@ -428,23 +427,22 @@ void JSONEncoder::startArrayElement() {
 
 void JSONEncoder::endArray() {
     indentationLevel--;
-    if (justStartedArrayOrObject) {
-        *output << ']';
+    if (justStartedArrayOrObject)
         justStartedArrayOrObject = false;
-    } else {
+    else {
+        *output << "\n";
         outputIndentation();
-        *output << "]\n";
     }
+    *output << ']';
 }
 
 void JSONEncoder::startObject() {
-    outputIndentation();
     *output << '{';
     indentationLevel++;
     justStartedArrayOrObject = true;
 }
 
-void JSONEncoder::appendObjectKey(std::string key) {
+void JSONEncoder::appendObjectKey(string key) {
     if (!justStartedArrayOrObject)
         *output << ",\n";
     else {
@@ -458,13 +456,17 @@ void JSONEncoder::appendObjectKey(std::string key) {
 
 void JSONEncoder::endObject() {
     indentationLevel--;
-    if (justStartedArrayOrObject) {
-        *output << '}';
+    if (justStartedArrayOrObject)
         justStartedArrayOrObject = false;
-    } else {
+    else {
+        *output << "\n";
         outputIndentation();
-        *output << "}\n";
     }
+    *output << '}';
+}
+
+void JSONEncoder::endRoot() {
+    *output << "\n";
 }
 
 void JSONEncoder::appendStr(string value) {

@@ -213,6 +213,11 @@ public:
      */
     void endObject();
     /**
+     * Outputs for the end of the root objects.  This should be the last method
+     * called on a given encoder.
+     */
+    void endRoot();
+    /**
      * Outputs the specified string value.
      */
     void appendStr(std::string value);
