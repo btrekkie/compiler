@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "interface.hpp"
+#include "Interface.hpp"
 
 using namespace std;
 

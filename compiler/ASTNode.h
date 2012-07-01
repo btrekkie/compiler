@@ -1,5 +1,5 @@
-#ifndef AST_H_INCLUDED
-#define AST_H_INCLUDED
+#ifndef AST_NODE_H_INCLUDED
+#define AST_NODE_H_INCLUDED
 
 /**
  * The type of an AST node.  See grammar.y regarding the precise structure of an

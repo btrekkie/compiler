@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "ast.h"
+#include "ASTNode.h"
 
 ASTNode* astNew() {
     ASTNode* ast = (ASTNode*)malloc(sizeof(ASTNode));

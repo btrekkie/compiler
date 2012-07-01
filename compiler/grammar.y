@@ -3,7 +3,7 @@ extern "C" {
     int yyparse(void);
     int yylex(void);
     
-    #include "ast.h"
+    #include "ASTNode.h"
 }
 
 #include <stdio.h>
@@ -23,7 +23,6 @@ int main() {
     yyparse();
     return 0;
 }
-
 %}
 
 %start file

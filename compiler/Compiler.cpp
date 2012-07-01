@@ -4,12 +4,12 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "ast_util.hpp"
-#include "break_evaluator.hpp"
-#include "cfg.hpp"
-#include "compiler.hpp"
-#include "cpp_compiler.hpp"
-#include "interface.hpp"
+#include "ASTUtil.hpp"
+#include "BreakEvaluator.hpp"
+#include "CFG.hpp"
+#include "Compiler.hpp"
+#include "CPPCompiler.hpp"
+#include "Interface.hpp"
 
 using namespace std;
 

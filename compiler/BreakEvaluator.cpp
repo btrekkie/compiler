@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <assert.h>
-#include "ast_util.hpp"
-#include "break_evaluator.hpp"
+#include "ASTUtil.hpp"
+#include "BreakEvaluator.hpp"
 
 using namespace std;
 

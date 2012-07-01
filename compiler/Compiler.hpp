@@ -1,7 +1,7 @@
 #ifndef COMPILER_HPP_INCLUDED
 #define COMPILER_HPP_INCLUDED
 
-#include "ast.h"
+#include "ASTNode.h"
 
 /**
  * Compiles the specified AST into C++ code, and writes the results to cout.

@@ -1,6 +1,6 @@
 #include <assert.h>
-#include "cfg.hpp"
-#include "interface.hpp"
+#include "CFG.hpp"
+#include "Interface.hpp"
 
 using namespace std;
 

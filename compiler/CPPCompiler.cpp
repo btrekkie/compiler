@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <map>
 #include <sstream>
-#include "cfg.hpp"
-#include "cpp_compiler.hpp"
-#include "interface.hpp"
+#include "CFG.hpp"
+#include "CPPCompiler.hpp"
+#include "Interface.hpp"
 
 using namespace std;
 

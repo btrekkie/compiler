@@ -1,6 +1,6 @@
 %{
 #include <stdio.h>
-#include "ast.h"
+#include "ASTNode.h"
 #include "grammar.hpp"
 
 void count();

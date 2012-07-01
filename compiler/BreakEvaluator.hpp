@@ -3,7 +3,7 @@
 
 #include <map>
 #include <vector>
-#include "ast.h"
+#include "ASTNode.h"
 
 class CFGLabel;
 class CFGOperand;
