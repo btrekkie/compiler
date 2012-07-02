@@ -4,10 +4,11 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "grammar/ASTNode.h"
+#include "grammar/Compiler.hpp"
 #include "ASTUtil.hpp"
 #include "BreakEvaluator.hpp"
 #include "CFG.hpp"
-#include "Compiler.hpp"
 #include "CPPCompiler.hpp"
 #include "Interface.hpp"
 

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include "grammar/ASTNode.h"
 #include "ASTUtil.hpp"
 
 int ASTUtil::getIntLiteralValue(ASTNode* node) {

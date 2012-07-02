@@ -1,22 +1,22 @@
-#!/bin/sh
+#!/bin/bash
 
+cd grammar
 lex tokens.l
-yacc --verbose --debug -d grammar.y -o grammar.cpp
-cc -c lex.yy.c -o lex.yy.o
-cc -c ASTNode.c -Wall -o ASTNode.o
-c++ -c ASTUtil.cpp -Wall -o ASTUtil.o
-c++ -c BreakEvaluator.cpp -Wall -o BreakEvaluator.o
-c++ -c CFG.cpp -Wall -o CFG.o
-c++ -c Compiler.cpp -Wall -o Compiler.o
-c++ -c CPPCompiler.cpp -Wall -o CPPCompiler.o
-c++ -c Interface.cpp -Wall -o Interface.o
-c++ -c InterfaceInput.cpp -Wall -o InterfaceInput.o
-c++ -c InterfaceOutput.cpp -Wall -o InterfaceOutput.o
-c++ -c JSONDecoder.cpp -Wall -o JSONDecoder.o
-c++ -c JSONEncoder.cpp -Wall -o JSONEncoder.o
-c++ -c JSONValue.cpp -Wall -o JSONValue.o
-c++ -c test/TestCase.cpp -Wall -o test/TestCase.o
-c++ -c test/TestRunner.cpp -Wall -o test/TestRunner.o
-c++ lex.yy.o grammar.cpp ASTNode.o ASTUtil.o BreakEvaluator.o CFG.o Compiler.o \
-    CPPCompiler.o Interface.o InterfaceInput.o InterfaceOutput.o JSONDecoder.o \
-    JSONEncoder.o JSONValue.o -Wall -o compiler
+cd ../
+yacc --verbose --debug -d grammar/grammar.y -o grammar/grammar.cpp
+cc -c grammar/lex.yy.c -o grammar/lex.yy.o
+cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
+
+export FILES="ASTUtil BreakEvaluator CFG Compiler CPPCompiler Interface "\
+"InterfaceInput InterfaceOutput JSONDecoder JSONEncoder JSONValue "\
+"test/TestCase test/TestRunner"
+
+export O_FILES=''
+for FILE in $FILES
+do
+    c++ -c $FILE.cpp -Wall -o $FILE.o
+    export O_FILES="$O_FILES $FILE.o"
+done
+echo $O_FILES
+c++ grammar/lex.yy.o grammar/grammar.cpp grammar/ASTNode.o $O_FILES \
+    -Wall -o compiler

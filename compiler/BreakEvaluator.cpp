@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <assert.h>
+#include "grammar/ASTNode.h"
 #include "ASTUtil.hpp"
 #include "BreakEvaluator.hpp"
 

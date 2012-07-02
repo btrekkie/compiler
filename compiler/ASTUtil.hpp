@@ -1,7 +1,7 @@
 #ifndef AST_UTIL_HPP_INCLUDED
 #define AST_UTIL_HPP_INCLUDED
 
-#include "ASTNode.h"
+#include "grammar/ASTNode.h"
 
 /**
  * Provides static utility methods pertaining to an AST.
