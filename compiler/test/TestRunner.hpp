@@ -10,6 +10,8 @@ class TestCase;
  * A class for executing unit tests.
  */
 class TestRunner {
+private:
+    int numAssertions;
 public:
     /**
      * Executes the specified unit tests.  Outputs the results to cout and cerr.

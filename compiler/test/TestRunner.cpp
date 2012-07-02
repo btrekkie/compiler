@@ -6,6 +6,7 @@
 using namespace std;
 
 void TestRunner::runTestCases(vector<TestCase*> testCases) {
+    numAssertions = 0;
     int numTestCasesPassed = 0;
     for (vector<TestCase*>::const_iterator iterator = testCases.begin();
          iterator != testCases.end();
@@ -19,18 +20,18 @@ void TestRunner::runTestCases(vector<TestCase*> testCases) {
                 message;
         }
     }
+    cout << "Made " << numAssertions << " assertion(s).\n";
+    cout << "Passed " << numTestCasesPassed << " / " << testCases.size() <<
+        " test case(s).\n";
     if (numTestCasesPassed == (int)testCases.size())
-        cout << "Success!  Passed all " << numTestCasesPassed <<
-            " test cases.\n";
-    else
-        cout << "Passed " << numTestCasesPassed << " / " << testCases.size() <<
-            " test cases\n";
+        cout << "Success!\n";
 }
 
 void TestRunner::assertionPassed() {
-    
+    numAssertions++;
 }
 
 void TestRunner::assertionFailed(string message) {
+    numAssertions++;
     throw message;
 }

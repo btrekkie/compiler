@@ -32,6 +32,14 @@ JSONValue::JSONValue(double numberValue2) {
     strValue = NULL;
 }
 
+JSONValue::JSONValue(int numberValue2) {
+    type = JSON_TYPE_NUMBER;
+    numberValue = numberValue2;
+    arrayValue = NULL;
+    objectValue = NULL;
+    strValue = NULL;
+}
+
 JSONValue::JSONValue(bool boolValue2) {
     type = JSON_TYPE_BOOL;
     boolValue = boolValue2;
