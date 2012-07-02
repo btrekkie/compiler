@@ -11,6 +11,7 @@ void TestRunner::runTestCases(vector<TestCase*> testCases) {
          iterator != testCases.end();
          iterator++) {
         try {
+            (*iterator)->setTestRunner(this);
             (*iterator)->test();
             numTestCasesPassed++;
         } catch (string message) {
