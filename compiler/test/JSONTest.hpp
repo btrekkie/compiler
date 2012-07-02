@@ -45,6 +45,14 @@ private:
         JSONValue* value2,
         std::string key3,
         JSONValue* value3);
+    /**
+     * Tests JSONDecoder and JSONEncoder.appendValue.
+     */
+    void testJSON();
+    /**
+     * Tests the JSONEncoder methods.
+     */
+    void testEncoder();
 public:
     std::string getName();
     void test();

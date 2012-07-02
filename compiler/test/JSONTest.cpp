@@ -129,7 +129,7 @@ string JSONTest::getName() {
     return "JSONTest";
 }
 
-void JSONTest::test() {
+void JSONTest::testJSON() {
     checkJSON("", NULL);
     checkJSON("123", new JSONValue(123));
     checkJSON("false", new JSONValue(false));
@@ -190,4 +190,47 @@ void JSONTest::test() {
     encoder.endRoot();
     istringstream input2(output.str());
     assertNull(JSONDecoder::decode(input2), "Encoding null failed");
+}
+
+void JSONTest::testEncoder() {
+    JSONValue* array = getArrayValue(new JSONValue("Foo"), NULL);
+    ostringstream output;
+    JSONEncoder encoder(output);
+    encoder.startObject();
+    encoder.appendObjectKey("bar");
+    encoder.startArray();
+    encoder.startArrayElement();
+    encoder.appendDouble(1.5);
+    encoder.startArrayElement();
+    encoder.appendBool(true);
+    encoder.startArrayElement();
+    encoder.appendValue(array);
+    encoder.startArrayElement();
+    encoder.appendInt(5);
+    encoder.endArray();
+    encoder.appendObjectKey("baz");
+    encoder.appendNull();
+    encoder.appendObjectKey("abc");
+    encoder.appendStr("def");
+    encoder.endObject();
+    encoder.endRoot();
+    
+    JSONValue* expected = getObjectValue(
+        "bar",
+        getArrayValue(
+            new JSONValue(1.5),
+            new JSONValue(true),
+            array,
+            new JSONValue(5)),
+        "baz",
+        NULL,
+        "abc",
+        new JSONValue("def"));
+    istringstream input(output.str());
+    assertValuesEqual(expected, JSONDecoder::decode(input));
+}
+
+void JSONTest::test() {
+    testJSON();
+    testEncoder();
 }
