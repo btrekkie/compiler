@@ -14,8 +14,9 @@ c++ -c InterfaceInput.cpp -Wall -o InterfaceInput.o
 c++ -c InterfaceOutput.cpp -Wall -o InterfaceOutput.o
 c++ -c JSONDecoder.cpp -Wall -o JSONDecoder.o
 c++ -c JSONEncoder.cpp -Wall -o JSONEncoder.o
+c++ -c JSONValue.cpp -Wall -o JSONValue.o
 c++ -c test/TestCase.cpp -Wall -o test/TestCase.o
 c++ -c test/TestRunner.cpp -Wall -o test/TestRunner.o
 c++ lex.yy.o grammar.cpp ASTNode.o ASTUtil.o BreakEvaluator.o CFG.o Compiler.o \
     CPPCompiler.o Interface.o InterfaceInput.o InterfaceOutput.o JSONDecoder.o \
-    JSONEncoder.o -Wall -o compiler
+    JSONEncoder.o JSONValue.o -Wall -o compiler

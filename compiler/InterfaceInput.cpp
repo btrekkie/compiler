@@ -3,6 +3,7 @@
 #include "Interface.hpp"
 #include "InterfaceInput.hpp"
 #include "JSONDecoder.hpp"
+#include "JSONValue.hpp"
 
 using namespace std;
 

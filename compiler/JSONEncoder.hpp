@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 
+class JSONValue;
+
 /**
  * A class for encoding a value using JSON.  The class assumes that its methods
  * are called in a valid sequence.  See the comments for a sense of the
@@ -94,6 +96,10 @@ public:
      */
     void appendStr(std::string value);
     /**
+     * Outputs the specified double value.
+     */
+    void appendDouble(double value);
+    /**
      * Outputs the specified integer value.
      */
     void appendInt(int value);
@@ -105,6 +111,10 @@ public:
      * Outputs a null value.
      */
     void appendNull();
+    /**
+     * Outputs the specified value.
+     */
+    void appendValue(JSONValue* value);
 };
 
 #endif

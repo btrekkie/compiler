@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <sstream>
 #include "JSONEncoder.hpp"
+#include "JSONValue.hpp"
 
 using namespace std;
 
@@ -102,6 +103,10 @@ void JSONEncoder::appendStr(string value) {
     *output << '"';
 }
 
+void JSONEncoder::appendDouble(double value) {
+    *output << value;
+}
+
 void JSONEncoder::appendInt(int value) {
     *output << value;
 }
@@ -112,4 +117,51 @@ void JSONEncoder::appendBool(bool value) {
 
 void JSONEncoder::appendNull() {
     *output << "null";
+}
+
+void JSONEncoder::appendValue(JSONValue* value) {
+    if (value == NULL) {
+        appendNull();
+        return;
+    }
+    switch (value->getType()) {
+        case JSON_TYPE_ARRAY:
+        {
+            startArray();
+            vector<JSONValue*> array = value->getArrayValue();
+            for (vector<JSONValue*>::const_iterator iterator = array.begin();
+                 iterator != array.end();
+                 iterator++) {
+                startArrayElement();
+                appendValue(*iterator);
+            }
+            endArray();
+            break;
+        }
+        case JSON_TYPE_OBJECT:
+        {
+            startObject();
+            map<string, JSONValue*> object = value->getObjectValue();
+            for (map<string, JSONValue*>::const_iterator iterator =
+                     object.begin();
+                 iterator != object.end();
+                 iterator++) {
+                appendObjectKey(iterator->first);
+                appendValue(iterator->second);
+            }
+            endObject();
+            break;
+        }
+        case JSON_TYPE_STR:
+            appendStr(value->getStrValue());
+            break;
+        case JSON_TYPE_NUMBER:
+            appendDouble(value->getDoubleValue());
+            break;
+        case JSON_TYPE_BOOL:
+            appendBool(value->getBoolValue());
+            break;
+        default:
+            assert(!"Unhanded value type");
+    }
 }
