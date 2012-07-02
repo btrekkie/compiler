@@ -43,8 +43,9 @@ public:
     explicit JSONValue(std::vector<JSONValue*> arrayValue2);
     explicit JSONValue(std::map<std::string, JSONValue*> objectValue2);
     explicit JSONValue(double numberValue2);
-    explicit JSONValue(int numberValue2);
     explicit JSONValue(std::string strValue2);
+    explicit JSONValue(const char* strValue2);
+    explicit JSONValue(int numberValue2);
     explicit JSONValue(bool boolValue2);
     ~JSONValue();
     JSONValueType getType();

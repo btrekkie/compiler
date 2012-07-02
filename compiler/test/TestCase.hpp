@@ -70,7 +70,7 @@ protected:
         else {
             std::ostringstream fullMessage;
             fullMessage << "Expected " << expected << ", but got " << actual <<
-                ".\n" << message;
+                ": " << message;
             assertionFailed(fullMessage.str());
         }
     }

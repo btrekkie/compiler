@@ -139,7 +139,7 @@ void JSONTest::test() {
     checkJSON("\"123\"", new JSONValue("123"));
     checkJSON(
         "\"12\\t3\\n4\\\\\\\"\\\\\"",
-        new JSONValue("12\t3\n4\\\\\"\\\""));
+        new JSONValue("12\t3\n4\\\"\\"));
     checkJSON("[", NULL);
     checkJSON(
         "[123, 456, \"789\", false]",
@@ -179,7 +179,7 @@ void JSONTest::test() {
             "true",
             new JSONValue(1)));
     checkJSON("{\"abc\": 123, \"def\" : [456, false], 123: 1}", NULL);
-    checkJSON("\"a\\u00abcd\"", new JSONValue("a\253"));
+    checkJSON("\"a\\u00abcd\"", new JSONValue("a\253cd"));
     checkJSON("\"a\\u00ab\"", new JSONValue("a\253"));
     
     istringstream input("null");

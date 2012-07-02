@@ -44,6 +44,7 @@ bool JSONDecoder::isNumber(string str) {
             return true;
     }
     if (str.at(offset) == '.') {
+        offset++;
         while (offset < length &&
                str.at(offset) >= '0' &&
                str.at(offset) <= '9')
@@ -64,6 +65,7 @@ bool JSONDecoder::isNumber(string str) {
     while (offset < length) {
         if (str.at(offset) < '0' || str.at(offset) > '9')
             return false;
+        offset++;
     }
     return true;
 }
@@ -88,7 +90,7 @@ bool JSONDecoder::hexDigitToInt(char c, int& value) {
         value = c - 'A' + 10;
         return true;
     } else if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
+        value = c - 'a' + 10;
         return true;
     } else
         return false;
@@ -97,7 +99,7 @@ bool JSONDecoder::hexDigitToInt(char c, int& value) {
 bool JSONDecoder::readStr(std::istream& input, std::string& value) {
     ostringstream output;
     char c;
-    while ((c = input.get()) != input.eof()) {
+    while ((c = input.get()) != input.eof() && input.good()) {
         if (c == '"') {
             value = output.str();
             return true;
@@ -105,7 +107,7 @@ bool JSONDecoder::readStr(std::istream& input, std::string& value) {
             output << c;
         else {
             c = input.get();
-            if (c == input.eof())
+            if (c == input.eof() || !input.good())
                 return false;
             switch (c) {
                 case '"':
@@ -114,26 +116,26 @@ bool JSONDecoder::readStr(std::istream& input, std::string& value) {
                     output << c;
                     break;
                 case 'b':
-                    output << "\b";
+                    output << '\b';
                     break;
                 case 'f':
-                    output << "\f";
+                    output << '\f';
                     break;
                 case 'n':
-                    output << "\n";
+                    output << '\n';
                     break;
                 case 'r':
-                    output << "\r";
+                    output << '\r';
                     break;
                 case 't':
-                    output << "\t";
+                    output << '\t';
                     break;
                 case 'u':
                 {
                     unsigned int code = 0;
                     for (int i = 0; i < 4; i++) {
                         c = input.get();
-                        if (c == input.eof())
+                        if (c == input.eof() || !input.good())
                             return false;
                         int hexValue;
                         if (!hexDigitToInt(c, hexValue))
@@ -185,7 +187,7 @@ char JSONDecoder::readScalarOrSeparator(
         {
             ostringstream token;
             token << c;
-            while ((c = input.peek()) != input.eof()) {
+            while ((c = input.peek()) != input.eof() && input.good()) {
                 if (isWhitespace(c) ||
                     c == ',' ||
                     c == ':' ||
@@ -193,7 +195,7 @@ char JSONDecoder::readScalarOrSeparator(
                     c == '}') {
                     break;
                 }
-                token << input.get();
+                token << (char)input.get();
             }
             string tokenStr = token.str();
             if (tokenStr == "null")
@@ -213,7 +215,8 @@ char JSONDecoder::readScalarOrSeparator(
 }
 
 char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
-    switch (readScalarOrSeparator(input, value)) {
+    char type = readScalarOrSeparator(input, value);
+    switch (type) {
         case JSON_DECODE_TYPE_VALUE:
             return JSON_DECODE_TYPE_VALUE;
         case JSON_DECODE_TYPE_ERROR:
@@ -221,7 +224,7 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
         case '[':
         {
             JSONValue* element;
-            char type = readValueOrSeparator(input, element);
+            type = readValueOrSeparator(input, element);
             if (type != JSON_DECODE_TYPE_VALUE && type != ']')
                 return JSON_DECODE_TYPE_ERROR;
             vector<JSONValue*> array;
@@ -250,7 +253,7 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
         case '{':
         {
             JSONValue* key;
-            char type = readValueOrSeparator(input, key);
+            type = readValueOrSeparator(input, key);
             if (type != JSON_DECODE_TYPE_VALUE && type != '}')
                 return JSON_DECODE_TYPE_ERROR;
             map<string, JSONValue*> object;
@@ -294,7 +297,7 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
             return JSON_DECODE_TYPE_VALUE;
         }
     }
-    return JSON_DECODE_TYPE_ERROR;
+    return type;
 }
 
 JSONValue* JSONDecoder::decode(std::istream& input) {
@@ -302,7 +305,7 @@ JSONValue* JSONDecoder::decode(std::istream& input) {
     if (readValueOrSeparator(input, value) != JSON_DECODE_TYPE_VALUE)
         return NULL;
     char c;
-    while ((c = input.get()) != input.eof()) {
+    while ((c = input.get()) != input.eof() && input.good()) {
         if (!isWhitespace(c)) {
             delete value;
             return NULL;

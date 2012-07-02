@@ -24,6 +24,13 @@ JSONValue::JSONValue(string strValue2) {
     objectValue = NULL;
 }
 
+JSONValue::JSONValue(const char* strValue2) {
+    type = JSON_TYPE_STR;
+    strValue = new string(strValue2);
+    arrayValue = NULL;
+    objectValue = NULL;
+}
+
 JSONValue::JSONValue(double numberValue2) {
     type = JSON_TYPE_NUMBER;
     numberValue = numberValue2;
@@ -100,7 +107,7 @@ int JSONValue::getIntValue() {
 }
 
 bool JSONValue::getBoolValue() {
-    assert(type == JSON_TYPE_NUMBER || !"Not a boolean value");
+    assert(type == JSON_TYPE_BOOL || !"Not a boolean value");
     return boolValue;
 }
 
