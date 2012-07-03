@@ -107,6 +107,7 @@ CFGType* CFGType::fromString(string str) {
             str.at(i) != '[' ||
             str.at(i + 1) != ']')
             return NULL;
+        i += 2;
     }
     return new CFGType(className, numDimensions);
 }

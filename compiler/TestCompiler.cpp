@@ -2,6 +2,7 @@
  */
 
 #include <vector>
+#include "test/InterfaceIOTest.hpp"
 #include "test/JSONTest.hpp"
 #include "test/TestCase.hpp"
 #include "test/TestRunner.hpp"
@@ -10,6 +11,7 @@ using namespace std;
 
 int main() {
     vector<TestCase*> testCases;
+    testCases.push_back(new InterfaceIOTest());
     testCases.push_back(new JSONTest());
     
     TestRunner testRunner;

@@ -125,10 +125,6 @@ JSONValue* JSONTest::getObjectValue(
     return new JSONValue(object);
 }
 
-string JSONTest::getName() {
-    return "JSONTest";
-}
-
 void JSONTest::testJSON() {
     checkJSON("", NULL);
     checkJSON("123", new JSONValue(123));
@@ -228,6 +224,10 @@ void JSONTest::testEncoder() {
         new JSONValue("def"));
     istringstream input(output.str());
     assertValuesEqual(expected, JSONDecoder::decode(input));
+}
+
+string JSONTest::getName() {
+    return "JSONTest";
 }
 
 void JSONTest::test() {

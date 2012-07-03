@@ -8,7 +8,7 @@ class JSONValue;
 
 /**
  * A class for encoding a value using JSON.  The class assumes that its methods
- * are called in a valid sequence.  See the comments for a sense of the
+ * are called in a valid sequence.  See the methods' comments for a sense of the
  * limitations on method call sequences.
  */
 class JSONEncoder {
@@ -23,7 +23,7 @@ private:
     int indentationLevel;
     /**
      * Whether the last call to a JSONEncoder method was a call to startArray()
-     * or startObject().
+     * or startObject() (assuming a valid sequence of method calls).
      */
     bool justStartedArrayOrObject;
     

@@ -27,8 +27,9 @@ then
     export EXECUTABLE_FILE="compiler"
 elif [ $1 = "test" ]
 then
-    export FILES="JSONDecoder JSONEncoder JSONValue test/JSONTest "\
-"test/TestCase test/TestRunner"
+    export FILES="Interface InterfaceInput InterfaceOutput JSONDecoder "\
+"JSONEncoder JSONValue test/InterfaceIOTest test/JSONTest test/TestCase "\
+"test/TestRunner"
     export OBJ_FILES=""
     export MAIN_FILE="TestCompiler.cpp"
     export EXECUTABLE_FILE="test_compiler"
