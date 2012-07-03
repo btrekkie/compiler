@@ -473,6 +473,7 @@ private:
      * Appends a C++ source code representation of the specified class.
      */
     void outputClass(CFGClass* clazz) {
+        *output << "#include \"" << clazz->getIdentifier() << ".hpp\"\n\n";
         vector<CFGMethod*> methods = clazz->getMethods();
         for (vector<CFGMethod*>::const_iterator iterator = methods.begin();
              iterator != methods.end();

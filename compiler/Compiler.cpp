@@ -1183,16 +1183,15 @@ public:
         breakEvaluator = NULL;
     }
     
+    /**
+     * Returns an (unoptimized) CFG representation of the specified AST.
+     */
     CFGFile* compileFile(ASTNode* node) {
         return new CFGFile(compileClass(node->child1));
     }
 };
 
-void processFile(ASTNode* node) {
+CFGFile* compileFile(ASTNode* node) {
     Compiler compiler;
-    CFGFile* file = compiler.compileFile(node);
-    outputCPPHeaderFile(file, cout);
-    cout << '\n';
-    outputCPPImplementationFile(file, cout);
-    delete file;
+    return compiler.compileFile(node);
 }

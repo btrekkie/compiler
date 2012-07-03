@@ -18,11 +18,6 @@ void yyerror(const char* s) {
     fflush(stdout);
     printf("\n%*s\n%*s\n", column, "^", column, s);
 }
-
-int main() {
-    yyparse();
-    return 0;
-}
 %}
 
 %start file

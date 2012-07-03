@@ -21,9 +21,10 @@ then
     cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
     
     export FILES="ASTUtil BreakEvaluator CFG Compiler CPPCompiler Interface "\
-"InterfaceInput InterfaceOutput JSONDecoder JSONEncoder JSONValue"
+"InterfaceInput InterfaceOutput JSONDecoder JSONEncoder JSONValue "\
+"grammar/grammar"
     export OBJ_FILES="grammar/lex.yy.o grammar/ASTNode.o"
-    export MAIN_FILE="grammar/grammar.cpp"
+    export MAIN_FILE="CompilerMain.cpp"
     export EXECUTABLE_FILE="compiler"
 elif [ $1 = "test" ]
 then
