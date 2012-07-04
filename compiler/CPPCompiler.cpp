@@ -321,14 +321,10 @@ private:
     }
     
     /**
-     * Outputs the C++ code for the specified statement.
+     * Outputs the C++ code for the specified statement, exculding the label
+     * name.
      */
     void outputStatement(CFGStatement* statement) {
-        if (statement->getLabel() != NULL) {
-            outputLabelName(statement->getLabel());
-            *output << ":;\n";
-        }
-        
         switch (statement->getOperation()) {
             case CFG_ASSIGN:
                 outputIndentation(1);
@@ -388,18 +384,28 @@ private:
      * Outputs the C++ code for the specified sequence of statements.
      */
     void outputStatements(vector<CFGStatement*> statements) {
+        set<CFGLabel*> usedLabels;
         for (vector<CFGStatement*>::const_iterator iterator =
                  statements.begin();
              iterator != statements.end();
              iterator++) {
-            if ((*iterator)->getDestination() != NULL)
-                outputVarDeclarationIfNecessary((*iterator)->getDestination());
+            CFGStatement* statement = *iterator;
+            if (statement->getDestination() != NULL)
+                outputVarDeclarationIfNecessary(statement->getDestination());
+            for (int i = 0; i < statement->getNumSwitchLabels(); i++)
+                usedLabels.insert(statement->getSwitchLabel(i));
         }
         for (vector<CFGStatement*>::const_iterator iterator =
                  statements.begin();
              iterator != statements.end();
-             iterator++)
-            outputStatement(*iterator);
+             iterator++) {
+            CFGStatement* statement = *iterator;
+            if (usedLabels.count(statement->getLabel()) > 0) {
+                outputLabelName(statement->getLabel());
+                *output << ":;\n";
+            }
+            outputStatement(statement);
+        }
     }
     
     /**
@@ -499,7 +505,10 @@ private:
      * suggested by "outputClass".
      */
     void outputClassHeaderFile(CFGClass* clazz) {
-        *output << "class ";
+        *output << "#ifndef COMPILER_" << clazz->getIdentifier() <<
+            "_DEFINED\n" <<
+            "#define COMPILER_" << clazz->getIdentifier() << "_DEFINED\n\n" <<
+            "class ";
         outputClassIdentifier(clazz->getIdentifier());
         *output << " {\n"
             << "public:\n";
@@ -511,7 +520,10 @@ private:
             outputMethodSignature(*iterator, "", 1);
             *output << ";\n";
         }
-        *output << "}\n";
+        outputIndentation(1);
+        *output << "void init();\n" <<
+            "};\n\n" <<
+            "#endif\n";
     }
     
     /**
@@ -548,6 +560,25 @@ public:
         output = &output2;
         outputClass(file->getClass());
     }
+    
+    void outputMainFile(
+        string className,
+        string mainMethodName,
+        ostream& output2) {
+        output = &output2;
+        *output << "#include \"";
+        outputClassIdentifier(className);
+        *output << "\"\n\n" << "int main() {\n";
+        outputIndentation(1);
+        outputClassIdentifier(className);
+        *output << " mainObject;\n";
+        outputIndentation(1);
+        *output << "mainObject.";
+        outputMethodIdentifier(mainMethodName);
+        *output << ";\n";
+        outputIndentation(1);
+        *output << "return 0;\n" << "}\n";
+    }
 };
 
 void outputCPPHeaderFile(CFGFile* file, ostream& output) {
@@ -558,4 +589,9 @@ void outputCPPHeaderFile(CFGFile* file, ostream& output) {
 void outputCPPImplementationFile(CFGFile* file, ostream& output) {
     CPPCompiler compiler;
     compiler.outputImplementationFile(file, output);
+}
+
+void outputMainFile(string className, string mainMethodName, ostream& output) {
+    CPPCompiler compiler;
+    compiler.outputMainFile(className, mainMethodName, output);
 }

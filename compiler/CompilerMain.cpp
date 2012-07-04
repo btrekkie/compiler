@@ -7,70 +7,19 @@
  * file.
  */
 
-#include <fstream>
 #include <iostream>
-#include <sstream>
-#include <string>
-#include "grammar/ASTNode.h"
-#include "CFG.hpp"
-#include "Compiler.hpp"
-#include "CPPCompiler.hpp"
-#include "Interface.hpp"
-#include "InterfaceOutput.hpp"
+#include "BinaryCompiler.hpp"
 
 using namespace std;
 
-extern "C" {
-    int yyparse();
-}
-
-/**
- * The directory in which to store the interface file, C++ header file, and C++
- * implementation file.
- */
-static string outputDir;
-
-void processFile(ASTNode* node) {
-    // Compile program
-    CFGFile* file = compileFile(node);
-    CFGClass* clazz = file->getClass();
-    
-    // Output interface file
-    ClassInterface* classInterface = clazz->getInterface();
-    ostringstream interfaceFilename;
-    interfaceFilename << outputDir << '/' << clazz->getIdentifier() << ".int";
-    ofstream interfaceOutputFile(interfaceFilename.str().c_str());
-    InterfaceOutput interfaceOutput(interfaceOutputFile);
-    interfaceOutput.outputClassInterface(classInterface);
-    interfaceOutputFile.close();
-    delete classInterface;
-    
-    // Output C++ header file
-    ostringstream headerFilename;
-    headerFilename << outputDir << '/' << clazz->getIdentifier() << ".hpp";
-    ofstream headerOutput(headerFilename.str().c_str());
-    outputCPPHeaderFile(file, headerOutput);
-    headerOutput.close();
-    
-    // Output C++ implementation file
-    ostringstream implementationFilename;
-    implementationFilename << outputDir << '/' << clazz->getIdentifier() <<
-        ".cpp";
-    ofstream implementationOutput(implementationFilename.str().c_str());
-    outputCPPImplementationFile(file, implementationOutput);
-    implementationOutput.close();
-    
-    delete file;
-}
-
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        cout << "Expected exactly one argument: the directory in which to "
-            "store the compiled files\n";
+    if (argc != 4) {
+        cout << "Expected exactly three arguments: the root source file "
+            "directory, the root build directory, and the source file, "
+            "relative to the root source file directory.";
         return -1;
     } else {
-        outputDir = argv[1];
-        yyparse();
+        BinaryCompiler::compileFile(argv[1], argv[2], argv[3]);
         return 0;
     }
 }

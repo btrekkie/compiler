@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include "ASTNode.h"
+#include "grammar.h"
 #include "grammar.hpp"
 
 void count();
@@ -104,4 +105,14 @@ void count() {
         else
             column++;
     }
+}
+
+void* setFileToParse(FILE* file) {
+    YY_BUFFER_STATE buffer = yy_create_buffer(file, YY_BUF_SIZE);
+    yy_switch_to_buffer(buffer);
+    return buffer;
+}
+
+void freeParseData(void* data) {
+    yy_delete_buffer((YY_BUFFER_STATE)data);
 }

@@ -4,7 +4,8 @@
 #include "ASTNode.h"
 
 /**
- * Compiles the specified AST into C++ code, and writes the results to cout.
+ * Responds to having finished parsing a source file into the specified parse
+ * tree.
  */
 void processFile(ASTNode* node);
 

@@ -129,8 +129,10 @@ void CFGStatement::setMethodIdentifierAndArgs(
 }
 
 int CFGStatement::getNumSwitchLabels() {
-    assert(switchLabels != NULL || !"Have not set switch labels");
-    return (int)switchLabels->size();
+    if (switchLabels != NULL)
+        return (int)switchLabels->size();
+    else
+        return 0;
 }
 
 CFGOperand* CFGStatement::getSwitchValue(int index) {

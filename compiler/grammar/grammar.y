@@ -1,13 +1,14 @@
 %{
 extern "C" {
-    int yyparse(void);
-    int yylex(void);
+    int yyparse();
+    int yylex();
     
     #include "ASTNode.h"
+    #include "grammar.h"
 }
 
 #include <stdio.h>
-#include "compiler.hpp"
+#include "Compiler.hpp"
 
 #define YYSTYPE ASTNode*
 
@@ -36,7 +37,7 @@ void yyerror(const char* s) {
 %%
 
 file : classDefinition
-       { $$ = astNew1(AST_FILE, $1); processFile($$); astFree($$); };
+       { $$ = astNew1(AST_FILE, $1); processFile($$); };
 classDefinition : CLASS IDENTIFIER '{' classBodyItemList '}'
                   { $$ = astNew2(AST_CLASS_DEFINITION, $2, $4); };
 classBodyItemList : classBodyItemList classBodyItem

@@ -2,6 +2,7 @@
 #define CPP_COMPILER_HPP_INCLUDED
 
 #include <iostream>
+#include <string>
 
 class CFGFile;
 
@@ -15,5 +16,16 @@ void outputCPPHeaderFile(CFGFile* file, std::ostream& output);
  * code to the specified output stream.
  */
 void outputCPPImplementationFile(CFGFile* file, std::ostream& output);
+/**
+ * Appends a C++ source code representation of a file containing a main function
+ * that calls the specified source code method to the specified output stream.
+ * @param className the identifier of the class whose method we are calling.
+ * @param mainMethodName the identifier of the method we are calling.
+ * @param output the output stream.
+ */
+void outputMainFile(
+    std::string className,
+    std::string mainMethodName,
+    std::ostream& output);
 
 #endif

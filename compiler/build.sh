@@ -8,38 +8,38 @@ elif [ $# -ne 1 ]
 then
     echo "build.sh only takes one argument: the compilation target"
     exit -1
-fi
-
-# Target-specific logic
-if [ $1 = "compiler" ]
+elif [ $1 != "compiler" -a $1 != "test" ]
 then
-    cd grammar
-    lex tokens.l
-    cd ../
-    yacc --verbose --debug -d grammar/grammar.y -o grammar/grammar.cpp
-    cc -c grammar/lex.yy.c -o grammar/lex.yy.o
-    cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
-    
-    export FILES="ASTUtil BreakEvaluator CFG Compiler CPPCompiler Interface "\
-"InterfaceInput InterfaceOutput JSONDecoder JSONEncoder JSONValue "\
-"grammar/grammar"
-    export OBJ_FILES="grammar/lex.yy.o grammar/ASTNode.o"
-    export MAIN_FILE="CompilerMain.cpp"
-    export EXECUTABLE_FILE="compiler"
-elif [ $1 = "test" ]
-then
-    export FILES="Interface InterfaceInput InterfaceOutput JSONDecoder "\
-"JSONEncoder JSONValue test/InterfaceIOTest test/JSONTest test/TestCase "\
-"test/TestRunner"
-    export OBJ_FILES=""
-    export MAIN_FILE="TestCompiler.cpp"
-    export EXECUTABLE_FILE="test_compiler"
-else
     echo "Invalid compilation target"
     exit -1
 fi
 
+cd grammar
+lex tokens.l
+cd ../
+yacc --verbose --debug -d grammar/grammar.y -o grammar/grammar.cpp
+cc -c grammar/lex.yy.c -o grammar/lex.yy.o
+cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
+
+export FILES="ASTUtil BinaryCompiler BreakEvaluator CFG Compiler CPPCompiler "\
+"Interface InterfaceInput InterfaceOutput JSONDecoder JSONEncoder JSONValue "\
+"Parser grammar/grammar"
+
+# Target-specific logic
+if [ $1 = "compiler" ]
+then
+    export MAIN_FILE="CompilerMain.cpp"
+    export EXECUTABLE_FILE="compiler"
+elif [ $1 = "test" ]
+then
+    export FILES="$FILES test/InterfaceIOTest test/JSONTest test/TestCase "\
+"test/TestRunner"
+    export MAIN_FILE="TestCompiler.cpp"
+    export EXECUTABLE_FILE="test_compiler"
+fi
+
 # Compile source files
+export OBJ_FILES="grammar/lex.yy.o grammar/ASTNode.o"
 export EXIT_CODE=0
 for FILE in $FILES
 do
