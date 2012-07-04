@@ -75,7 +75,19 @@ CFGStatement::CFGStatement(
     destination = destination2;
     arg1 = arg1b;
     arg2 = arg2b;
+    methodArgs = NULL;
     label = NULL;
+    switchValues = NULL;
+    switchLabels = NULL;
+}
+
+CFGStatement::~CFGStatement() {
+    if (methodArgs != NULL)
+        delete methodArgs;
+    if (switchValues != NULL)
+        delete switchValues;
+    if (switchLabels != NULL)
+        delete switchLabels;
 }
 
 CFGOperation CFGStatement::getOperation() {
@@ -84,6 +96,16 @@ CFGOperation CFGStatement::getOperation() {
 
 CFGOperand* CFGStatement::getDestination() {
     return destination;
+}
+
+string CFGStatement::getMethodIdentifier() {
+    assert(methodArgs != NULL || !"Have not set method args");
+    return methodIdentifier;
+}
+
+vector<CFGOperand*> CFGStatement::getMethodArgs() {
+    assert(methodArgs != NULL || !"Have not set method args");
+    return *methodArgs;
 }
 
 CFGOperand* CFGStatement::getArg1() {
@@ -98,16 +120,27 @@ CFGLabel* CFGStatement::getLabel() {
     return label;
 }
 
+void CFGStatement::setMethodIdentifierAndArgs(
+    string methodIdentifier2,
+    vector<CFGOperand*> methodArgs2) {
+    assert(methodArgs == NULL || !"Cannot set method args twice");
+    methodIdentifier = methodIdentifier2;
+    methodArgs = new vector<CFGOperand*>(methodArgs2);
+}
+
 int CFGStatement::getNumSwitchLabels() {
-    return (int)switchLabels.size();
+    assert(switchLabels != NULL || !"Have not set switch labels");
+    return (int)switchLabels->size();
 }
 
 CFGOperand* CFGStatement::getSwitchValue(int index) {
-    return switchValues.at(index);
+    assert(switchLabels != NULL || !"Have not set switch values");
+    return switchValues->at(index);
 }
 
 CFGLabel* CFGStatement::getSwitchLabel(int index) {
-    return switchLabels.at(index);
+    assert(switchLabels != NULL || !"Have not set switch labels");
+    return switchLabels->at(index);
 }
 
 void CFGStatement::setSwitchValuesAndLabels(
@@ -116,10 +149,9 @@ void CFGStatement::setSwitchValuesAndLabels(
     assert(
         switchValues2.size() == switchLabels2.size() ||
         !"Different number of values and labels");
-    assert(switchLabels2.size() > 0 || !"No switch labels provided");
-    assert(switchLabels.size() == 0 || !"Cannot set switch labels twice");
-    switchValues = switchValues2;
-    switchLabels = switchLabels2;
+    assert(switchLabels == NULL || !"Cannot set switch labels twice");
+    switchValues = new vector<CFGOperand*>(switchValues2);
+    switchLabels = new vector<CFGLabel*>(switchLabels2);
 }
 
 CFGStatement* CFGStatement::fromLabel(CFGLabel* label2) {
@@ -130,8 +162,10 @@ CFGStatement* CFGStatement::fromLabel(CFGLabel* label2) {
 
 CFGStatement* CFGStatement::jump(CFGLabel* label2) {
     CFGStatement* statement = new CFGStatement(CFG_JUMP, NULL, NULL);
-    statement->switchValues.push_back(NULL);
-    statement->switchLabels.push_back(label2);
+    statement->switchValues = new vector<CFGOperand*>();
+    statement->switchLabels = new vector<CFGLabel*>();
+    statement->switchValues->push_back(NULL);
+    statement->switchLabels->push_back(label2);
     return statement;
 }
 
@@ -239,8 +273,6 @@ void CFGClass::deleteStatements(
          iterator != statements.end();
          iterator++) {
         operands.insert((*iterator)->getDestination());
-        operands.insert((*iterator)->getArg1());
-        operands.insert((*iterator)->getArg2());
         if ((*iterator)->getLabel())
             delete (*iterator)->getLabel();
         delete *iterator;

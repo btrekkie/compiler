@@ -107,7 +107,7 @@ private:
     CFGType* returnType;
     /**
      * A vector of the method's arguments' compile-time types (in the order in
-     * which they are declared)
+     * which they are declared).
      */
     std::vector<CFGType*> argTypes;
     /**

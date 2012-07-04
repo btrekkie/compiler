@@ -27,6 +27,7 @@ enum CFGOperation {
     CFG_LEFT_SHIFT,
     CFG_LESS_THAN,
     CFG_LESS_THAN_OR_EQUAL_TO,
+    CFG_METHOD_CALL,
     CFG_MINUS,
     CFG_MOD,
     CFG_MULT,
@@ -146,6 +147,14 @@ private:
      */
     CFGOperand* arg2;
     /**
+     * The identifier of the method being called, if any.
+     */
+    std::string methodIdentifier;
+    /**
+     * The operands to the method being called, if any.
+     */
+    std::vector<CFGOperand*>* methodArgs;
+    /**
      * A CFGLabel identifying the statement.
      */
     CFGLabel* label;
@@ -154,11 +163,11 @@ private:
      * which to jump to the labels in "switchLabels".  See the comments for
      * "switchLabels" for more information.
      */
-    std::vector<CFGOperand*> switchValues;
+    std::vector<CFGOperand*>* switchValues;
     /**
      * A vector of the CFGLabels to which to jump as a consequence of this
      * operation.  If the operation is not a jumping operation, this and
-     * "switchValues", are empty.  If it is CFG_JUMP, this consists of a single
+     * "switchValues" are NULL.  If it is CFG_JUMP, this consists of a single
      * element indicating the jump target, and "switchValues" consists of a
      * single NULL element.  If it is CFG_IF, this consists of two elements: the
      * label to which to jump if "arg1" evaluates to true, and the label to
@@ -183,18 +192,28 @@ private:
      *         goto switchLabels[n];
      * }
      */
-    std::vector<CFGLabel*> switchLabels;
+    std::vector<CFGLabel*>* switchLabels;
 public:
     CFGStatement(
         CFGOperation operation2,
         CFGOperand* destination2,
         CFGOperand* arg1b,
         CFGOperand* arg2b = NULL);
+    ~CFGStatement();
     CFGOperation getOperation();
     CFGOperand* getDestination();
     CFGOperand* getArg1();
     CFGOperand* getArg2();
+    std::string getMethodIdentifier();
+    std::vector<CFGOperand*> getMethodArgs();
     CFGLabel* getLabel();
+    /**
+     * Sets "methodIdentifier" and "methodArgs".  This method may only be called
+     * once.
+     */
+    void setMethodIdentifierAndArgs(
+        std::string methodIdentifier2,
+        std::vector<CFGOperand*> methodArgs2);
     /**
      * Returns the size of "switchLabels".  See the comments for that field for
      * more information.
@@ -211,8 +230,7 @@ public:
      */
     CFGLabel* getSwitchLabel(int index);
     /**
-     * Sets "switchValues" and "switchLabels".  This may only be called once,
-     * and it must be called with non-empty vectors.
+     * Sets "switchValues" and "switchLabels".  This may only be called once.
      */
     void setSwitchValuesAndLabels(
         std::vector<CFGOperand*> switchValues2,

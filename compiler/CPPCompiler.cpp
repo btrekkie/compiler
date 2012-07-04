@@ -268,6 +268,59 @@ private:
     }
     
     /**
+     * Outputs a method's C++ identier.
+     * @param methodIdentifier the class's identifier in the source file
+     */
+    void outputMethodIdentifier(string methodIdentifier) {
+        *output << "m_" << methodIdentifier;
+    }
+    
+    /**
+     * Outputs a class's C++ identier.
+     * @param classIdentifier the class's identifier in the source file
+     */
+    void outputClassIdentifier(string classIdentifier) {
+        *output << "c_" << classIdentifier;
+    }
+    
+    /**
+     * Outputs the C++ code for the specified method call statement, excluding
+     * the label name.
+     */
+    void outputMethodCall(CFGStatement* statement) {
+        assert(
+            statement->getOperation() == CFG_METHOD_CALL ||
+            !"Not a method call");
+        outputIndentation(1);
+        vector<CFGOperand*> args = statement->getMethodArgs();
+        // TODO eventually, "print" and "println" should be real methods
+        if (statement->getMethodIdentifier() == "print") {
+            *output << "cout << ";
+            outputOperand(args.at(0));
+            *output << ";\n";
+        } else if (statement->getMethodIdentifier() == "println") {
+            *output << "cout << ";
+            outputOperand(args.at(0));
+            *output << " << '\\n';\n";
+        } else {
+            if (statement->getDestination() != NULL) {
+                outputOperand(statement->getDestination());
+                *output << " = ";
+            }
+            outputMethodIdentifier(statement->getMethodIdentifier());
+            *output << '(';
+            for (vector<CFGOperand*>::const_iterator iterator = args.begin();
+                 iterator != args.end();
+                 iterator++) {
+                if (iterator != args.begin())
+                    *output << ", ";
+                outputOperand(*iterator);
+            }
+            *output << ");\n";
+        }
+    }
+    
+    /**
      * Outputs the C++ code for the specified statement.
      */
     void outputStatement(CFGStatement* statement) {
@@ -298,6 +351,9 @@ private:
             case CFG_JUMP:
             case CFG_SWITCH:
                 outputJumpStatement(statement);
+                break;
+            case CFG_METHOD_CALL:
+                outputMethodCall(statement);
                 break;
             case CFG_NOP:
                 break;
@@ -346,18 +402,6 @@ private:
             outputStatement(*iterator);
     }
     
-    void outputMethodIdentifier(CFGMethod* method) {
-        *output << "m_" << method->getIdentifier();
-    }
-    
-    /**
-     * Outputs a class's C++ identier.
-     * @param classIdentifier the class's identifier in the source file
-     */
-    void outputClassIdentifier(string classIdentifier) {
-        *output << "c_" << classIdentifier;
-    }
-    
     /**
      * Outputs the specified method's prototype, excluding the semicolon.
      * @param method the method.
@@ -386,7 +430,7 @@ private:
             outputClassIdentifier(classIdentifier);
             *output << "::";
         }
-        outputMethodIdentifier(method);
+        outputMethodIdentifier(method->getIdentifier());
         *output << '(';
         vector<CFGOperand*> args = method->getArgs();
         if (!args.empty()) {
@@ -473,7 +517,9 @@ private:
      * Appends a C++ source code representation of the specified class.
      */
     void outputClass(CFGClass* clazz) {
-        *output << "#include \"" << clazz->getIdentifier() << ".hpp\"\n\n";
+        *output << "#include <iostream>\n" <<
+            "#include \"" << clazz->getIdentifier() << ".hpp\"\n\n" <<
+            "using namespace std;\n\n";
         vector<CFGMethod*> methods = clazz->getMethods();
         for (vector<CFGMethod*>::const_iterator iterator = methods.begin();
              iterator != methods.end();

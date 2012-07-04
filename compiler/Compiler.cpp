@@ -26,6 +26,12 @@ using namespace std;
 class Compiler {
 private:
     /**
+     * A map from the identifiers of the available methods to their interfaces.
+     * TODO (classes) include methods from other classes
+     * TODO support method overloading
+     */
+    map<string, MethodInterface*> methodInterfaces;
+    /**
      * A vector to which to append the compiled statements.
      */
     vector<CFGStatement*> statements;
@@ -127,6 +133,9 @@ private:
         CFGType* sourceType) {
         
         // TODO classes
+        if (destinationType->getClassName() == "Object" &&
+            destinationType->getNumDimensions() == 0)
+            return;
         if (destinationType->isNumeric() &&
             sourceType->isNumeric() &&
             !sourceType->isMorePromotedThan(destinationType))
@@ -642,6 +651,71 @@ private:
     }
     
     /**
+     * Compiles the specified expression list node (the"expressionList" rule in
+     * grammar.y) for the arguments to a method call.
+     * @param node the node.
+     * @param argTypes a vector of the method's arguments' compile-time types
+     *     (in the order in which they are declared).
+     * @param args a vector in which to store the arguments' values.  The vector
+     *     is parallel to "argTypes".
+     */
+    void compileMethodCallArgList(
+        ASTNode* node,
+        vector<CFGType*>& argTypes,
+        vector<CFGOperand*>& args) {
+        if (args.size() == argTypes.size()) {
+            emitError(node, "Too many arguments to method call");
+            return;
+        }
+        CFGOperand* arg;
+        if (node->type != AST_EXPRESSION_LIST)
+            arg = compileExpression(node);
+        else {
+            compileMethodCallArgList(node->child1, argTypes, args);
+            arg = compileExpression(node->child2);
+        }
+        assertAssignmentTypeValid(
+            node,
+            argTypes.at(args.size()),
+            arg->getType());
+        args.push_back(arg);
+    }
+    
+    /**
+     * Compiles the specified method call node.
+     * @param node the node.
+     * @return a CFGOperand storing the results of the expression.  Returns NULL
+     *     if it is a void method.
+     */
+    CFGOperand* compileMethodCall(ASTNode* node) {
+        // TODO (classes) method calls on objects other than "this"
+        string identifier = node->child1->tokenStr;
+        if (methodInterfaces.count(identifier) == 0)
+            emitError(node, "Calling an unknown method");
+        
+        MethodInterface* interface = methodInterfaces[identifier];
+        CFGOperand* destination;
+        if (interface->getReturnType() != NULL)
+            destination = new CFGOperand(
+                new CFGType(interface->getReturnType()));
+        else
+            destination = NULL;
+        CFGStatement* statement = new CFGStatement(
+            CFG_METHOD_CALL,
+            destination,
+            NULL);
+        vector<CFGType*> argTypes = interface->getArgTypes();
+        vector<CFGOperand*> args;
+        if (node->child2 != NULL)
+            compileMethodCallArgList(node->child2, argTypes, args);
+        if (args.size() < argTypes.size())
+            emitError(node, "Too few arguments to method call");
+        statement->setMethodIdentifierAndArgs(identifier, args);
+        statements.push_back(statement);
+        return destination;
+    }
+    
+    /**
      * Compiles the specified expression.
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
@@ -690,6 +764,14 @@ private:
             case AST_IDENTIFIER:
                 return getVarOperand(node);
             case AST_METHOD_CALL:
+            {
+                CFGOperand* destination = compileMethodCall(node);
+                if (destination == NULL)
+                    emitError(
+                        node,
+                        "Cannot use the return value of void method");
+                return destination;
+            }
             case AST_NEW:
                 assert(!"TODO classes");
                 return NULL;
@@ -1038,7 +1120,7 @@ private:
                 compileSelectionStatement(node);
                 break;
             case AST_METHOD_CALL:
-                assert(!"TODO classes");
+                compileMethodCall(node);
                 break;
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
@@ -1091,7 +1173,7 @@ private:
             args.push_back(createArgItemVar(node));
         else {
             createArgListVars(node->child1, args);
-            args.push_back(createArgItemVar(node));
+            args.push_back(createArgItemVar(node->child2));
         }
     }
     
@@ -1132,8 +1214,70 @@ private:
     }
     
     /**
-     * Adds the fields declared in the specified class body item node (the
-     * "classBodyItem" rule in grammar.y) to "allVars" and "frameVars".
+     * Appends the types of the arguments indicated by the specified argument
+     * list node (the "argList" rule in grammar.y) to "argTypes".
+     */
+    void getArgTypes(ASTNode* node, vector<CFGType*>& argTypes) {
+        if (node->type != AST_ARG_LIST)
+            argTypes.push_back(getCFGType(node->child1));
+        else {
+            getArgTypes(node->child1, argTypes);
+            argTypes.push_back(getCFGType(node->child2->child1));
+        }
+    }
+    
+    /**
+     * Adds entries to "methodInterfaces" for the built-in methods available to
+     * every class.
+     * TODO do these methods need to be built-in?  Can we make them ordinary
+     * methods?
+     */
+    void getBuiltInMethodInterfaces() {
+        vector<CFGType*> argTypes;
+        argTypes.push_back(new CFGType("Object"));
+        methodInterfaces["print"] = new MethodInterface(
+            NULL,
+            argTypes,
+            "print");
+        argTypes.clear();
+        argTypes.push_back(new CFGType("Object"));
+        methodInterfaces["println"] = new MethodInterface(
+            NULL,
+            argTypes,
+            "println");
+    }
+    
+    /**
+     * Adds entries to "methodInterfaces" for the method definitions in the
+     * specified class body item list node (the "classBodyItemList" rule in
+     * grammar.y).
+     */
+    void getMethodInterfaces(ASTNode* node) {
+        if (node->type == AST_EMPTY_CLASS_BODY_ITEM_LIST)
+            return;
+        getMethodInterfaces(node->child1);
+        if (node->child2->type != AST_METHOD_DEFINITION)
+            return;
+        CFGType* returnType;
+        if (node->child2->child1->type != AST_VOID)
+            returnType = getCFGType(node->child2->child1);
+        else
+            returnType = NULL;
+        vector<CFGType*> argTypes;
+        if (node->child2->child4 != NULL)
+            getArgTypes(node->child2->child3, argTypes);
+        string identifier = node->child2->child2->tokenStr;
+        if (methodInterfaces.count(identifier) > 0)
+            emitError(node, "Duplicate method name");
+        methodInterfaces[identifier] = new MethodInterface(
+            returnType,
+            argTypes,
+            identifier);
+    }
+    
+    /**
+     * Adds the fields declared in the specified class body item list node (the
+     * "classBodyItemList" rule in grammar.y) to "allVars" and "frameVars".
      */
     void compileFieldDeclarations(ASTNode* node) {
         if (node->type == AST_EMPTY_CLASS_BODY_ITEM_LIST)
@@ -1147,16 +1291,16 @@ private:
     }
     
     /**
-     * Adds the compiled CFGMethod representations of the methods defined in the
-     * specified class body item node (the "classBodyItem" rule in grammar.y) to
-     * "clazz".
+     * Appends the compiled CFGMethod representations of the methods defined in
+     * the specified class body item list node (the "classBodyItemList" rule in
+     * grammar.y) to "methods".
      */
     void compileMethodDefinitions(ASTNode* node, vector<CFGMethod*>& methods) {
-        if (node->type == AST_EMPTY_CLASS_BODY_ITEM_LIST)
-            return;
-        compileMethodDefinitions(node->child1, methods);
-        if (node->child2->type == AST_METHOD_DEFINITION)
-            methods.push_back(compileMethodDefinition(node->child2));
+        if (node->type != AST_EMPTY_CLASS_BODY_ITEM_LIST) {
+            compileMethodDefinitions(node->child1, methods);
+            if (node->child2->type == AST_METHOD_DEFINITION)
+                methods.push_back(compileMethodDefinition(node->child2));
+        }
     }
     
     /**
@@ -1164,6 +1308,8 @@ private:
      * type AST_CLASS_DEFINITION.
      */
     CFGClass* compileClass(ASTNode* node) {
+        getBuiltInMethodInterfaces();
+        getMethodInterfaces(node->child2);
         statements.clear();
         pushFrame();
         compileFieldDeclarations(node->child2);
@@ -1172,6 +1318,14 @@ private:
         vector<CFGStatement*> initStatements = statements;
         vector<CFGMethod*> methods;
         compileMethodDefinitions(node->child2, methods);
+        
+        for (map<string, MethodInterface*>::const_iterator iterator =
+                 methodInterfaces.begin();
+             iterator != methodInterfaces.end();
+             iterator++)
+            delete iterator->second;
+        methodInterfaces.clear();
+        
         return new CFGClass(
             node->child1->tokenStr,
             fields,
