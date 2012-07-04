@@ -13,8 +13,10 @@ using namespace std;
 static ASTNode* curNode;
 
 ASTNode* Parser::parseFile(string filename) {
-    void* parseData = setFileToParse(fopen(filename.c_str(), "r"));
+    FILE* file = fopen(filename.c_str(), "r");
+    void* parseData = setFileToParse(file);
     yyparse();
+    fclose(file);
     freeParseData(parseData);
     return curNode;
 }
