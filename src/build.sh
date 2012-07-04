@@ -22,8 +22,8 @@ cc -c grammar/lex.yy.c -o grammar/lex.yy.o
 cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
 
 export FILES="ASTUtil BinaryCompiler BreakEvaluator CFG Compiler CPPCompiler "\
-"Interface InterfaceInput InterfaceOutput JSONDecoder JSONEncoder JSONValue "\
-"Parser grammar/grammar"
+"DirHandle Interface InterfaceInput InterfaceOutput JSONDecoder JSONEncoder "\
+"JSONValue Parser grammar/grammar"
 
 # Target-specific logic
 if [ $1 = "compiler" ]
@@ -32,8 +32,8 @@ then
     export EXECUTABLE_FILE="compiler"
 elif [ $1 = "test" ]
 then
-    export FILES="$FILES test/InterfaceIOTest test/JSONTest test/TestCase "\
-"test/TestRunner"
+    export FILES="$FILES test/BinaryCompilerTest test/InterfaceIOTest "\
+"test/JSONTest test/TestCase test/TestRunner"
     export MAIN_FILE="TestCompiler.cpp"
     export EXECUTABLE_FILE="test_compiler"
 fi

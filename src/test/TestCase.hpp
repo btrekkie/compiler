@@ -65,12 +65,32 @@ protected:
      */
     template<class T>
     void assertEqual(T expected, T actual, std::string message) {
-        if (expected == actual)
+        if (actual == expected)
             assertionPassed();
         else {
             std::ostringstream fullMessage;
             fullMessage << "Expected " << expected << ", but got " << actual <<
                 ": " << message;
+            assertionFailed(fullMessage.str());
+        }
+    }
+    
+    /**
+     * Asserts that the specified values are unequal, when compared using the !=
+     * operator.
+     * @param value the value to which "actual" should not be equal.
+     * @param actual the value to check.
+     * @param message if "actual" differs from "value", a string describing the
+     *     assertion failure.
+     */
+    template<class T>
+    void assertNotEqual(T value, T actual, std::string message) {
+        if (actual != value)
+            assertionPassed();
+        else {
+            std::ostringstream fullMessage;
+            fullMessage << "Expected " << actual << "to be different from " <<
+                value << ": " << message;
             assertionFailed(fullMessage.str());
         }
     }

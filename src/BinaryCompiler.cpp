@@ -16,6 +16,7 @@ extern "C" {
 #include "Compiler.hpp"
 #include "CPPCompiler.hpp"
 #include "Interface.hpp"
+#include "InterfaceInput.hpp"
 #include "InterfaceOutput.hpp"
 #include "Parser.hpp"
 
@@ -24,7 +25,7 @@ using namespace std;
 // Workaround for naming conflict with BinaryCompiler::compileFile.  C++ :(
 static CFGFile* (*compileFile2)(ASTNode*) = compileFile;
 
-bool BinaryCompiler::compileFile(
+string BinaryCompiler::compileFile(
     string srcDir,
     string buildDir,
     string filename) {
@@ -32,26 +33,25 @@ bool BinaryCompiler::compileFile(
     ASTNode* node = Parser::parseFile(srcDir + '/' + filename);
     CFGFile* file = compileFile2(node);
     CFGClass* clazz = file->getClass();
+    string identifier = clazz->getIdentifier();
     astFree(node);
     
     // Output interface file
     ClassInterface* classInterface = clazz->getInterface();
     ofstream interfaceOutputFile(
-        (buildDir + '/' + clazz->getIdentifier() + ".int").c_str());
+        (buildDir + '/' + identifier + ".int").c_str());
     InterfaceOutput interfaceOutput(interfaceOutputFile);
     interfaceOutput.outputClassInterface(classInterface);
     interfaceOutputFile.close();
     delete classInterface;
     
     // Output C++ header file
-    ofstream headerOutput(
-        (buildDir + "/" + clazz->getIdentifier() + ".hpp").c_str());
+    ofstream headerOutput((buildDir + "/" + identifier + ".hpp").c_str());
     outputCPPHeaderFile(file, headerOutput);
     headerOutput.close();
     
     // Output C++ implementation file
-    string implementationFilename = buildDir + "/" + clazz->getIdentifier() +
-        ".cpp";
+    string implementationFilename = buildDir + "/" + identifier + ".cpp";
     ofstream implementationOutput(implementationFilename.c_str());
     outputCPPImplementationFile(file, implementationOutput);
     implementationOutput.close();
@@ -59,8 +59,11 @@ bool BinaryCompiler::compileFile(
     delete file;
     int result = system(
         (string() + "c++ -c '" + implementationFilename + "' -Wall -o '" +
-         buildDir + "/" + clazz->getIdentifier() + ".o'").c_str());
-    return result == 0;
+         buildDir + "/" + identifier + ".o'").c_str());
+    if (result == 0)
+        return identifier;
+    else
+        return "";
 }
 
 bool BinaryCompiler::compileExecutable(
@@ -79,4 +82,11 @@ bool BinaryCompiler::compileExecutable(
          ".o' '" + buildDir + "/temp+main.cpp' -o '" +
          executableFilename + '\'').c_str());
     return result == 0;
+}
+
+ClassInterface* BinaryCompiler::getClassInterface(
+    string buildDir,
+    string className) {
+    ifstream input((buildDir + "/" + className + ".int").c_str());
+    return InterfaceInput::readClassInterface(input);
 }

@@ -2,6 +2,7 @@
  */
 
 #include <vector>
+#include "test/BinaryCompilerTest.hpp"
 #include "test/InterfaceIOTest.hpp"
 #include "test/JSONTest.hpp"
 #include "test/TestCase.hpp"
@@ -13,6 +14,7 @@ int main() {
     vector<TestCase*> testCases;
     testCases.push_back(new InterfaceIOTest());
     testCases.push_back(new JSONTest());
+    testCases.push_back(new BinaryCompilerTest());
     
     TestRunner testRunner;
     testRunner.runTestCases(testCases);

@@ -1,0 +1,13 @@
+testFibonacci:
+1
+1
+3
+21
+
+testPrime:
+2
+3
+5
+13
+53
+103

@@ -566,16 +566,15 @@ public:
         string mainMethodName,
         ostream& output2) {
         output = &output2;
-        *output << "#include \"";
-        outputClassIdentifier(className);
-        *output << "\"\n\n" << "int main() {\n";
+        *output << "#include \"" << className << ".hpp\"\n\n" <<
+            "int main() {\n";
         outputIndentation(1);
         outputClassIdentifier(className);
         *output << " mainObject;\n";
         outputIndentation(1);
         *output << "mainObject.";
         outputMethodIdentifier(mainMethodName);
-        *output << ";\n";
+        *output << "();\n";
         outputIndentation(1);
         *output << "return 0;\n" << "}\n";
     }
