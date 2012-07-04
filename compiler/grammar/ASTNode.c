@@ -3,47 +3,47 @@
 #include "ASTNode.h"
 
 ASTNode* astNew() {
-    ASTNode* ast = (ASTNode*)malloc(sizeof(ASTNode));
-    memset(ast, 0, sizeof(ASTNode));
-    return ast;
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    memset(node, 0, sizeof(ASTNode));
+    return node;
 }
 
 ASTNode* astNewStr(int type, const char* tokenStr) {
-    ASTNode* ast = astNew();
-    ast->type = type;
-    ast->tokenStr = (char*)malloc(strlen(tokenStr) + 1);
-    memcpy(ast->tokenStr, tokenStr, strlen(tokenStr) + 1);
-    return ast;
+    ASTNode* node = astNew();
+    node->type = type;
+    node->tokenStr = (char*)malloc(strlen(tokenStr) + 1);
+    memcpy(node->tokenStr, tokenStr, strlen(tokenStr) + 1);
+    return node;
 }
 
 ASTNode* astNew0(int type) {
-    ASTNode* ast = astNew();
-    ast->type = type;
-    return ast;
+    ASTNode* node = astNew();
+    node->type = type;
+    return node;
 }
 
 ASTNode* astNew1(int type, ASTNode* child1) {
-    ASTNode* ast = astNew();
-    ast->type = type;
-    ast->child1 = child1;
-    return ast;
+    ASTNode* node = astNew();
+    node->type = type;
+    node->child1 = child1;
+    return node;
 }
 
 ASTNode* astNew2(int type, ASTNode* child1, ASTNode* child2) {
-    ASTNode* ast = astNew();
-    ast->type = type;
-    ast->child1 = child1;
-    ast->child2 = child2;
-    return ast;
+    ASTNode* node = astNew();
+    node->type = type;
+    node->child1 = child1;
+    node->child2 = child2;
+    return node;
 }
 
 ASTNode* astNew3(int type, ASTNode* child1, ASTNode* child2, ASTNode* child3) {
-    ASTNode* ast = astNew();
-    ast->type = type;
-    ast->child1 = child1;
-    ast->child2 = child2;
-    ast->child3 = child3;
-    return ast;
+    ASTNode* node = astNew();
+    node->type = type;
+    node->child1 = child1;
+    node->child2 = child2;
+    node->child3 = child3;
+    return node;
 }
 
 ASTNode* astNew4(
@@ -52,28 +52,28 @@ ASTNode* astNew4(
     ASTNode* child2,
     ASTNode* child3,
     ASTNode* child4) {
-    ASTNode* ast = astNew();
-    ast->type = type;
-    ast->child1 = child1;
-    ast->child2 = child2;
-    ast->child3 = child3;
-    ast->child4 = child4;
-    return ast;
+    ASTNode* node = astNew();
+    node->type = type;
+    node->child1 = child1;
+    node->child2 = child2;
+    node->child3 = child3;
+    node->child4 = child4;
+    return node;
 }
 
-void astFree(ASTNode* ast) {
-    if (ast->tokenStr != NULL)
-        free(ast->tokenStr);
-    else if (ast->child1 != NULL) {
-        astFree(ast->child1);
-        if (ast->child2 != NULL) {
-            astFree(ast->child2);
-            if (ast->child3 != NULL) {
-                astFree(ast->child3);
-                if (ast->child4 != NULL)
-                    astFree(ast->child4);
+void astFree(ASTNode* node) {
+    if (node->tokenStr != NULL)
+        free(node->tokenStr);
+    else if (node->child1 != NULL) {
+        astFree(node->child1);
+        if (node->child2 != NULL) {
+            astFree(node->child2);
+            if (node->child3 != NULL) {
+                astFree(node->child3);
+                if (node->child4 != NULL)
+                    astFree(node->child4);
             }
         }
     }
-    free(ast);
+    free(node);
 }

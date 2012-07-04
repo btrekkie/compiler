@@ -419,6 +419,7 @@ private:
         localVarIdentifiers.clear();
         numLocalVarSuffixes.clear();
         labelIndices.clear();
+        numExpressionSuffixes = 0;
         outputIndentation(indentation);
         if (method->getReturnVar() == NULL)
             *output << "void ";

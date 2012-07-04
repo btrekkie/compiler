@@ -616,6 +616,7 @@ private:
                 CFGOperand* falseValue = compileExpression(node->child3);
                 statements.push_back(
                     new CFGStatement(CFG_ASSIGN, destination, falseValue));
+                statements.push_back(CFGStatement::fromLabel(endLabel));
                 destination->setType(
                     getLeastCommonType(
                         trueValue->getType(),
@@ -1077,6 +1078,10 @@ private:
                     switchLabels,
                     switchValueInts,
                     haveEncounteredDefault);
+                if (!haveEncounteredDefault) {
+                    switchValues.push_back(NULL);
+                    switchLabels.push_back(finishLabel);
+                }
                 statement->setSwitchValuesAndLabels(switchValues, switchLabels);
                 statements.push_back(CFGStatement::fromLabel(finishLabel));
                 breakEvaluator->popBreakLabel();

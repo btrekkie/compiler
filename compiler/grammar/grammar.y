@@ -245,7 +245,7 @@ assignmentExpression : directAssignmentExpression
                        { $$ = $1; };
 ternaryExpression : booleanOrExpression '?' ternaryExpression ':'
                       ternaryExpression
-                    { $$ = astNew3(AST_TERNARY, $1, $2, $3); }
+                    { $$ = astNew3(AST_TERNARY, $1, $3, $5); }
                   | booleanOrExpression
                     { $$ = $1; }
 booleanOrExpression : booleanOrExpression BOOLEAN_OR booleanAndExpression

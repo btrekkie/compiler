@@ -71,6 +71,7 @@ void count();
 "~" { count(); return '~'; }
 "!" { count(); return '!'; }
 "." { count(); return '.'; }
+"?" { count(); return '?'; }
 
 [a-zA-Z_][a-zA-Z_0-9]* {
     count();
