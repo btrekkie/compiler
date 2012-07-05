@@ -4,7 +4,7 @@ testFibonacci:
 3
 21
 
-testPrime:
+testFindPrime:
 2
 3
 5

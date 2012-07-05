@@ -22,8 +22,8 @@ cc -c grammar/lex.yy.c -o grammar/lex.yy.o
 cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
 
 export FILES="ASTUtil BinaryCompiler BreakEvaluator CFG Compiler CPPCompiler "\
-"DirHandle Interface InterfaceInput InterfaceOutput JSONDecoder JSONEncoder "\
-"JSONValue Parser grammar/grammar"
+"FileManager Interface InterfaceInput InterfaceOutput JSONDecoder JSONEncoder "\
+"JSONValue Parser Process grammar/grammar"
 
 # Target-specific logic
 if [ $1 = "compiler" ]
