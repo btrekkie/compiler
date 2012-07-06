@@ -70,7 +70,10 @@ private:
     CFGOperand* getVarOperand(ASTNode* node) {
         assert(node->type == AST_IDENTIFIER || !"Not a variable");
         if (allVars.count(node->tokenStr) == 0)
-            emitError(node, "Variable not declared in this scope");
+            emitError(
+                node,
+                string("Variable ") + node->tokenStr +
+                    " not declared in this scope");
         return allVars[node->tokenStr];
     }
     
@@ -856,9 +859,9 @@ private:
             {
                 CFGLabel* startLabel = new CFGLabel();
                 statements.push_back(CFGStatement::fromLabel(startLabel));
-                compileStatement(node->child2);
+                compileStatement(node->child1);
                 statements.push_back(CFGStatement::fromLabel(continueLabel));
-                compileConditionalJump(node->child1, startLabel, endLabel);
+                compileConditionalJump(node->child2, startLabel, endLabel);
                 break;
             }
             case AST_FOR:

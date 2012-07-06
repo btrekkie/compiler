@@ -22,7 +22,7 @@ void yyerror(const char* s) {
 %}
 
 %start file
-%token BREAK CASE CLASS CONTINUE DEFAULT DO ELSE FALSE FOR IF LENGTH NEW RETURN
+%token BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF LENGTH NEW RETURN
 %token SWITCH TRUE VOID WHILE
 %token BOOLEAN_AND BOOLEAN_OR
 %token EQUALS NOT_EQUALS
@@ -33,7 +33,8 @@ void yyerror(const char* s) {
 %token MULT_ASSIGN OR_ASSIGN PLUS_ASSIGN RIGHT_SHIFT_ASSIGN
 %token UNSIGNED_RIGHT_SHIFT_ASSIGN XOR_ASSIGN
 %token IDENTIFIER INT_LITERAL
-%nonassoc ELSE IFX
+%nonassoc IFX
+%nonassoc ELSE
 %%
 
 file : classDefinition
@@ -253,7 +254,7 @@ booleanOrExpression : booleanOrExpression BOOLEAN_OR booleanAndExpression
                        { $$ = astNew2(AST_BOOLEAN_OR, $1, $3); }
                     | booleanAndExpression
                        { $$ = $1; };
-booleanAndExpression : booleanAndExpression BOOLEAN_AND bitwiseOrExpression
+booleanAndExpression : booleanAndExpression BOOLEAN_AND equalityExpression
                        { $$ = astNew2(AST_BOOLEAN_AND, $1, $3); }
                      | equalityExpression
                        { $$ = $1; };
