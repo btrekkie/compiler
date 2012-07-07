@@ -794,21 +794,29 @@ private:
      * Compiles the specified variable declaration item node (the
      * "varDeclarationItem" rule in grammar.y).
      * @param node the node.
-     * @param type the type of the variable being declared.
+     * @param type the type of the variable being declared, or NULL if the field
+     *     is of type "auto".
      * @param isField whether we are declaring a field, as opposed to a local
      *     variable.
      */
     void compileVarDeclarationItem(ASTNode* node, CFGType* type, bool isField) {
-        string identifier;
-        if (node->type == AST_ASSIGNMENT_EXPRESSION)
-            identifier = node->child1->tokenStr;
-        else
-            identifier = node->tokenStr;
-        CFGOperand* destination = createVar(type, node, identifier, isField);
         if (node->type == AST_ASSIGNMENT_EXPRESSION) {
             CFGOperand* source = compileExpression(node->child3);
+            if (type == NULL)
+                type = source->getType();
+            CFGOperand* destination = createVar(
+                type,
+                node,
+                node->child1->tokenStr,
+                isField);
             appendAssignmentStatement(node, destination, source);
-        }
+        } else if (type == NULL)
+            emitError(
+                node,
+                "Usage of the auto type is limited to variables that are "
+                "assigned in their declaration statement");
+        else
+            createVar(type, node, node->tokenStr, isField);
     }
     
     /**
@@ -831,10 +839,24 @@ private:
     /**
      * Returns the CFGType representation of the specified type node (the "type"
      * rule in grammar.y).
+     * @param node the node.
+     * @param allowAuto whether the "auto" type is permissible.  If so, this
+     *     method returns NULL for the "auto" type.  If not, this method emits
+     *     an error for the "auto" type.
      */
-    CFGType* getCFGType(ASTNode* node) {
-        if (node->type == AST_TYPE_ARRAY) {
-            CFGType* childType = getCFGType(node->child1);
+    CFGType* getCFGType(ASTNode* node, bool allowAuto) {
+        if (node->type == AST_AUTO) {
+            if (allowAuto)
+                return NULL;
+            else {
+                emitError(
+                    node,
+                    "Usage of the auto type is limited to variables that are "
+                    "assigned in their declaration statement");
+                return CFGType::intType();
+            }
+        } else if (node->type == AST_TYPE_ARRAY) {
+            CFGType* childType = getCFGType(node->child1, false);
             CFGType* type = new CFGType(
                 childType->getClassName(),
                 childType->getNumDimensions() + 1);
@@ -1139,7 +1161,7 @@ private:
             case AST_VAR_DECLARATION:
                 compileVarDeclarationList(
                     node->child2,
-                    getCFGType(node->child1),
+                    getCFGType(node->child1, true),
                     false);
                 break;
             default:
@@ -1166,7 +1188,7 @@ private:
     CFGOperand* createArgItemVar(ASTNode* node) {
         assert(node->child3 == NULL || !"TODO default arguments");
         return createVar(
-            getCFGType(node->child1),
+            getCFGType(node->child1, false),
             node,
             node->child2->tokenStr,
             false);
@@ -1200,7 +1222,7 @@ private:
         if (node->child1->type == AST_VOID)
             returnVar = NULL;
         else {
-            CFGType* type = getCFGType(node->child1);
+            CFGType* type = getCFGType(node->child1, false);
             returnVar = new CFGOperand(type);
         }
         CFGLabel* returnLabel = new CFGLabel();
@@ -1226,11 +1248,12 @@ private:
      * list node (the "argList" rule in grammar.y) to "argTypes".
      */
     void getArgTypes(ASTNode* node, vector<CFGType*>& argTypes) {
+        // TODO default arguments
         if (node->type != AST_ARG_LIST)
-            argTypes.push_back(getCFGType(node->child1));
+            argTypes.push_back(getCFGType(node->child1, false));
         else {
             getArgTypes(node->child1, argTypes);
-            argTypes.push_back(getCFGType(node->child2->child1));
+            argTypes.push_back(getCFGType(node->child2->child1, false));
         }
     }
     
@@ -1268,7 +1291,7 @@ private:
             return;
         CFGType* returnType;
         if (node->child2->child1->type != AST_VOID)
-            returnType = getCFGType(node->child2->child1);
+            returnType = getCFGType(node->child2->child1, false);
         else
             returnType = NULL;
         vector<CFGType*> argTypes;
@@ -1294,7 +1317,7 @@ private:
         if (node->child2->type == AST_VAR_DECLARATION)
             compileVarDeclarationList(
                 node->child2->child2,
-                getCFGType(node->child2->child1),
+                getCFGType(node->child2->child1, true),
                 true);
     }
     

@@ -22,7 +22,7 @@ void yyerror(const char* s) {
 %}
 
 %start file
-%token BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF LENGTH NEW RETURN
+%token AUTO BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF LENGTH NEW RETURN
 %token SWITCH TRUE VOID WHILE
 %token BOOLEAN_AND BOOLEAN_OR
 %token EQUALS NOT_EQUALS
@@ -65,10 +65,14 @@ varDeclarationItem : IDENTIFIER
                            $1,
                            astNew0(AST_ASSIGN),
                            $3); };
-type : IDENTIFIER
-       { $$ = astNew1(AST_TYPE, $1); }
-     | type OPEN_AND_CLOSE_BRACKET
-       { $$ = astNew1(AST_TYPE_ARRAY, $1); };
+type : AUTO
+       { $$ = astNew0(AST_AUTO); }
+     | nonAutoType
+       { $$ = $1; };
+nonAutoType : IDENTIFIER
+              { $$ = astNew1(AST_TYPE, $1); }
+            | type OPEN_AND_CLOSE_BRACKET
+              { $$ = astNew1(AST_TYPE_ARRAY, $1); };
 methodDefinition : type IDENTIFIER '(' argList ')' methodBody
                    { $$ = astNew4(
                          AST_METHOD_DEFINITION, $1, $2, $4, $6); }

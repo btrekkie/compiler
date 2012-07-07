@@ -8,6 +8,7 @@ void count();
 %}
 
 %%
+"auto" { count(); return AUTO; }
 "break" { count(); return BREAK; }
 "case" { count(); return CASE; }
 "class" { count(); return CLASS; }

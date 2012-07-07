@@ -1,0 +1,11 @@
+testFibonacci:
+14.9
+-8.5
+
+testFindPrime:
+2
+3
+5
+13
+53
+103
