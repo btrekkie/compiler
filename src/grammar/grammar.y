@@ -322,7 +322,7 @@ castExpression : '(' expression ')' castFriendlyUnaryExpression
 castUnfriendlyUnaryExpression : directIncrementExpression
                                 { $$ = $1; }
                               | '-' castUnfriendlyUnaryExpression
-                                { $$ = astNew1(AST_NEGATE, $1); }
+                                { $$ = astNew1(AST_NEGATE, $2); }
                               | '[' expressionList ']'
                                 { $$ = astNew1(AST_ARRAY, $2); }
                               | OPEN_AND_CLOSE_BRACKET
