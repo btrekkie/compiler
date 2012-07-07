@@ -16,7 +16,7 @@
   (append un-language-font-lock-keywords-1
           (list
            '("\\<\\(true\\|false\\)\\>" . font-lock-constant-face)
-           '("\\<\\(Bool\\|Byte\\|Double\\|Float\\|Int\\)\\>" . font-lock-builtin-face)))
+           '("\\<\\(Bool\\|Byte\\|Double\\|Float\\|Int\\|\\Long\\)\\>" . font-lock-builtin-face)))
   "Additional keywords to highlight in Un mode")
 (defvar un-language-font-lock-keywords un-language-font-lock-keywords-2
   "Default highlighting expressions for Un mode")

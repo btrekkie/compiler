@@ -2,6 +2,30 @@
  * Assorted tests pertaining to math.
  */
 class Math {
+    Long factorial1(Int value) {
+        Long factorial = 1;
+        for (Int i = 2; i <= value; i++)
+            factorial *= i;
+        return factorial;
+    }
+    
+    void testFactorial1() {
+        for (Int i = 1; i <= 20; i++)
+            println(factorial1(i));
+    }
+    
+    Long factorial2(Long value) {
+        Long factorial = 1;
+        for (Long i = 2; i <= value; i++)
+            factorial *= i;
+        return factorial;
+    }
+    
+    void testFactorial2() {
+        for (Long i = 1; i <= 20; i++)
+            println(factorial2(i));
+    }
+    
     Int getFibonacci(Int n) {
         return n > 1 ? (getFibonacci(n - 1) + getFibonacci(n - 2)) : 1;
     }
@@ -94,6 +118,8 @@ class Math {
     void testSqrt() {
         println(sqrtf(17));
         println(sqrtd(17));
+        println(sqrtf(13.2f));
+        println(sqrtd(13.2));
         println(sqrtf(1));
         println(sqrtd(1));
         println(sqrtf(12345));

@@ -12,8 +12,8 @@ class AutoTest {
     }
     
     void testFibonacci() {
-        println(getFibonacci(0.9, 1.3, 5));
-        println(getFibonacci(0.4, -.9, 6));
+        println(getFibonacci(0.9, 1.3f, 5));
+        println(getFibonacci(0.4f, -.9, 6));
     }
     
     Int findPrime(Int start) {

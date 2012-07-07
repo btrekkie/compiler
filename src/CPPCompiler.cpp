@@ -119,9 +119,9 @@ private:
         } else if (operand->getType()->getClassName() == "Int")
             *output << operand->getIntValue();
         else if (operand->getType()->getClassName() == "Long")
-            *output << operand->getLongValue();
+            *output << operand->getLongValue() << "ll";
         else if (operand->getType()->getClassName() == "Float")
-            *output << operand->getFloatValue();
+            *output << operand->getFloatValue() << "f";
         else if (operand->getType()->getClassName() == "Double")
             *output << operand->getDoubleValue();
         else if (operand->getType()->getClassName() == "Bool") {

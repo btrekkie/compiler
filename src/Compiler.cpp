@@ -145,7 +145,7 @@ private:
             return;
         if (destinationType->getClassName() != sourceType->getClassName() ||
             destinationType->getNumDimensions() !=
-              sourceType->getNumDimensions())
+                sourceType->getNumDimensions())
             emitError(node, "Incompatible types in assignment");
     }
     
@@ -473,7 +473,7 @@ private:
                 char lastChar = str.at(str.length() - 1);
                 if (lastChar == 'f' || lastChar == 'F')
                     return new CFGOperand(
-                        atof(str.substr(0, str.length() - 1).c_str()));
+                        (float)atof(str.substr(0, str.length() - 1).c_str()));
                 else
                     return new CFGOperand(strtod(node->tokenStr, NULL));
             }
