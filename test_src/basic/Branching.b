@@ -1,7 +1,13 @@
+/**
+ * Tests if statements, if-else statements, complex conditions, and switch
+ * statements.
+ * /* Testing nested comment */
+ */
 class Branching {
     Int getBitCountUsingBinarySearch(Int value) {
+        // Inline comment
         Bool hasAtLeastOneBit = (value & 8) != 0 || (value & 4) != 0 ||
-            (value & 2) != 0 || (value & 1) != 0;
+            (value & 2) != 0 || (value & 1) != 0; // Another inline comment
         Bool hasAtLeastTwoBits =
             ((value & 2) != 0 && (value & 1) != 0) ||
             ((value & 4) != 0 && (value & 1) != 0) ||

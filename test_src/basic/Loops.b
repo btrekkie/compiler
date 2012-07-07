@@ -1,3 +1,7 @@
+/**
+ * Tests for loops, while loops, do-while loops, and break and continue
+ * statements.
+ */
 class Loops {
     void testBreak() {
         Int sum = 0;

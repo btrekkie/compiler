@@ -32,7 +32,7 @@ void yyerror(const char* s) {
 %token AND_ASSIGN DIV_ASSIGN LEFT_SHIFT_ASSIGN MINUS_ASSIGN MOD_ASSIGN
 %token MULT_ASSIGN OR_ASSIGN PLUS_ASSIGN RIGHT_SHIFT_ASSIGN
 %token UNSIGNED_RIGHT_SHIFT_ASSIGN XOR_ASSIGN
-%token IDENTIFIER INT_LITERAL
+%token FLOAT_LITERAL IDENTIFIER INT_LITERAL
 %nonassoc IFX
 %nonassoc ELSE
 %%
@@ -348,6 +348,8 @@ parenthesesExpression : '(' expression ')'
                       | IDENTIFIER
                         { $$ = $1; }
                       | INT_LITERAL
+                        { $$ = $1; }
+                      | FLOAT_LITERAL
                         { $$ = $1; }
                       | TRUE
                         { $$ = astNew0(AST_TRUE); }

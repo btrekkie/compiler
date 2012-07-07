@@ -35,10 +35,18 @@
               (setq cur-indent (+ cur-indent 4))
               (setq not-indented nil))))
       (indent-line-to cur-indent))))
+(defvar un-language-mode-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?/ ". 124b" st)
+    (modify-syntax-entry ?* ". 23" st)
+    (modify-syntax-entry ?\n "> b" st)
+    st)
+  "Syntax table for un-language-mode")
 (defun un-language-mode ()
   "Major mode for editing Un langage files"
   (interactive)
   (kill-all-local-variables)
+  (set-syntax-table un-language-mode-syntax-table)
   (use-local-map un-language-mode-map)
   (set (make-local-variable 'font-lock-defaults) '(un-language-font-lock-keywords))
   (set (make-local-variable 'indent-line-function) 'un-language-indent-line)

@@ -75,6 +75,18 @@ private:
      * The integer value of this operand, if this is a literal integer.
      */
     int intValue;
+    /**
+     * The long value of this operand, if this is a literal long.
+     */
+    long long longValue;
+    /**
+     * The float value of this operand, if this is a literal float.
+     */
+    float floatValue;
+    /**
+     * The double value of this operand, if this is a literal double.
+     */
+    double doubleValue;
     
     /**
      * Constructs a new CFGOperand for a literal boolean value.
@@ -95,12 +107,27 @@ public:
      * Constructs a new CFGOperand for a literal integer value.
      */
     explicit CFGOperand(int value);
+    /**
+     * Constructs a new CFGOperand for a literal long value.
+     */
+    explicit CFGOperand(long long value);
+    /**
+     * Constructs a new CFGOperand for a literal float value.
+     */
+    explicit CFGOperand(float value);
+    /**
+     * Constructs a new CFGOperand for a literal double value.
+     */
+    explicit CFGOperand(double value);
     bool getIsVar();
     bool getIsField();
     CFGType* getType();
     std::string getIdentifier();
     bool getBoolValue();
     int getIntValue();
+    long long getLongValue();
+    float getFloatValue();
+    double getDoubleValue();
     /**
      * Sets the compile-time type of this operand.  This may only be called
      * once, and only if a null type was passed to the constructor.

@@ -1,3 +1,6 @@
+INT ([1-9][0-9]*|0)
+EXP [eE][+-]?{INT}
+
 %{
 #include <stdio.h>
 #include "ASTNode.h"
@@ -5,9 +8,15 @@
 #include "grammar.hpp"
 
 void count();
+/**
+ * Inputs and ignores characters until we reach the current block comment.
+ */
+void blockComment();
 %}
 
 %%
+"/*" { blockComment(); }
+\/\/[^\n]*\n { }
 "auto" { count(); return AUTO; }
 "break" { count(); return BREAK; }
 "case" { count(); return CASE; }
@@ -80,11 +89,28 @@ void count();
     yylval = astNewStr(AST_IDENTIFIER, yytext);
     return IDENTIFIER;
 }
-(\-?[1-9][0-9]*|0) {
+0[xX][a-fA-F0-9]+[l|L]? {
     count();
     yylval = astNewStr(AST_INT_LITERAL, yytext);
     return INT_LITERAL;
 }
+-?{INT}[l|L]? {
+    count();
+    yylval = astNewStr(AST_INT_LITERAL, yytext);
+    return INT_LITERAL;
+}
+
+{INT}{EXP}[f|F]? {
+    count();
+    yylval = astNewStr(AST_FLOAT_LITERAL, yytext);
+    return FLOAT_LITERAL;
+}
+{INT}?"."[0-9]+({EXP})?[f|F]? {
+    count();
+    yylval = astNewStr(AST_FLOAT_LITERAL, yytext);
+    return FLOAT_LITERAL;
+}
+
 \[\s*\] { count(); return OPEN_AND_CLOSE_BRACKET; }
 [ \t\n\f\v] { count(); }
 . { /* Ignore bad characters. */ }
@@ -105,6 +131,30 @@ void count() {
             column += 4 - (column % 4);
         else
             column++;
+    }
+}
+
+void blockComment() {
+    int depth = 1;
+    char c = input();
+    while (depth > 0) {
+        while (c != '*' && c != '/' && c != '\0')
+          c = input();
+        if (c == '\0')
+            break;
+        else if (c == '*') {
+            c = input();
+            if (c == '/') {
+                depth--;
+                c = input();
+            }
+        } else {
+            c = input();
+            if (c == '*') {
+                depth++;
+                c = input();
+            }
+        }
     }
 }
 

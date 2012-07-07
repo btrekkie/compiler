@@ -60,6 +60,11 @@ private:
      */
     bool hasDefaultLabel(ASTNode* node);
     /**
+     * Returns the number of loops out of which the specified AST_BREAK or
+     * AST_CONTINUE node directs us to break or continue.
+     */
+    int getNumJumpLoops(ASTNode* node);
+    /**
      * Returns the "maximum break level" of the specified statement list (the
      * "statementList" rule in grammar.y) or statement node.  In the case of a
      * statement list, this indicates the minimum "distance" we will break if we

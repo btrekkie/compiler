@@ -1,3 +1,6 @@
+/**
+ * Assorted tests pertaining to math.
+ */
 class Math {
     Int getFibonacci(Int n) {
         return n > 1 ? (getFibonacci(n - 1) + getFibonacci(n - 2)) : 1;

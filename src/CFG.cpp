@@ -29,6 +29,24 @@ CFGOperand::CFGOperand(int value) {
     type = CFGType::intType();
 }
 
+CFGOperand::CFGOperand(long long value) {
+    isVar = false;
+    longValue = value;
+    type = new CFGType("Long");
+}
+
+CFGOperand::CFGOperand(float value) {
+    isVar = false;
+    floatValue = value;
+    type = new CFGType("Float");
+}
+
+CFGOperand::CFGOperand(double value) {
+    isVar = false;
+    doubleValue = value;
+    type = new CFGType("Double");
+}
+
 bool CFGOperand::getIsVar() {
     return isVar;
 }
@@ -51,6 +69,18 @@ bool CFGOperand::getBoolValue() {
 
 int CFGOperand::getIntValue() {
     return intValue;
+}
+
+long long CFGOperand::getLongValue() {
+    return longValue;
+}
+
+float CFGOperand::getFloatValue() {
+    return floatValue;
+}
+
+double CFGOperand::getDoubleValue() {
+    return doubleValue;
 }
 
 void CFGOperand::setType(CFGType* type2) {

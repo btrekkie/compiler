@@ -467,8 +467,39 @@ private:
         switch (node->type) {
             case AST_FALSE:
                 return CFGOperand::fromBool(false);
+            case AST_FLOAT_LITERAL:
+            {
+                string str = node->tokenStr;
+                char lastChar = str.at(str.length() - 1);
+                if (lastChar == 'f' || lastChar == 'F')
+                    return new CFGOperand(
+                        atof(str.substr(0, str.length() - 1).c_str()));
+                else
+                    return new CFGOperand(strtod(node->tokenStr, NULL));
+            }
             case AST_INT_LITERAL:
-                return new CFGOperand(ASTUtil::getIntLiteralValue(node));
+            {
+                string str = node->tokenStr;
+                char lastChar = str.at(str.length() - 1);
+                bool isLong = lastChar == 'l' || lastChar == 'L';
+                long long value;
+                if (ASTUtil::getIntLiteralValue(str, value)) {
+                    if (isLong)
+                        return new CFGOperand(value);
+                    else
+                        return new CFGOperand((int)value);
+                } else if (isLong) {
+                    emitError(
+                        node,
+                        "Literal value is too large for Long data type");
+                    return new CFGOperand(0LL);
+                } else {
+                    emitError(
+                        node,
+                        "Literal value is too large for Int data type");
+                    return new CFGOperand(0);
+                }
+            }
             case AST_TRUE:
                 return CFGOperand::fromBool(true);
             default:
@@ -508,8 +539,8 @@ private:
             case AST_NEGATE:
             {
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                if (!operand->getType()->isNumeric())
+                    emitError(node, "Operand must be a number");
                 CFGOperand* destination = new CFGOperand(operand->getType());
                 statements.push_back(
                     new CFGStatement(
@@ -762,6 +793,7 @@ private:
                 assert(!"TODO classes");
                 return NULL;
             case AST_FALSE:
+            case AST_FLOAT_LITERAL:
             case AST_INT_LITERAL:
             case AST_TRUE:
                 return getOperandForLiteral(node);
@@ -986,6 +1018,40 @@ private:
     }
     
     /**
+     * Computes the number of loops out of which the specified AST_BREAK or
+     * AST_CONTINUE node directs us to break or continue.
+     * @param node the node.
+     * @param numLoops a reference in which to store the number of loops.
+     * @return whether this method called "emitError" due to a long literal
+     *     argument.  In this case, the resulting value of "numLoops" is
+     *     unspecified.
+     */
+    bool getNumJumpLoops(ASTNode* node, int& numLoops) {
+        if (node->child1 == NULL) {
+            numLoops = 1;
+            return true;
+        } else {
+            CFGOperand* numLoopsOperand = getOperandForLiteral(
+                node->child1);
+            if (numLoopsOperand->getType()->getClassName() == "Long") {
+                emitError(
+                    node,
+                    "Number of loops must be an integer literal, not a long "
+                    "literal");
+                delete numLoopsOperand;
+                return false;
+            } else {
+                assert(
+                    numLoopsOperand->getType()->getClassName() == "Int" ||
+                    !"Unexpected literal type");
+                numLoops = numLoopsOperand->getIntValue();
+                delete numLoopsOperand;
+                return true;
+            }
+        }
+    }
+    
+    /**
      * Compiles the specified control flow statement node (a break, continue, or
      * return statement).
      */
@@ -994,38 +1060,25 @@ private:
             case AST_BREAK:
             {
                 int numLoops;
-                if (node->child1 == NULL)
-                    numLoops = 1;
-                else {
-                    numLoops = atoi(node->child1->tokenStr);
-                    if (numLoops <= 0) {
-                        emitError(node, "Must break out of at least one loop");
-                        break;
-                    }
+                if (getNumJumpLoops(node, numLoops)) {
+                    CFGLabel* breakLabel = breakEvaluator->getBreakLabel(
+                        numLoops);
+                    if (breakLabel == NULL)
+                        emitError(node, "Attempting to break out of non-loop");
+                    statements.push_back(CFGStatement::jump(breakLabel));
                 }
-                CFGLabel* breakLabel = breakEvaluator->getBreakLabel(numLoops);
-                if (breakLabel == NULL)
-                    emitError(node, "Attempting to break out of non-loop");
-                statements.push_back(CFGStatement::jump(breakLabel));
                 break;
             }
             case AST_CONTINUE:
             {
                 int numLoops;
-                if (node->child1 == NULL)
-                    numLoops = 1;
-                else {
-                    numLoops = atoi(node->child1->tokenStr);
-                    if (numLoops <= 0) {
-                        emitError(node, "Must continue at least one loop");
-                        break;
-                    }
+                if (getNumJumpLoops(node, numLoops)) {
+                    CFGLabel* continueLabel = breakEvaluator->getContinueLabel(
+                        numLoops);
+                    if (continueLabel == NULL)
+                        emitError(node, "Attempting to continue non-loop");
+                    statements.push_back(CFGStatement::jump(continueLabel));
                 }
-                CFGLabel* continueLabel = breakEvaluator->getContinueLabel(
-                    numLoops);
-                if (continueLabel == NULL)
-                    emitError(node, "Attempting to continue non-loop");
-                statements.push_back(CFGStatement::jump(continueLabel));
                 break;
             }
             case AST_RETURN:

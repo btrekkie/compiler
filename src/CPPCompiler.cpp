@@ -59,6 +59,8 @@ private:
             *output << "double";
         else if (type->getClassName() == "Bool")
             *output << "bool";
+        else if (type->getClassName() == "Byte")
+            *output << "char";
         else
             assert(!"TODO classes");
     }
@@ -116,6 +118,12 @@ private:
             }
         } else if (operand->getType()->getClassName() == "Int")
             *output << operand->getIntValue();
+        else if (operand->getType()->getClassName() == "Long")
+            *output << operand->getLongValue();
+        else if (operand->getType()->getClassName() == "Float")
+            *output << operand->getFloatValue();
+        else if (operand->getType()->getClassName() == "Double")
+            *output << operand->getDoubleValue();
         else if (operand->getType()->getClassName() == "Bool") {
             if (operand->getBoolValue())
                 *output << "true";

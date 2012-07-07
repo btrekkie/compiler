@@ -1,3 +1,6 @@
+/**
+ * Tests the "auto" keyword.
+ */
 class AutoTest {
     Double getFibonacci(Double value1, Double value2, Int numIterations) {
         for (auto i = 0; i < numIterations; i++) {
@@ -9,9 +12,8 @@ class AutoTest {
     }
     
     void testFibonacci() {
-        Double value = 10;
-        println(getFibonacci(9 / value, 13 / value, 5));
-        println(getFibonacci(4 / value, -9 / value, 6));
+        println(getFibonacci(0.9, 1.3, 5));
+        println(getFibonacci(0.4, -.9, 6));
     }
     
     Int findPrime(Int start) {

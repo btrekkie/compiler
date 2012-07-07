@@ -53,6 +53,21 @@ bool BreakEvaluator::hasDefaultLabel(ASTNode* node) {
         hasDefaultLabel(node->child1);
 }
 
+int BreakEvaluator::getNumJumpLoops(ASTNode* node) {
+    if (node->child1 == NULL)
+        return 1;
+    else {
+        long long numLoops = 0;
+        ASTUtil::getIntLiteralValue(node->child1->tokenStr, numLoops);
+        if (numLoops > INT_MAX)
+            return INT_MAX;
+        else if (numLoops < INT_MIN)
+            return INT_MIN;
+        else
+            return (int)numLoops;
+    }
+}
+
 int BreakEvaluator::computeMaxBreakLevel(ASTNode* node) {
     if (maxBreakLevels.count(node) > 0)
         return maxBreakLevels[node];
@@ -64,11 +79,7 @@ int BreakEvaluator::computeMaxBreakLevel(ASTNode* node) {
             break;
         case AST_BREAK:
         {
-            int numLoops;
-            if (node->child1 != NULL)
-                numLoops = ASTUtil::getIntLiteralValue(node->child1);
-            else
-                numLoops = 1;
+            int numLoops = getNumJumpLoops(node);
             if (numLoops > 0 && numLoops <= (int)breakLevels.size())
                 maxBreakLevel = breakLevels.at(numLoops - 1);
             else
@@ -82,11 +93,7 @@ int BreakEvaluator::computeMaxBreakLevel(ASTNode* node) {
             break;
         case AST_CONTINUE:
         {
-            int numLoops;
-            if (node->child1 != NULL)
-                numLoops = ASTUtil::getIntLiteralValue(node->child1);
-            else
-                numLoops = 1;
+            int numLoops = getNumJumpLoops(node);
             if (numLoops > 0 && numLoops <= (int)continueLevels.size())
                 maxBreakLevel = continueLevels.at(numLoops - 1);
             else
