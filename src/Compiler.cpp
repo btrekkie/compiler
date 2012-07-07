@@ -980,6 +980,7 @@ private:
                 "Falling through in a switch statement is not permitted.  "
                 "Perhaps you are missing a break statement.");
         CFGLabel* label = new CFGLabel();
+        switchLabels.push_back(label);
         statements.push_back(CFGStatement::fromLabel(label));
         compileStatementList(node->child3);
     }
@@ -1095,7 +1096,7 @@ private:
                 vector<CFGOperand*> switchValues;
                 vector<CFGLabel*> switchLabels;
                 set<int> switchValueInts;
-                bool haveEncounteredDefault;
+                bool haveEncounteredDefault = false;
                 compileCaseList(
                     node->child2,
                     NULL,

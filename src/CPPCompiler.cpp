@@ -245,7 +245,7 @@ private:
                 outputOperand(statement->getArg1());
                 *output << ") {\n";
                 for (int i = 0; i < statement->getNumSwitchLabels(); i++) {
-                    outputIndentation(1);
+                    outputIndentation(2);
                     CFGOperand* value = statement->getSwitchValue(i);
                     if (value == NULL)
                         *output << "default:\n";
@@ -254,7 +254,7 @@ private:
                         outputOperand(value);
                         *output << ":\n";
                     }
-                    outputIndentation(1);
+                    outputIndentation(3);
                     *output << "goto ";
                     outputLabelName(statement->getSwitchLabel(i));
                     *output << ";\n";

@@ -114,6 +114,86 @@ class Branching {
         println(0);
     }
     
+    Int getBitCountUsingSwitch1(Int value) {
+        Int numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+            (((value & 2) == 0) ? 1 : 0);
+        Int numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+            (((value & 1) == 0) ? 1 : 0);
+        switch (numOddZeroes + numEvenZeroes) {
+            case 0:
+                break;
+            case 1:
+                return 3;
+            case 2:
+                return 2;
+            case 3:
+                return 1;
+            case 4:
+                return 0;
+        }
+        return 4;
+    }
+    
+    void testBitCountUsingSwitch1() {
+        for (Int i = 0; i < 32; i++)
+            print(getBitCountUsingSwitch1(i));
+        println(0);
+    }
+    
+    Int getBitCountUsingSwitch2(Int value) {
+        Int numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+            (((value & 2) == 0) ? 1 : 0);
+        Int numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+            (((value & 1) == 0) ? 1 : 0);
+        switch (numOddZeroes + numEvenZeroes) {
+            case 0:
+                return 4;
+            case 1:
+                return 3;
+            case 3:
+                return 1;
+            case 4:
+                return 0;
+            default:
+                return 2;
+        }
+    }
+    
+    void testBitCountUsingSwitch2() {
+        for (Int i = 0; i < 32; i++)
+            print(getBitCountUsingSwitch2(i));
+        println(0);
+    }
+    
+    Int getBitCountUsingSwitch3(Int value) {
+        Int numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+            (((value & 2) == 0) ? 1 : 0);
+        Int numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+            (((value & 1) == 0) ? 1 : 0);
+        Int bitCount;
+        switch (numOddZeroes + numEvenZeroes) {
+            case 0:
+                return 4;
+            case 1:
+                bitCount = 3;
+                break;
+            case 2:
+                return 2;
+            case 3:
+                bitCount = 1;
+                break;
+            default:
+                return 0;
+        }
+        return bitCount;
+    }
+    
+    void testBitCountUsingSwitch3() {
+        for (Int i = 0; i < 32; i++)
+            print(getBitCountUsingSwitch3(i));
+        println(0);
+    }
+    
     Int getBitCountUsingTernary(Int value) {
         Bool hasAtLeastOneBit = (value & 8) != 0 || (value & 4) != 0 ||
             (value & 2) != 0 || (value & 1) != 0;
