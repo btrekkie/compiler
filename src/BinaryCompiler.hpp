@@ -20,13 +20,15 @@ public:
      * @param buildDir the root build directory.
      * @param filename the source file to compile, relative to the root source
      *     directory.
+     * @param errorOutput an ostream to which to output compiler errors.
      * @return the identifier of the class we compiled, or "" if the operation
      *     was unsuccessful.
      */
     static std::string compileFile(
         std::string srcDir,
         std::string buildDir,
-        std::string filename);
+        std::string filename,
+        std::ostream& errorOutput);
     /**
      * Compiles an executable file, using the intermediate files produced for
      * the class in a previous call to "compileFile".  To that end, this method

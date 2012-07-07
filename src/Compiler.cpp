@@ -52,15 +52,35 @@ private:
      * statements, and return statements.
      */
     BreakEvaluator* breakEvaluator;
+    /**
+     * An ostream to which we output compiler errors.
+     */
+    ostream* errorOutput;
+    /**
+     * Whether we called "emitError".
+     */
+    bool encounteredError;
     
     /**
      * Outputs a compiler error.
+     * 
+     * Compilation does not immediately terminate upon calling this method.
+     * Callsites should proceed with suitable substitutes for the erroneous
+     * conditions (with the understanding that we will discard the CFGFile we
+     * ultimately produce), so that we can detect additional compiler errors
+     * without compiling the source file again.  For example, if the
+     * "compileExpression" function encounters a multiplication of non-numeric
+     * values, it should call "emitError", because such types cannot be added.
+     * Then, it might return a value like "new CFGOperand(0)", so that we can
+     * continue compilation.
+     * 
      * @param node the node at which error appears.
      * @param error the text of the error.
      */
     void emitError(ASTNode* node, string error) {
-        cerr << "Error at node of type " << node->type << ": " << error << '\n';
-        assert(false);
+        *errorOutput << "Error at node of type " << node->type << ": " <<
+            error << '\n';
+        encounteredError = true;
     }
     
     /**
@@ -69,12 +89,15 @@ private:
      */
     CFGOperand* getVarOperand(ASTNode* node) {
         assert(node->type == AST_IDENTIFIER || !"Not a variable");
-        if (allVars.count(node->tokenStr) == 0)
+        if (allVars.count(node->tokenStr) > 0)
+            return allVars[node->tokenStr];
+        else {
             emitError(
                 node,
                 string("Variable ") + node->tokenStr +
                     " not declared in this scope");
-        return allVars[node->tokenStr];
+            return new CFGOperand(new CFGType("Object"));
+        }
     }
     
     /**
@@ -91,16 +114,20 @@ private:
         ASTNode* node,
         string identifier,
         bool isField) {
-        if (allVars.count(identifier) > 0) {
+        if (allVars.count(identifier) == 0) {
+            CFGOperand* var = new CFGOperand(type, identifier, isField);
+            (*(frameVars.back()))[identifier] = var;
+            allVars[identifier] = var;
+            return var;
+        } else {
+            // TODO allow shadowing (a variable with the same identifier as a
+            // variable in a parent scope)
             if (isField)
                 emitError(node, "Multiple fields with the same identifier");
             else
                 emitError(node, "Multiple variables with the same identifier");
+            return allVars[identifier];
         }
-        CFGOperand* var = new CFGOperand(type, identifier, isField);
-        (*(frameVars.back()))[identifier] = var;
-        allVars[identifier] = var;
-        return var;
     }
     
     /**
@@ -177,11 +204,13 @@ private:
     CFGOperand* compileIncrementExpression(ASTNode* node) {
         assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
         CFGOperand* operand = getVarOperand(node->child1);
-        if (!operand->getType()->isNumeric())
+        if (!operand->getType()->isNumeric()) {
             emitError(
                 node,
                 "Increment / decrement postfix / prefix operator may only be "
                 "used on numbers");
+            return operand;
+        }
         switch (node->type) {
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
@@ -280,8 +309,10 @@ private:
             default:
             {
                 CFGOperand* operand = compileExpression(node);
-                if (!operand->getType()->isBool())
-                    emitError(node, "Boolean result is required");
+                if (!operand->getType()->isBool()) {
+                    emitError(node, "Boolean value is required");
+                    break;
+                }
                 CFGStatement* statement = new CFGStatement(
                     CFG_IF,
                     NULL,
@@ -399,8 +430,10 @@ private:
         CFGOperand* source1,
         CFGOperand* source2) {
         if (!source1->getType()->isNumeric() ||
-            !source2->getType()->isNumeric())
+            !source2->getType()->isNumeric()) {
             emitError(node, "Operands to arithmetic operator must be numbers");
+            return source1;
+        }
         
         CFGType* destinationType;
         switch (operation) {
@@ -408,9 +441,12 @@ private:
             case CFG_BITWISE_OR:
             case CFG_XOR:
                 if (!source1->getType()->isIntegerLike() ||
-                    !source2->getType()->isIntegerLike())
+                    !source2->getType()->isIntegerLike()) {
                     emitError(node, "Operand must be of an integer-like type");
-                if (source1->getType()->isMorePromotedThan(source2->getType()))
+                    return source1;
+                }
+                else if (source1->getType()->isMorePromotedThan(
+                             source2->getType()))
                     destinationType = source1->getType();
                 else
                     destinationType = source2->getType();
@@ -418,14 +454,17 @@ private:
             case CFG_LEFT_SHIFT:
             case CFG_RIGHT_SHIFT:
             case CFG_UNSIGNED_RIGHT_SHIFT:
-                if (!source1->getType()->isIntegerLike())
+                if (!source1->getType()->isIntegerLike()) {
                     emitError(node, "Operand must be of an integer-like type");
-                if (source2->getType()->getNumDimensions() > 0 ||
-                    (source2->getType()->getClassName() != "Int" &&
-                     source2->getType()->getClassName() != "Byte"))
+                    return source1;
+                } else if (source2->getType()->getNumDimensions() > 0 ||
+                           (source2->getType()->getClassName() != "Int" &&
+                            source2->getType()->getClassName() != "Byte")) {
                     emitError(
                         node,
                         "Operand to bit shift must be integer or byte");
+                    return source1;
+                }
                 destinationType = source1->getType();
                 break;
             default:
@@ -539,8 +578,10 @@ private:
             case AST_NEGATE:
             {
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->getType()->isNumeric())
+                if (!operand->getType()->isNumeric()) {
                     emitError(node, "Operand must be a number");
+                    return operand;
+                }
                 CFGOperand* destination = new CFGOperand(operand->getType());
                 statements.push_back(
                     new CFGStatement(
@@ -561,12 +602,16 @@ private:
                 if (!source2->getType()->isNumeric())
                     emitError(node, "Operand must be a number");
                 CFGOperand* destination = new CFGOperand(CFGType::boolType());
-                statements.push_back(
-                    new CFGStatement(
-                        opForExpressionType(node->type),
-                        destination,
-                        source1,
+                if (source1->getType()->isNumeric() &&
+                    source2->getType()->isNumeric())
+                    statements.push_back(
+                        new CFGStatement(
+                            opForExpressionType(node->type),
+                            destination,
+                            source1,
                         source2));
+                else
+                    return CFGOperand::fromBool(false);
                 return destination;
             }
             default:
@@ -624,8 +669,10 @@ private:
             case AST_NOT:
             {
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->getType()->isBool())
+                if (!operand->getType()->isBool()) {
                     emitError(node, "Operand must be a boolean");
+                    return CFGOperand::fromBool(false);
+                }
                 CFGOperand* destination = new CFGOperand(CFGType::boolType());
                 statements.push_back(
                     new CFGStatement(
@@ -725,8 +772,10 @@ private:
     CFGOperand* compileMethodCall(ASTNode* node) {
         // TODO (classes) method calls on objects other than "this"
         string identifier = node->child1->tokenStr;
-        if (methodInterfaces.count(identifier) == 0)
+        if (methodInterfaces.count(identifier) == 0) {
             emitError(node, "Calling an unknown method");
+            return new CFGOperand(0);
+        }
         
         MethodInterface* interface = methodInterfaces[identifier];
         CFGOperand* destination;
@@ -743,10 +792,13 @@ private:
         vector<CFGOperand*> args;
         if (node->child2 != NULL)
             compileMethodCallArgList(node->child2, argTypes, args);
-        if (args.size() < argTypes.size())
+        if (args.size() < argTypes.size()) {
             emitError(node, "Too few arguments to method call");
-        statement->setMethodIdentifierAndArgs(identifier, args);
-        statements.push_back(statement);
+            delete statement;
+        } else {
+            statement->setMethodIdentifierAndArgs(identifier, args);
+            statements.push_back(statement);
+        }
         return destination;
     }
     
@@ -802,10 +854,12 @@ private:
             case AST_METHOD_CALL:
             {
                 CFGOperand* destination = compileMethodCall(node);
-                if (destination == NULL)
+                if (destination == NULL) {
                     emitError(
                         node,
                         "Cannot use the return value of void method");
+                    return new CFGOperand(0);
+                }
                 return destination;
             }
             case AST_NEW:
@@ -842,13 +896,16 @@ private:
                 node->child1->tokenStr,
                 isField);
             appendAssignmentStatement(node, destination, source);
-        } else if (type == NULL)
-            emitError(
-                node,
-                "Usage of the auto type is limited to variables that are "
-                "assigned in their declaration statement");
-        else
+        } else {
+            if (type == NULL) {
+                emitError(
+                    node,
+                    "Usage of the auto type is limited to variables that are "
+                    "assigned in their declaration statement");
+                type = new CFGType("Int");
+            }
             createVar(type, node, node->tokenStr, isField);
+        }
     }
     
     /**
@@ -1065,7 +1122,8 @@ private:
                         numLoops);
                     if (breakLabel == NULL)
                         emitError(node, "Attempting to break out of non-loop");
-                    statements.push_back(CFGStatement::jump(breakLabel));
+                    else
+                        statements.push_back(CFGStatement::jump(breakLabel));
                 }
                 break;
             }
@@ -1077,7 +1135,8 @@ private:
                         numLoops);
                     if (continueLabel == NULL)
                         emitError(node, "Attempting to continue non-loop");
-                    statements.push_back(CFGStatement::jump(continueLabel));
+                    else
+                        statements.push_back(CFGStatement::jump(continueLabel));
                 }
                 break;
             }
@@ -1094,8 +1153,10 @@ private:
                         node,
                         breakEvaluator->getReturnVar(),
                         operand);
-                } else if (breakEvaluator->getReturnVar() != NULL)
+                } else if (breakEvaluator->getReturnVar() != NULL) {
                     emitError(node, "Must return a non-void value");
+                    break;
+                }
                 statements.push_back(
                     CFGStatement::jump(breakEvaluator->getReturnLabel()));
                 break;
@@ -1425,12 +1486,20 @@ public:
     /**
      * Returns an (unoptimized) CFG representation of the specified AST.
      */
-    CFGFile* compileFile(ASTNode* node) {
-        return new CFGFile(compileClass(node->child1));
+    CFGFile* compileFile(ASTNode* node, ostream& errorOutput2) {
+        encounteredError = false;
+        errorOutput = &errorOutput2;
+        CFGFile* file = new CFGFile(compileClass(node->child1));
+        if (!encounteredError)
+            return file;
+        else {
+            delete file;
+            return NULL;
+        }
     }
 };
 
-CFGFile* compileFile(ASTNode* node) {
+CFGFile* compileFile(ASTNode* node, ostream& errorOutput) {
     Compiler compiler;
-    return compiler.compileFile(node);
+    return compiler.compileFile(node, errorOutput);
 }

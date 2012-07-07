@@ -8,6 +8,7 @@ extern "C" {
 }
 
 #include <fstream>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -23,18 +24,21 @@ extern "C" {
 using namespace std;
 
 // Workaround for naming conflict with BinaryCompiler::compileFile.  C++ :(
-static CFGFile* (*compileFile2)(ASTNode*) = compileFile;
+static CFGFile* (*compileFile2)(ASTNode*, ostream&) = compileFile;
 
 string BinaryCompiler::compileFile(
     string srcDir,
     string buildDir,
-    string filename) {
+    string filename,
+    ostream& errorOutput) {
     // Parse and compile program
     ASTNode* node = Parser::parseFile(srcDir + '/' + filename);
-    CFGFile* file = compileFile2(node);
+    CFGFile* file = compileFile2(node, errorOutput);
+    astFree(node);
+    if (file == NULL)
+        return "";
     CFGClass* clazz = file->getClass();
     string identifier = clazz->getIdentifier();
-    astFree(node);
     
     // Output interface file
     ClassInterface* classInterface = clazz->getInterface();

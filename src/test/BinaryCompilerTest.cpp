@@ -86,10 +86,12 @@ void BinaryCompilerTest::checkSourceFile(string file) {
     } else if (file.substr(max((int)file.length() - 4, 0), 4) == ".txt")
         return;
     
+    ofstream errorOutput(FileManager::getTempFilename().c_str());
     string classIdentifier = BinaryCompiler::compileFile(
         SRC_DIR,
         BUILD_DIR,
-        file);
+        file,
+        errorOutput);
     assertNotEqual(string(""), classIdentifier, "Failed to compile file");
     ClassInterface* interface = BinaryCompiler::getClassInterface(
         BUILD_DIR,

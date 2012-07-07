@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
             "relative to the root source file directory.";
         return -1;
     } else {
-        BinaryCompiler::compileFile(argv[1], argv[2], argv[3]);
+        BinaryCompiler::compileFile(argv[1], argv[2], argv[3], cerr);
         return 0;
     }
 }
