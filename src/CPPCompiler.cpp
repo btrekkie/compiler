@@ -27,7 +27,18 @@ private:
      * to their corresponding C++ identifiers.
      */
     map<CFGOperand*, string> localVarIdentifiers;
+    /**
+     * A map from the source file identifiers of non-field variables we have
+     * encountered thus far to the number of such variables we have encountered.
+     * (Because of scoping rules, multiple variables can have the same
+     * identifier.)
+     */
     map<string, int> numLocalVarSuffixes;
+    /**
+     * The number of temporary variables we have encountered thus far.  A
+     * temporary variable is a variable that does not appear in the source file,
+     * but rather is an intermediate variable for an expression.
+     */
     int numExpressionSuffixes;
     /**
      * A map from the labels we have encountered thus far to integers
@@ -302,14 +313,19 @@ private:
         outputIndentation(1);
         vector<CFGOperand*> args = statement->getMethodArgs();
         // TODO eventually, "print" and "println" should be real methods
-        if (statement->getMethodIdentifier() == "print") {
+        if (statement->getMethodIdentifier() == "print" ||
+            statement->getMethodIdentifier() == "println") {
             *output << "cout << ";
-            outputOperand(args.at(0));
+            if (!args.at(0)->getType()->isBool())
+                outputOperand(args.at(0));
+            else {
+                *output << '(';
+                outputOperand(args.at(0));
+                *output << " ? \"true\" : \"false\")";
+            }
+            if (statement->getMethodIdentifier() == "println")
+                *output << " << '\\n'";
             *output << ";\n";
-        } else if (statement->getMethodIdentifier() == "println") {
-            *output << "cout << ";
-            outputOperand(args.at(0));
-            *output << " << '\\n';\n";
         } else {
             if (statement->getDestination() != NULL) {
                 outputOperand(statement->getDestination());

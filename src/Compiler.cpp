@@ -207,8 +207,7 @@ private:
         if (!operand->getType()->isNumeric()) {
             emitError(
                 node,
-                "Increment / decrement postfix / prefix operator may only be "
-                "used on numbers");
+                "Increment / decrement operator may only be used on numbers");
             return operand;
         }
         switch (node->type) {
@@ -467,6 +466,17 @@ private:
                 }
                 destinationType = source1->getType();
                 break;
+            case CFG_MOD:
+                if (!source1->getType()->isIntegerLike() ||
+                    !source2->getType()->isIntegerLike()) {
+                    emitError(node, "Operand must be of an integer-like type");
+                    return source1;
+                }
+                if (source1->getType()->isMorePromotedThan(source2->getType()))
+                    destinationType = source1->getType();
+                else
+                    destinationType = source2->getType();
+                break;
             default:
                 if (source1->getType()->isMorePromotedThan(source2->getType()))
                     destinationType = source1->getType();
@@ -575,19 +585,15 @@ private:
                     source2);
             }
             case AST_BITWISE_INVERT:
-            case AST_NEGATE:
             {
                 CFGOperand* operand = compileExpression(node->child1);
-                if (!operand->getType()->isNumeric()) {
-                    emitError(node, "Operand must be a number");
+                if (!operand->getType()->isIntegerLike()) {
+                    emitError(node, "Operand must be of an integer-like type");
                     return operand;
                 }
                 CFGOperand* destination = new CFGOperand(operand->getType());
                 statements.push_back(
-                    new CFGStatement(
-                        opForExpressionType(node->type),
-                        destination,
-                        operand));
+                    new CFGStatement(CFG_BITWISE_INVERT, destination, operand));
                 return destination;
             }
             case AST_GREATER_THAN:
@@ -612,6 +618,18 @@ private:
                         source2));
                 else
                     return CFGOperand::fromBool(false);
+                return destination;
+            }
+            case AST_NEGATE:
+            {
+                CFGOperand* operand = compileExpression(node->child1);
+                if (!operand->getType()->isNumeric()) {
+                    emitError(node, "Operand must be a number");
+                    return operand;
+                }
+                CFGOperand* destination = new CFGOperand(operand->getType());
+                statements.push_back(
+                    new CFGStatement(CFG_NEGATE, destination, operand));
                 return destination;
             }
             default:
@@ -733,7 +751,7 @@ private:
     }
     
     /**
-     * Compiles the specified expression list node (the"expressionList" rule in
+     * Compiles the specified expression list node (the "expressionList" rule in
      * grammar.y) for the arguments to a method call.
      * @param node the node.
      * @param argTypes a vector of the method's arguments' compile-time types
@@ -745,10 +763,7 @@ private:
         ASTNode* node,
         vector<CFGType*>& argTypes,
         vector<CFGOperand*>& args) {
-        if (args.size() == argTypes.size()) {
-            emitError(node, "Too many arguments to method call");
-            return;
-        }
+        bool alreadyReachedArgLimit = args.size() == argTypes.size();
         CFGOperand* arg;
         if (node->type != AST_EXPRESSION_LIST)
             arg = compileExpression(node);
@@ -756,11 +771,16 @@ private:
             compileMethodCallArgList(node->child1, argTypes, args);
             arg = compileExpression(node->child2);
         }
-        assertAssignmentTypeValid(
-            node,
-            argTypes.at(args.size()),
-            arg->getType());
-        args.push_back(arg);
+        if (args.size() == argTypes.size()) {
+            if (!alreadyReachedArgLimit) // Don't emit error multiple times
+                emitError(node, "Too many arguments to method call");
+        } else {
+            assertAssignmentTypeValid(
+                node,
+                argTypes.at(args.size()),
+                arg->getType());
+            args.push_back(arg);
+        }
     }
     
     /**
@@ -792,10 +812,9 @@ private:
         vector<CFGOperand*> args;
         if (node->child2 != NULL)
             compileMethodCallArgList(node->child2, argTypes, args);
-        if (args.size() < argTypes.size()) {
+        if (args.size() < argTypes.size())
             emitError(node, "Too few arguments to method call");
-            delete statement;
-        } else {
+        else {
             statement->setMethodIdentifierAndArgs(identifier, args);
             statements.push_back(statement);
         }
@@ -977,6 +996,7 @@ private:
             }
             case AST_FOR:
             {
+                pushFrame();
                 CFGLabel* startLabel = new CFGLabel();
                 CFGLabel* conditionLabel = new CFGLabel();
                 compileStatementList(node->child1);
@@ -987,6 +1007,7 @@ private:
                 compileStatementList(node->child3);
                 statements.push_back(CFGStatement::fromLabel(conditionLabel));
                 compileConditionalJump(node->child2, startLabel, endLabel);
+                popFrame();
                 break;
             }
             case AST_FOR_IN:
@@ -1414,7 +1435,7 @@ private:
             getArgTypes(node->child2->child3, argTypes);
         string identifier = node->child2->child2->tokenStr;
         if (methodInterfaces.count(identifier) > 0)
-            emitError(node, "Duplicate method name");
+            assert(!"TODO method overloading");
         methodInterfaces[identifier] = new MethodInterface(
             returnType,
             argTypes,

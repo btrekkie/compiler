@@ -86,13 +86,25 @@ void BinaryCompilerTest::checkSourceFile(string file) {
     } else if (file.substr(max((int)file.length() - 4, 0), 4) == ".txt")
         return;
     
-    ofstream errorOutput(FileManager::getTempFilename().c_str());
+    string errorOutputFilename = FileManager::getTempFilename();
+    ofstream errorOutput(errorOutputFilename.c_str());
     string classIdentifier = BinaryCompiler::compileFile(
         SRC_DIR,
         BUILD_DIR,
         file,
         errorOutput);
-    assertNotEqual(string(""), classIdentifier, "Failed to compile file");
+    remove(errorOutputFilename.c_str());
+    if (file.substr(0, 17) == "/compiler_errors/") {
+        assertEqual(
+            string(""),
+            classIdentifier,
+            "Compiler did not emit any errors for the erroneous file " + file);
+        return;
+    }
+    assertNotEqual(
+        string(""),
+        classIdentifier,
+        "Failed to compile file " + file);
     ClassInterface* interface = BinaryCompiler::getClassInterface(
         BUILD_DIR,
         classIdentifier);

@@ -24,19 +24,20 @@ bool ASTUtil::getIntLiteralValue(string str, long long& value) {
         isLong = true;
         str = str.substr(0, str.length() - 1);
     }
-    if (str.substr(0, 2) == "0x") {
+    bool isNegative = str.at(0) == '-';
+    if (str.substr(isNegative ? 1 : 0, 2) == "0x") {
         // Hexadecimal
         if (str.length() > (isLong ? 18 : 10))
             return false;
         value = 0;
-        for (int i = 2; i < (int)str.length() - 1; i++) {
+        for (int i = isNegative ? 2 : 3; i < (int)str.length() - 1; i++) {
             value <<= 4;
             value |= hexDigitToInt(str.at(i));
         }
+        if (isNegative)
+            value = -value;
         return true;
     } else {
-        bool isNegative = str.at(0) == '-';
-        
         // Check bounds
         if (isLong) {
             if (isNegative) {

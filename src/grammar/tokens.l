@@ -89,7 +89,7 @@ void blockComment();
     yylval = astNewStr(AST_IDENTIFIER, yytext);
     return IDENTIFIER;
 }
-0[xX][a-fA-F0-9]+[l|L]? {
+-?0[xX][a-fA-F0-9]+[l|L]? {
     count();
     yylval = astNewStr(AST_INT_LITERAL, yytext);
     return INT_LITERAL;

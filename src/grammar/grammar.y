@@ -160,9 +160,9 @@ directIncrementExpression : parenthesesExpression INCREMENT
                           | parenthesesExpression DECREMENT
                             { $$ = astNew1(AST_POST_DECREMENT, $1); }
                           | INCREMENT parenthesesExpression
-                            { $$ = astNew1(AST_PRE_INCREMENT, $1); }
+                            { $$ = astNew1(AST_PRE_INCREMENT, $2); }
                           | DECREMENT parenthesesExpression
-                            { $$ = astNew1(AST_PRE_DECREMENT, $1); };
+                            { $$ = astNew1(AST_PRE_DECREMENT, $2); };
 ifStatement : IF '(' expression ')' statement %prec IFX
               { $$ = astNew2(AST_IF, $3, $5); }
             | IF '(' expression ')' statement ELSE statement

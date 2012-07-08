@@ -31,6 +31,11 @@
  * expected output must end with exactly one newline character.  Any additional
  * newline characters in the expected output file are ignored.  In addition, no
  * line of the expected output may end in a colon.
+ * 
+ * The source files in test_src/compiler_errors are treated specially.  Rather
+ * than compiling and running such files, BinaryCompilerTest attempts to compile
+ * them and* ensures that each of them has a compiler error.  This enables us to
+ * verify that the compiler produces the appropriate errors.
  */
 class BinaryCompilerTest : public TestCase {
 private:
