@@ -1,3 +1,9 @@
+/* We perform compilation using a top-down approach, proceeding from the root of
+ * the AST to its leaves.  We perform compilation and semantic checking at the
+ * same time.  Compilation is a rather stateful process, with variables
+ * containing information about our current point in compilation.
+ */
+
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
@@ -11,6 +17,8 @@
 #include "CFG.hpp"
 #include "CPPCompiler.hpp"
 #include "Interface.hpp"
+#include "Universe.hpp"
+#include "UniverseSet.hpp"
 
 using namespace std;
 
@@ -60,6 +68,71 @@ private:
      * Whether we called "emitError".
      */
     bool encounteredError;
+    /**
+     * The universe for the UniverseSets indicating initialized variables.
+     */
+    Universe<CFGOperand*>* varUniverse;
+    /**
+     * A set of all of the local (non-field) variables, including method
+     * arguments, that have necessarily been initialized at the current point in
+     * compilation.  We use the field in order to emit the proper compiler
+     * errors about using uninitialized variables.  (If the current point is
+     * unreachable, this is the set of initialized variables in the nearest
+     * parent branch that is reachable.  It is the empty set if there is no such
+     * branch.)
+     */
+    UniverseSet<CFGOperand*>* allInitializedVars;
+    /**
+     * A stack of sets of local (non-field) variables, including method
+     * arguments, that have necessarily been initialized in the branches of
+     * compilation in which the current point of compilation resides, exculding
+     * those initialized in a parent branch.  We use the field in order to emit
+     * the proper compiler errors about using uninitialized variables.  Each
+     * entry of the stack corresponds to an "if", "else", or "case" branch, or,
+     * what amounts to the same thing, a "for" or "while" loop.  A NULL entry
+     * indicates that the point in the stack contains unreachable code.  For
+     * example, the following method indicates the state of the stack
+     * immediately after executing the lines of code in a sample method.
+     * 
+     * void foo(Int i) {
+     *     i++;              [{i}]
+     *     while (i < 5) {   
+     *         Int j = 0;    [{i}, {j}]
+     *         Int k;        [{i}, {j}]
+     *         Int l;        [{i}, {j}]
+     *         if (i == 3) { 
+     *             j = 1;    [{i}, {j}, {}]
+     *             k = 2;    [{i}, {j}, {k}]
+     *         } else {      
+     *             k = 3;    [{i}, {j}, {k}]
+     *             l = 4;    [{i}, {j}, {k, l}]
+     *         }             
+     *         println(i);   [{i}, {j, k}]
+     *         return;       [{i}, NULL]
+     *         if (i == 2)   
+     *             k = 3;    [{i}, NULL, NULL]
+     *     }                 
+     *     println(i);       [{i}]
+     * }
+     */
+    vector<UniverseSet<CFGOperand*>*> initializedVarsStack;
+    /**
+     * A map from the continue and break labels in "breakEvaluator" to sets of
+     * all the local (non-field) variables, including method arguments, that
+     * were necessarily initialized at the (reachable) break and continue
+     * statements that target those labels.  We use the field in order to emit
+     * the proper compiler errors about using uninitialized variables.  The map
+     * does not contain any empty or NULL values, and the vectors do not contain
+     * any NULL values.
+     * 
+     * For example, say there are two (reachable) break statements that break to
+     * a label "label".  Say that at the point of the first break statement, the
+     * variables "i" and "j" were initialized, and at the point of the second
+     * break statement, the variables "i" and "k" were initialized.  Then
+     * "incomingInitializedVars" will have a mapping from "label" to
+     * [{i, j}, {i, k}].
+     */
+    map<CFGLabel*, vector<UniverseSet<CFGOperand*>*>*> incomingInitializedVars;
     
     /**
      * Outputs a compiler error.
@@ -86,16 +159,26 @@ private:
     /**
      * Returns the CFGOperand for the specified node of type AST_IDENTIFIER.
      * Emits a compiler error if the variable is not declared.
+     * @param node the node.
+     * @param mustBeInitialized whether to emit a compiler error if the variable
+     *     is not initialized.  This should be true if the variable is used in
+     *     the right-hand side of an expression.
+     * @return the CFGOperand.
      */
-    CFGOperand* getVarOperand(ASTNode* node) {
+    CFGOperand* getVarOperand(ASTNode* node, bool mustBeInitialized) {
         assert(node->type == AST_IDENTIFIER || !"Not a variable");
-        if (allVars.count(node->tokenStr) > 0)
-            return allVars[node->tokenStr];
-        else {
-            emitError(
-                node,
-                string("Variable ") + node->tokenStr +
-                    " not declared in this scope");
+        if (allVars.count(node->tokenStr) > 0) {
+            CFGOperand* var = allVars[node->tokenStr];
+            if (mustBeInitialized &&
+                !var->getIsField() &&
+                !allInitializedVars->contains(var) &&
+                initializedVarsStack.back() != NULL)
+                emitError(
+                    node,
+                    "Variable may be used before it is initialized");
+            return var;
+        } else {
+            emitError(node, "Variable not declared in this scope");
             return new CFGOperand(new CFGType("Object"));
         }
     }
@@ -151,6 +234,86 @@ private:
     }
     
     /**
+     * Pushes an entry onto "initializedVarsStack".  See the comments for that
+     * field for more information.
+     */
+    void pushInitializedVarsBranch() {
+        if (!initializedVarsStack.empty() &&
+            initializedVarsStack.back() == NULL)
+            initializedVarsStack.push_back(NULL);
+        else
+            initializedVarsStack.push_back(
+                new UniverseSet<CFGOperand*>(varUniverse));
+    }
+    
+    /**
+     * Pops an entry from "initializedVarsStack", removing the variables the
+     * discarded entry indicates from "allInitializedVars".  See the comments
+     * for that field for more information.  Because this method removes values
+     * from "allInitializedVars", it is only suitable for cases in which none of
+     * those variables should be preserved, like "if" statements and unlike "if-
+     * else" statements.
+     */
+    void popInitializedVarsBranch() {
+        UniverseSet<CFGOperand*>* initializedVars = initializedVarsStack.back();
+        initializedVarsStack.pop_back();
+        if (initializedVars != NULL) {
+            allInitializedVars->difference(initializedVars);
+            delete initializedVars;
+        }
+    }
+    
+    /**
+     * Alters "allInitializedVars" and "initializedVarsStack" to indicate that
+     * the specified local variable has been initialized at the current point of
+     * compilation.  Assumes that "operand" is a local variable or field in the
+     * source file.  See the comments for "allInitializedVars" for more
+     * information.
+     */
+    void markVarInitialized(CFGOperand* operand) {
+        assert(
+            operand->getIdentifier() != "" ||
+            !"Operand must be a variable from the source code");
+        if (!operand->getIsField() &&
+            !allInitializedVars->contains(operand) &&
+            initializedVarsStack.back() != NULL) {
+            allInitializedVars->add(operand);
+            initializedVarsStack.back()->add(operand);
+        }
+    }
+    
+    /**
+     * Removes all of the sets from incomingInitializedVars[label] and
+     * intersects them with initializedVarsStack.back().  In other words, this
+     * updates "initializedVarsStack" and "allInitializedVars" to account for
+     * the (reachable) break or continue statements that target the specified
+     * label.  See the comments for "incomingInitializedVars" for more
+     * information.
+     */
+    void mergeIncomingInitializedVars(CFGLabel* label) {
+        if (incomingInitializedVars.count(label)) {
+            vector<UniverseSet<CFGOperand*>*>* incomingVars =
+                incomingInitializedVars[label];
+            if (initializedVarsStack.back() == NULL) {
+                initializedVarsStack.pop_back();
+                initializedVarsStack.push_back(
+                    new UniverseSet<CFGOperand*>(*(incomingVars->front())));
+            }
+            allInitializedVars->difference(initializedVarsStack.back());
+            for (vector<UniverseSet<CFGOperand*>*>::const_iterator iterator =
+                     incomingVars->begin();
+                 iterator != incomingVars->end();
+                 iterator++) {
+                initializedVarsStack.back()->intersect(*iterator);
+                delete *iterator;
+            }
+            delete incomingVars;
+            allInitializedVars->unionWith(initializedVarsStack.back());
+            incomingInitializedVars.erase(label);
+        }
+    }
+    
+    /**
      * Emits an error if a variable of type "destinationType" may not store a
      * value of type "sourceType".
      * @param node the node at which such an error would appear.
@@ -203,7 +366,7 @@ private:
      */
     CFGOperand* compileIncrementExpression(ASTNode* node) {
         assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
-        CFGOperand* operand = getVarOperand(node->child1);
+        CFGOperand* operand = getVarOperand(node->child1, true);
         if (!operand->getType()->isNumeric()) {
             emitError(
                 node,
@@ -281,7 +444,9 @@ private:
                     falseLabel);
                 statements.push_back(
                     CFGStatement::fromLabel(intermediateLabel));
+                pushInitializedVarsBranch();
                 compileConditionalJump(node->child2, trueLabel, falseLabel);
+                popInitializedVarsBranch();
                 break;
             }
             case AST_BOOLEAN_OR:
@@ -293,7 +458,9 @@ private:
                     intermediateLabel);
                 statements.push_back(
                     CFGStatement::fromLabel(intermediateLabel));
+                pushInitializedVarsBranch();
                 compileConditionalJump(node->child2, trueLabel, falseLabel);
+                popInitializedVarsBranch();
                 break;
             }
             case AST_FALSE:
@@ -738,7 +905,7 @@ private:
             node->type == AST_ASSIGNMENT_EXPRESSION ||
                 !"Not an assignment expression");
         assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
-        CFGOperand* destination = getVarOperand(node->child1);
+        CFGOperand* destination = getVarOperand(node->child1, false);
         CFGOperand* source = compileExpression(node->child3);
         if (node->child2->type != AST_ASSIGN)
             source = appendBinaryArithmeticExpression(
@@ -747,6 +914,7 @@ private:
                 destination,
                 source);
         appendAssignmentStatement(node, destination, source);
+        markVarInitialized(destination);
         return destination;
     }
     
@@ -869,7 +1037,7 @@ private:
             case AST_TRUE:
                 return getOperandForLiteral(node);
             case AST_IDENTIFIER:
-                return getVarOperand(node);
+                return getVarOperand(node, true);
             case AST_METHOD_CALL:
             {
                 CFGOperand* destination = compileMethodCall(node);
@@ -915,6 +1083,7 @@ private:
                 node->child1->tokenStr,
                 isField);
             appendAssignmentStatement(node, destination, source);
+            markVarInitialized(destination);
         } else {
             if (type == NULL) {
                 emitError(
@@ -984,6 +1153,7 @@ private:
         CFGLabel* endLabel = new CFGLabel();
         breakEvaluator->pushBreakLabel(endLabel);
         breakEvaluator->pushContinueLabel(continueLabel);
+        pushFrame();
         switch (node->type) {
             case AST_DO_WHILE:
             {
@@ -996,18 +1166,18 @@ private:
             }
             case AST_FOR:
             {
-                pushFrame();
                 CFGLabel* startLabel = new CFGLabel();
-                CFGLabel* conditionLabel = new CFGLabel();
+                CFGLabel* bodyLabel = new CFGLabel();
                 compileStatementList(node->child1);
-                statements.push_back(CFGStatement::jump(conditionLabel));
                 statements.push_back(CFGStatement::fromLabel(startLabel));
+                compileConditionalJump(node->child2, bodyLabel, endLabel);
+                statements.push_back(CFGStatement::fromLabel(bodyLabel));
+                pushInitializedVarsBranch();
                 compileStatement(node->child4);
                 statements.push_back(CFGStatement::fromLabel(continueLabel));
                 compileStatementList(node->child3);
-                statements.push_back(CFGStatement::fromLabel(conditionLabel));
-                compileConditionalJump(node->child2, startLabel, endLabel);
-                popFrame();
+                statements.push_back(CFGStatement::jump(startLabel));
+                popInitializedVarsBranch();
                 break;
             }
             case AST_FOR_IN:
@@ -1015,12 +1185,14 @@ private:
                 break;
             case AST_WHILE:
             {
-                CFGLabel* startLabel = new CFGLabel();
-                statements.push_back(CFGStatement::jump(continueLabel));
-                statements.push_back(CFGStatement::fromLabel(startLabel));
-                compileStatement(node->child2);
+                CFGLabel* bodyLabel = new CFGLabel();
                 statements.push_back(CFGStatement::fromLabel(continueLabel));
-                compileConditionalJump(node->child1, startLabel, endLabel);
+                compileConditionalJump(node->child1, bodyLabel, endLabel);
+                statements.push_back(CFGStatement::fromLabel(bodyLabel));
+                pushInitializedVarsBranch();
+                compileStatement(node->child2);
+                statements.push_back(CFGStatement::jump(continueLabel));
+                popInitializedVarsBranch();
                 break;
             }
             default:
@@ -1029,7 +1201,10 @@ private:
         }
         statements.push_back(CFGStatement::fromLabel(endLabel));
         breakEvaluator->popBreakLabel();
+        mergeIncomingInitializedVars(endLabel);
         breakEvaluator->popContinueLabel();
+        mergeIncomingInitializedVars(continueLabel);
+        popFrame();
     }
     
     /**
@@ -1092,7 +1267,11 @@ private:
         CFGLabel* label = new CFGLabel();
         switchLabels.push_back(label);
         statements.push_back(CFGStatement::fromLabel(label));
-        compileStatementList(node->child3);
+        if (node->child3->type != AST_EMPTY_STATEMENT_LIST) {
+            pushInitializedVarsBranch();
+            compileStatementList(node->child3);
+            popInitializedVarsBranch();
+        }
     }
     
     /**
@@ -1134,17 +1313,17 @@ private:
      * return statement).
      */
     void compileControlFlowStatement(ASTNode* node) {
+        CFGLabel* label;
         switch (node->type) {
             case AST_BREAK:
             {
                 int numLoops;
                 if (getNumJumpLoops(node, numLoops)) {
-                    CFGLabel* breakLabel = breakEvaluator->getBreakLabel(
-                        numLoops);
-                    if (breakLabel == NULL)
+                    label = breakEvaluator->getBreakLabel(numLoops);
+                    if (label == NULL) {
                         emitError(node, "Attempting to break out of non-loop");
-                    else
-                        statements.push_back(CFGStatement::jump(breakLabel));
+                        return;
+                    }
                 }
                 break;
             }
@@ -1152,37 +1331,44 @@ private:
             {
                 int numLoops;
                 if (getNumJumpLoops(node, numLoops)) {
-                    CFGLabel* continueLabel = breakEvaluator->getContinueLabel(
-                        numLoops);
-                    if (continueLabel == NULL)
+                    label = breakEvaluator->getContinueLabel(numLoops);
+                    if (label == NULL) {
                         emitError(node, "Attempting to continue non-loop");
-                    else
-                        statements.push_back(CFGStatement::jump(continueLabel));
+                        return;
+                    }
                 }
                 break;
             }
             case AST_RETURN:
                 if (node->child1 != NULL) {
                     CFGOperand* operand = compileExpression(node->child1);
-                    if (breakEvaluator->getReturnVar() == NULL) {
+                    if (breakEvaluator->getReturnVar() == NULL)
                         emitError(
                             node,
                             "Cannot return a value from a void method");
-                        break;
-                    }
-                    appendAssignmentStatement(
-                        node,
-                        breakEvaluator->getReturnVar(),
-                        operand);
-                } else if (breakEvaluator->getReturnVar() != NULL) {
+                    else
+                        appendAssignmentStatement(
+                            node,
+                            breakEvaluator->getReturnVar(),
+                            operand);
+                } else if (breakEvaluator->getReturnVar() != NULL)
                     emitError(node, "Must return a non-void value");
-                    break;
-                }
-                statements.push_back(
-                    CFGStatement::jump(breakEvaluator->getReturnLabel()));
+                label = breakEvaluator->getReturnLabel();
                 break;
             default:
                 assert(!"Unhanded control flow statement type");
+        }
+        statements.push_back(CFGStatement::jump(label));
+        if (initializedVarsStack.back() != NULL) {
+            if (node->type != AST_RETURN) {
+                if (incomingInitializedVars.count(label) == 0)
+                    incomingInitializedVars[label] =
+                        new vector<UniverseSet<CFGOperand*>*>();
+                incomingInitializedVars[label]->push_back(
+                    new UniverseSet<CFGOperand*>(*allInitializedVars));
+            }
+            popInitializedVarsBranch();
+            initializedVarsStack.push_back(NULL);
         }
     }
     
@@ -1208,12 +1394,55 @@ private:
                 CFGLabel* falseLabel = new CFGLabel();
                 CFGLabel* finishLabel = new CFGLabel();
                 compileConditionalJump(node->child1, trueLabel, falseLabel);
+                
+                pushInitializedVarsBranch();
                 statements.push_back(CFGStatement::fromLabel(trueLabel));
                 compileStatement(node->child2);
                 statements.push_back(CFGStatement::jump(finishLabel));
+                UniverseSet<CFGOperand*>* trueInitializedVars =
+                    initializedVarsStack.back();
+                initializedVarsStack.pop_back();
+                if (trueInitializedVars != NULL)
+                    allInitializedVars->difference(trueInitializedVars);
+                
+                pushInitializedVarsBranch();
                 statements.push_back(CFGStatement::fromLabel(falseLabel));
                 compileStatement(node->child3);
                 statements.push_back(CFGStatement::fromLabel(finishLabel));
+                UniverseSet<CFGOperand*>* falseInitializedVars =
+                    initializedVarsStack.back();
+                initializedVarsStack.pop_back();
+                if (falseInitializedVars != NULL)
+                    allInitializedVars->difference(falseInitializedVars);
+                
+                if (trueInitializedVars == NULL &&
+                    falseInitializedVars == NULL) {
+                    popInitializedVarsBranch();
+                    initializedVarsStack.push_back(NULL);
+                } else {
+                    // initializedVars' =
+                    //     initializedVars |
+                    //     (trueInitializedVars & falseInitializedVars) =
+                    //     (initializedVars | trueInitializedVars |
+                    //      falseInitializedVars) &
+                    //     (trueInitializedVars & falseInitializedVars)
+                    if (trueInitializedVars != NULL)
+                        initializedVarsStack.back()->unionWith(
+                            trueInitializedVars);
+                    if (falseInitializedVars != NULL)
+                        initializedVarsStack.back()->unionWith(
+                            falseInitializedVars);
+                    if (trueInitializedVars != NULL) {
+                        initializedVarsStack.back()->intersect(
+                            trueInitializedVars);
+                        delete trueInitializedVars;
+                    }
+                    if (falseInitializedVars != NULL) {
+                        initializedVarsStack.back()->intersect(
+                            falseInitializedVars);
+                        delete falseInitializedVars;
+                    }
+                }
                 break;
             }
             case AST_SWITCH:
@@ -1242,10 +1471,24 @@ private:
                 if (!haveEncounteredDefault) {
                     switchValues.push_back(NULL);
                     switchLabels.push_back(finishLabel);
+                } else if (incomingInitializedVars.count(finishLabel))
+                    // initializedVars' =
+                    //     initializedVars |
+                    //     (caseVars1 & caseVars2 & ... & caseVarsN) =
+                    //     (initializedVars | caseVars1) &
+                    //     (caseVars1 & caseVars2 & ... & caseVarsN)
+                    // The intersection with caseVars occurs in the subsequent
+                    // call to "mergeIncomingInitializedVars".
+                    initializedVarsStack.back()->unionWith(
+                        incomingInitializedVars[finishLabel]->front());
+                else {
+                    popInitializedVarsBranch();
+                    initializedVarsStack.push_back(NULL);
                 }
                 statement->setSwitchValuesAndLabels(switchValues, switchLabels);
                 statements.push_back(CFGStatement::fromLabel(finishLabel));
                 breakEvaluator->popBreakLabel();
+                mergeIncomingInitializedVars(finishLabel);
                 break;
             }
             default:
@@ -1350,10 +1593,18 @@ private:
      */
     CFGMethod* compileMethodDefinition(ASTNode* node) {
         string identifier = node->child2->tokenStr;
+        varUniverse = new Universe<CFGOperand*>();
+        allInitializedVars = new UniverseSet<CFGOperand*>(varUniverse);
         pushFrame();
+        pushInitializedVarsBranch();
         vector<CFGOperand*> args;
-        if (node->child4 != NULL)
+        if (node->child4 != NULL) {
             createArgListVars(node->child3, args);
+            for (vector<CFGOperand*>::const_iterator iterator = args.begin();
+                 iterator != args.end();
+                 iterator++)
+                markVarInitialized(*iterator);
+        }
         CFGOperand* returnVar;
         if (node->child1->type == AST_VOID)
             returnVar = NULL;
@@ -1364,14 +1615,26 @@ private:
         CFGLabel* returnLabel = new CFGLabel();
         breakEvaluator = new BreakEvaluator(returnVar, returnLabel);
         statements.clear();
+        
         if (node->child4 != NULL)
             compileStatementList(node->child4);
         else
             compileStatementList(node->child3);
+        
         popFrame();
+        if (returnVar != NULL && initializedVarsStack.back() != NULL)
+            // Initialized vars are NULL.  Thus, the end of the method (right
+            // before the return label) is reachable.  Thus, we might not have a
+            // return value.
+            emitError(node, "Method may finish without returning a value");
+        popInitializedVarsBranch();
         statements.push_back(CFGStatement::fromLabel(returnLabel));
         delete breakEvaluator;
         breakEvaluator = NULL;
+        delete varUniverse;
+        varUniverse = NULL;
+        delete allInitializedVars;
+        allInitializedVars = NULL;
         return new CFGMethod(
             node->child2->tokenStr,
             returnVar,

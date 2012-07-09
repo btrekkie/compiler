@@ -7,6 +7,7 @@
 #include "test/JSONTest.hpp"
 #include "test/TestCase.hpp"
 #include "test/TestRunner.hpp"
+#include "test/UniverseSetTest.hpp"
 
 using namespace std;
 
@@ -14,6 +15,7 @@ int main() {
     vector<TestCase*> testCases;
     testCases.push_back(new InterfaceIOTest());
     testCases.push_back(new JSONTest());
+    testCases.push_back(new UniverseSetTest());
     testCases.push_back(new BinaryCompilerTest());
     
     TestRunner testRunner;

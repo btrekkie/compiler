@@ -33,7 +33,7 @@ then
 elif [ $1 = "test" ]
 then
     export FILES="$FILES test/BinaryCompilerTest test/InterfaceIOTest "\
-"test/JSONTest test/TestCase test/TestRunner"
+"test/JSONTest test/TestCase test/TestRunner test/UniverseSetTest"
     export MAIN_FILE="TestCompiler.cpp"
     export EXECUTABLE_FILE="test_compiler"
 fi
