@@ -2,6 +2,7 @@
  */
 
 #include <vector>
+#include "test/ASTUtilTest.hpp"
 #include "test/BinaryCompilerTest.hpp"
 #include "test/InterfaceIOTest.hpp"
 #include "test/JSONTest.hpp"
@@ -13,6 +14,7 @@ using namespace std;
 
 int main() {
     vector<TestCase*> testCases;
+    testCases.push_back(new ASTUtilTest());
     testCases.push_back(new InterfaceIOTest());
     testCases.push_back(new JSONTest());
     testCases.push_back(new UniverseSetTest());

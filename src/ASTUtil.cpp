@@ -30,10 +30,13 @@ bool ASTUtil::getIntLiteralValue(string str, long long& value) {
         if (str.length() > (isLong ? 18 : 10))
             return false;
         value = 0;
-        for (int i = isNegative ? 2 : 3; i < (int)str.length() - 1; i++) {
+        for (int i = isNegative ? 3 : 2; i < (int)str.length(); i++) {
             value <<= 4;
             value |= hexDigitToInt(str.at(i));
         }
+        if (!isLong)
+            // e.g. 0xffffffff => -1
+            value = (long long)((int)value);
         if (isNegative)
             value = -value;
         return true;
