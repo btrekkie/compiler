@@ -141,7 +141,7 @@ private:
             else
                 *output << "false";
         } else
-            assert(!"TODO implement remaining primitives");
+            assert(!"TODO (classes) null values");
     }
     
     /**

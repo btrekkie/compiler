@@ -209,7 +209,7 @@ private:
             return var;
         } else {
             // TODO allow shadowing (a variable with the same identifier as a
-            // variable in a parent scope)
+            // field)
             if (isField)
                 emitError(node, "Multiple fields with the same identifier");
             else
