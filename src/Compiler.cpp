@@ -34,6 +34,11 @@ using namespace std;
 class Compiler {
 private:
     /**
+     * The filename of the source file.  This is only used when printing
+     * compiler errors.  We do not actually read the file.
+     */
+    string filename;
+    /**
      * A map from the identifiers of the available methods to their interfaces.
      * TODO (classes) include methods from other classes
      * TODO support method overloading
@@ -151,8 +156,8 @@ private:
      * @param error the text of the error.
      */
     void emitError(ASTNode* node, string error) {
-        *errorOutput << "Error at node of type " << node->type << ": " <<
-            error << '\n';
+        *errorOutput << "Compiler error in " << filename << " at line " <<
+            node->lineNumber << ": " << error << '\n';
         encounteredError = true;
     }
     
@@ -1770,7 +1775,11 @@ public:
     /**
      * Returns an (unoptimized) CFG representation of the specified AST.
      */
-    CFGFile* compileFile(ASTNode* node, ostream& errorOutput2) {
+    CFGFile* compileFile(
+        ASTNode* node,
+        string filename2,
+        ostream& errorOutput2) {
+        filename = filename2;
         encounteredError = false;
         errorOutput = &errorOutput2;
         CFGFile* file = new CFGFile(compileClass(node->child1));
@@ -1783,7 +1792,7 @@ public:
     }
 };
 
-CFGFile* compileFile(ASTNode* node, ostream& errorOutput) {
+CFGFile* compileFile(ASTNode* node, string filename, ostream& errorOutput) {
     Compiler compiler;
-    return compiler.compileFile(node, errorOutput);
+    return compiler.compileFile(node, filename, errorOutput);
 }

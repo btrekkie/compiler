@@ -2,9 +2,17 @@
 #include <string.h>
 #include "ASTNode.h"
 
+extern int yylineno;
+
+/**
+ * Returns a new ASTNode, with the "lineNumber" field set appropriately and all
+ * the other fields set to NULL and 0.
+ */
 ASTNode* astNew() {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     memset(node, 0, sizeof(ASTNode));
+    node->lineNumber = yylineno;
+    handleASTNodeCreated(node);
     return node;
 }
 

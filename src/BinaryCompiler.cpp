@@ -24,7 +24,7 @@ extern "C" {
 using namespace std;
 
 // Workaround for naming conflict with BinaryCompiler::compileFile.  C++ :(
-static CFGFile* (*compileFile2)(ASTNode*, ostream&) = compileFile;
+static CFGFile* (*compileFile2)(ASTNode*, string, ostream&) = compileFile;
 
 string BinaryCompiler::compileFile(
     string srcDir,
@@ -32,8 +32,10 @@ string BinaryCompiler::compileFile(
     string filename,
     ostream& errorOutput) {
     // Parse and compile program
-    ASTNode* node = Parser::parseFile(srcDir + '/' + filename);
-    CFGFile* file = compileFile2(node, errorOutput);
+    ASTNode* node = Parser::parseFile(srcDir + '/' + filename, errorOutput);
+    if (node == NULL)
+        return "";
+    CFGFile* file = compileFile2(node, filename, errorOutput);
     astFree(node);
     if (file == NULL)
         return "";

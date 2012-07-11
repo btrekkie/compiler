@@ -1,10 +1,11 @@
 %{
 extern "C" {
-    int yyparse();
-    int yylex();
-    
     #include "ASTNode.h"
     #include "grammar.h"
+    
+    int yyparse();
+    int yylex();
+    void yyerror(const char* str);
 }
 
 #include <stdio.h>
@@ -13,12 +14,7 @@ extern "C" {
 #define YYSTYPE ASTNode*
 
 extern char yytext[];
-extern int column;
-
-void yyerror(const char* s) {
-    fflush(stdout);
-    printf("\n%*s\n%*s\n", column, "^", column, s);
-}
+extern int yylineno;
 %}
 
 %start file

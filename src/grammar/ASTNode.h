@@ -121,6 +121,11 @@ typedef struct ASTNodeStruct {
      * The fourth child of this node, if any.
      */
     struct ASTNodeStruct* child4;
+    /**
+     * The line number of the last character in the source file that produced
+     * this node.
+     */
+    int lineNumber;
 } ASTNode;
 
 #define YYSTYPE ASTNode*
@@ -149,13 +154,21 @@ ASTNode* astNew3(int type, ASTNode* child1, ASTNode* child2, ASTNode* child3);
  * Returns a new AST with four children.
  */
 ASTNode* astNew4(
-    int type, ASTNode* child1,
+    int type,
+    ASTNode* child1,
     ASTNode* child2,
     ASTNode* child3,
     ASTNode* child4);
 /**
  * Deallocates the specified AST.
  */
-void astFree(ASTNode* ast);
+void astFree(ASTNode* node);
+
+/**
+ * Responds to the specified ASTNode's being allocated.  Note that it is
+ * possible that not all of its fields have been initialized by the time we call
+ * this method.
+ */
+void handleASTNodeCreated(ASTNode* node);
 
 #endif
