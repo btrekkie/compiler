@@ -30,7 +30,6 @@ void blockComment();
 "false" { return FALSE; }
 "for" { return FOR; }
 "if" { return IF; }
-"length" { return LENGTH; }
 "new" { return NEW; }
 "return" { return RETURN; }
 "switch" { return SWITCH; }

@@ -1003,7 +1003,6 @@ private:
         switch (node->type) {
             case AST_ARRAY:
             case AST_ARRAY_GET:
-            case AST_ARRAY_LENGTH:
                 assert(!"TODO arrays");
                 return NULL;
             case AST_ASSIGNMENT_EXPRESSION:
@@ -1034,6 +1033,8 @@ private:
             case AST_TERNARY:
                 return compileBooleanExpression(node);
             case AST_CAST:
+            case AST_NEW:
+            case AST_TARGETED_METHOD_CALL:
                 assert(!"TODO classes");
                 return NULL;
             case AST_FALSE:
@@ -1054,14 +1055,16 @@ private:
                 }
                 return destination;
             }
-            case AST_NEW:
-                assert(!"TODO classes");
-                return NULL;
+            case AST_PARENTHESES:
+                return compileExpression(node->child1);
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
             case AST_PRE_DECREMENT:
             case AST_PRE_INCREMENT:
                 return compileIncrementExpression(node);
+            case AST_QUALIFIED_IDENTIFIER:
+                assert(!"TODO classes");
+                return NULL;
             default:
                 assert(!"Unhandled expression type");
         }
@@ -1146,6 +1149,9 @@ private:
             return type;
         } else {
             assert(node->type == AST_TYPE || !"Not a type node");
+            assert(node->child1->type != AST_FIELD || !"TODO modules");
+            if (node->child1->type != AST_IDENTIFIER)
+                emitError(node, "Syntax error");
             return new CFGType(node->child1->tokenStr);
         }
     }

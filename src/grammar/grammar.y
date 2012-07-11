@@ -18,8 +18,8 @@ extern int yylineno;
 %}
 
 %start file
-%token AUTO BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF LENGTH NEW RETURN
-%token SWITCH TRUE VOID WHILE
+%token AUTO BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF NEW RETURN SWITCH
+%token TRUE VOID WHILE
 %token BOOLEAN_AND BOOLEAN_OR
 %token EQUALS NOT_EQUALS
 %token LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
@@ -65,7 +65,7 @@ type : AUTO
        { $$ = astNew0(AST_AUTO); }
      | nonAutoType
        { $$ = $1; };
-nonAutoType : IDENTIFIER
+nonAutoType : parenthesesExpression
               { $$ = astNew1(AST_TYPE, $1); }
             | type OPEN_AND_CLOSE_BRACKET
               { $$ = astNew1(AST_TYPE_ARRAY, $1); };
@@ -220,7 +220,11 @@ controlFlowStatement : BREAK ';'
                        { $$ = astNew0(AST_RETURN); }
                      | RETURN expression ';'
                        { $$ = astNew1(AST_RETURN, $2); };
-methodCall : IDENTIFIER '(' expressionList ')'
+methodCall : parenthesesExpression "." IDENTIFIER '(' expressionList ')'
+             { $$ = astNew3(AST_TARGETED_METHOD_CALL, $1, $3, $5); }
+           | parenthesesExpression "." IDENTIFIER '(' ')'
+             { $$ = astNew2(AST_TARGETED_METHOD_CALL, $1, $3); }
+           | IDENTIFIER '(' expressionList ')'
              { $$ = astNew2(AST_METHOD_CALL, $1, $3); }
            | IDENTIFIER '(' ')'
              { $$ = astNew1(AST_METHOD_CALL, $1); };
@@ -232,6 +236,10 @@ bracketExpressionList : bracketExpressionList '[' expression ']'
                         { $$ = astNew2(AST_BRACKET_EXPRESSION_LIST, $1, $3); }
                       | '[' expression ']'
                         { $$ = astNew1(AST_BRACKET_EXPRESSION, $2); };
+qualifiedIdentifier : qualifiedIdentifier "." IDENTIFIER
+                      { $$ = astNew2(AST_QUALIFIED_IDENTIFIER, $1, $3); }
+                    | IDENTIFIER
+                      { $$ = $1; };
 
 
 
@@ -329,18 +337,24 @@ castFriendlyUnaryExpression : '~' castUnfriendlyUnaryExpression
                               { $$ = astNew1(AST_BITWISE_INVERT, $2); }
                             | '!' castUnfriendlyUnaryExpression
                               { $$ = astNew1(AST_NOT, $2); }
-                            | NEW IDENTIFIER bracketExpressionList
+                            | NEW qualifiedIdentifier bracketExpressionList
                               { $$ = astNew2(AST_NEW, $2, $3); }
                             | parenthesesExpression
                               { $$ = $1; };
 parenthesesExpression : '(' expression ')'
-                        { $$ = $2; }
+                        // Don't simply return $1, because for the "type" rule,
+                        // the compiler needs to emit an error if the "type"
+                        // contains parentheses.  We cannot just alter the
+                        // "type" rule to use "qualifiedIdentifier" rather than
+                        // "parenthesesExpression", because that would result
+                        // in a reduce / reduce conflict.
+                        { $$ = astNew1(AST_PARENTHESES, $2); }
                       | parenthesesExpression '[' expression ']'
                         { $$ = astNew2(AST_ARRAY_GET, $1, $3); }
-                      | parenthesesExpression '.' LENGTH
-                        { $$ = astNew1(AST_ARRAY_LENGTH, $1); }
                       | methodCall
                         { $$ = $1; }
+                      | parenthesesExpression "." IDENTIFIER
+                        { $$ = astNew2(AST_FIELD, $1, $3); }
                       | IDENTIFIER
                         { $$ = $1; }
                       | INT_LITERAL
