@@ -14,6 +14,9 @@ class MethodInterface;
  * A type of operation performed by CFGStatements.
  */
 enum CFGOperation {
+    CFG_ARRAY_GET, // destination = source1[source2] (with bounds checks)
+    CFG_ARRAY_LENGTH, // destination = source1.length()
+    CFG_ARRAY_SET, // destination[source1] = source2 (with bounds checks)
     CFG_ASSIGN, // destination = source1
     CFG_BITWISE_AND,
     CFG_BITWISE_INVERT,
@@ -31,8 +34,8 @@ enum CFGOperation {
     CFG_MINUS,
     CFG_MOD,
     CFG_MULT,
-    CFG_NEGATE, // destination = -source
-    CFG_NOT, // destination = !source
+    CFG_NEGATE, // destination = -source1
+    CFG_NOT, // destination = !source1
     CFG_NOT_EQUALS,
     CFG_NOP, // No-op; statement has no effect
     CFG_PLUS,

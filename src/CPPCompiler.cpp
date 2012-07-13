@@ -350,6 +350,11 @@ private:
      */
     void outputStatement(CFGStatement* statement) {
         switch (statement->getOperation()) {
+            case CFG_ARRAY_GET:
+            case CFG_ARRAY_LENGTH:
+            case CFG_ARRAY_SET:
+                assert(!"TODO arrays");
+                break;
             case CFG_ASSIGN:
                 outputIndentation(1);
                 outputOperand(statement->getDestination());

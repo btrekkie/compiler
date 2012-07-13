@@ -152,7 +152,7 @@ private:
      * Then, it might return a value like "new CFGOperand(0)", so that we can
      * continue compilation.
      * 
-     * @param node the node at which error appears.
+     * @param node the node at which the error appears.
      * @param error the text of the error.
      */
     void emitError(ASTNode* node, string error) {
@@ -365,46 +365,135 @@ private:
     }
     
     /**
+     * Returns the type of elements in arrays of the specified type.  If
+     * "arrayType" does not indicate an array, returns some substitute type.
+     */
+    CFGType* attemptGetArrayElementType(CFGType* arrayType) {
+        return new CFGType(
+            arrayType->getClassName(),
+            max(arrayType->getNumDimensions() - 1, 0));
+    }
+    
+    /**
+     * Emits a compiler error if "array" is not an array or "index" is not of
+     * the array index type.
+     * @param node the node at which such an error would appear.
+     * @param array the candidate array.
+     * @param index the candidate array index.
+     * @return false iff we emitted an error.
+     */
+    bool assertValidArrayElement(
+        ASTNode* node,
+        CFGOperand* array,
+        CFGOperand* index) {
+        if (array->getType()->getNumDimensions() == 0) {
+            emitError(node, "Operand must be an array");
+            return false;
+        }
+        CFGType* intType = new CFGType("Int");
+        if (index->getType()->isIntegerLike() &&
+            !index->getType()->isMorePromotedThan(intType)) {
+            delete intType;
+            return true;
+        } else {
+            emitError(node, "Array index must be an integer");
+            delete intType;
+            return false;
+        }
+    }
+    
+    /**
+     * Appends a statement retrieving the specified index of the specified
+     * array.  If "array" is not an array or "index" is not of the array index
+     * type, performs a suitable alternative.
+     * @param array the array.
+     * @param index the index.
+     * @return a variable indicating the result of the operation.
+     */
+    CFGOperand* attemptAppendArrayGet(CFGOperand* array, CFGOperand* index) {
+        if (array->getType()->getNumDimensions() == 0)
+            return array;
+        CFGType* intType = new CFGType("Int");
+        if (!index->getType()->isIntegerLike() ||
+            index->getType()->isMorePromotedThan(intType))
+            index = new CFGOperand(0);
+        delete intType;
+        CFGOperand* destination = new CFGOperand(
+            attemptGetArrayElementType(array->getType()));
+        statements.push_back(
+            new CFGStatement(CFG_ARRAY_GET, destination, array, index));
+        return destination;
+    }
+    
+    /**
      * Compiles the specified node of type AST_[PRE|POST]_[INCREMENT|DECREMENT].
      * @param node the node to compile.
      * @return a CFGOperand storing the results of the expression.
      */
     CFGOperand* compileIncrementExpression(ASTNode* node) {
-        assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
-        CFGOperand* operand = getVarOperand(node->child1, true);
+        if (node->child1->type != AST_IDENTIFIER &&
+            node->child1->type != AST_ARRAY_GET) {
+            emitError(
+                node,
+                "Increment / decrement operator may only be used on variables "
+                "or array elements");
+            return compileExpression(node->child1);
+        }
+        CFGOperand* operand;
+        CFGOperand* array = NULL;
+        CFGOperand* index = NULL;
+        if (node->child1->type == AST_IDENTIFIER)
+            operand = getVarOperand(node->child1, true);
+        else {
+            array = compileExpression(node->child1->child1);
+            index = compileExpression(node->child1->child2);
+            bool isValid = assertValidArrayElement(node->child1, array, index);
+            operand = attemptAppendArrayGet(array, index);
+            if (!isValid)
+                array = NULL;
+        }
         if (!operand->getType()->isNumeric()) {
             emitError(
                 node,
                 "Increment / decrement operator may only be used on numbers");
             return operand;
         }
+        CFGOperand* destination;
+        if (node->child1->type == AST_IDENTIFIER)
+            destination = operand;
+        else
+            destination = new CFGOperand(operand->getType());
+        CFGOperand* expressionResult;
         switch (node->type) {
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
-            {
-                CFGOperand* result = new CFGOperand(operand->getType());
-                appendAssignmentStatement(node, result, operand);
+                expressionResult = new CFGOperand(operand->getType());
+                appendAssignmentStatement(node, expressionResult, operand);
                 statements.push_back(
                     new CFGStatement(
                         node->type == AST_POST_INCREMENT ? CFG_PLUS : CFG_MINUS,
-                        operand,
+                        destination,
                         operand,
                         CFGOperand::one()));
                 break;
-            }
             case AST_PRE_DECREMENT:
             case AST_PRE_INCREMENT:
                 statements.push_back(
                     new CFGStatement(
                         node->type == AST_PRE_INCREMENT ? CFG_PLUS : CFG_MINUS,
-                        operand,
+                        destination,
                         operand,
                         CFGOperand::one()));
-                return operand;
+                expressionResult = destination;
+                break;
             default:
                 assert(!"Unhandled increment type");
+                return NULL;
         }
-        return NULL;
+        if (array != NULL)
+            statements.push_back(
+                new CFGStatement(CFG_ARRAY_SET, array, index, destination));
+        return expressionResult;
     }
     
     /**
@@ -668,15 +757,16 @@ private:
      * "foo() ? objectOfType1 : objectOfType2".
      */
     CFGType* getLeastCommonType(CFGType* type1, CFGType* type2) {
-        if (type1->getNumDimensions() > 0 || type2->getNumDimensions() > 0)
+        if (type1->getNumDimensions() == type2->getNumDimensions() &&
+            type1->getClassName() == type2->getClassName())
+            return new CFGType(type1);
+        else if (type1->getNumDimensions() > 0 || type2->getNumDimensions() > 0)
             return new CFGType("Object");
-        else if (type1->isBool() && type2->isBool())
-            return type1;
         else if (type1->isNumeric() && type2->isNumeric()) {
             if (type1->isMorePromotedThan(type2))
-                return type1;
+                return new CFGType(type1);
             else
-                return type2;
+                return new CFGType(type2);
         } else
             return new CFGType("Object");
     }
@@ -909,8 +999,32 @@ private:
         assert(
             node->type == AST_ASSIGNMENT_EXPRESSION ||
                 !"Not an assignment expression");
-        assert(node->child1->type == AST_IDENTIFIER || !"TODO arrays");
-        CFGOperand* destination = getVarOperand(node->child1, false);
+        if (node->child1->type != AST_IDENTIFIER &&
+            node->child1->type != AST_ARRAY_GET) {
+            emitError(
+                node,
+                "Invalid left-hand side; must be a variable or an array "
+                "element");
+            compileExpression(node->child1);
+            return compileExpression(node->child2);
+        }
+        CFGOperand* destination;
+        CFGOperand* array = NULL;
+        CFGOperand* index = NULL;
+        if (node->child1->type == AST_IDENTIFIER)
+            destination = getVarOperand(node->child1, false);
+        else {
+            array = compileExpression(node->child1->child1);
+            index = compileExpression(node->child1->child2);
+            bool isValid = assertValidArrayElement(node, array, index);
+            if (isValid && node->child2->type != AST_ASSIGN)
+                destination = attemptAppendArrayGet(array, index);
+            else
+                destination = new CFGOperand(
+                    attemptGetArrayElementType(array->getType()));
+            if (!isValid)
+                array = NULL;
+        }
         CFGOperand* source = compileExpression(node->child3);
         if (node->child2->type != AST_ASSIGN)
             source = appendBinaryArithmeticExpression(
@@ -919,7 +1033,11 @@ private:
                 destination,
                 source);
         appendAssignmentStatement(node, destination, source);
-        markVarInitialized(destination);
+        if (node->child1->type == AST_IDENTIFIER)
+            markVarInitialized(destination);
+        else if (array != NULL)
+            statements.push_back(
+                new CFGStatement(CFG_ARRAY_SET, array, index, destination));
         return destination;
     }
     
@@ -1002,9 +1120,16 @@ private:
     CFGOperand* compileExpression(ASTNode* node) {
         switch (node->type) {
             case AST_ARRAY:
-            case AST_ARRAY_GET:
-                assert(!"TODO arrays");
+                assert(!"TODO array literals");
                 return NULL;
+            case AST_ARRAY_GET:
+            {
+                CFGOperand* array = compileExpression(node->child1);
+                CFGOperand* index = compileExpression(node->child2);
+                assertValidArrayElement(node, array, index);
+                attemptAppendArrayGet(array, index);
+                return NULL;
+            }
             case AST_ASSIGNMENT_EXPRESSION:
                 return compileAssignmentExpression(node);
             case AST_BITWISE_AND:
@@ -1192,8 +1317,73 @@ private:
                 break;
             }
             case AST_FOR_IN:
-                assert(!"TODO arrays / classes");
+            {
+                CFGOperand* collection = compileExpression(node->child3);
+                assert(
+                    collection->getType()->getNumDimensions() > 0 ||
+                    !"TODO classes");
+                CFGLabel* startLabel = new CFGLabel();
+                CFGLabel* bodyLabel = new CFGLabel();
+                CFGOperand* index = new CFGOperand(new CFGType("Int"));
+                CFGOperand* length = new CFGOperand(new CFGType("Int"));
+                CFGOperand* anotherIteration = new CFGOperand(
+                    new CFGType("Bool"));
+                statements.push_back(
+                    new CFGStatement(CFG_ARRAY_LENGTH, length, collection));
+                statements.push_back(CFGStatement::fromLabel(startLabel));
+                statements.push_back(
+                    new CFGStatement(
+                        CFG_LESS_THAN,
+                        anotherIteration,
+                        index,
+                        length));
+                
+                CFGStatement* statement = new CFGStatement(
+                    CFG_IF,
+                    NULL,
+                    anotherIteration);
+                vector<CFGOperand*> switchValues;
+                vector<CFGLabel*> switchLabels;
+                switchValues.push_back(CFGOperand::fromBool(true));
+                switchLabels.push_back(bodyLabel);
+                switchValues.push_back(NULL);
+                switchLabels.push_back(endLabel);
+                statement->setSwitchValuesAndLabels(switchValues, switchLabels);
+                statements.push_back(statement);
+                statements.push_back(CFGStatement::fromLabel(bodyLabel));
+                
+                CFGType* arrayElementType = attemptGetArrayElementType(
+                    collection->getType());
+                CFGType* loopVarType = getCFGType(node->child1, true);
+                if (loopVarType == NULL)
+                    loopVarType = arrayElementType;
+                CFGOperand* loopVar = createVar(
+                    loopVarType,
+                    node->child2,
+                    node->child2->tokenStr,
+                    false);
+                CFGOperand* element = new CFGOperand(arrayElementType);
+                statements.push_back(
+                    new CFGStatement(
+                        CFG_ARRAY_GET,
+                        element,
+                        collection,
+                        index));
+                appendAssignmentStatement(node->child2, loopVar, element);
+                
+                pushInitializedVarsBranch();
+                compileStatement(node->child4);
+                statements.push_back(CFGStatement::fromLabel(continueLabel));
+                statements.push_back(
+                    new CFGStatement(
+                        CFG_PLUS,
+                        index,
+                        index,
+                        new CFGOperand(1)));
+                statements.push_back(CFGStatement::jump(startLabel));
+                popInitializedVarsBranch();
                 break;
+            }
             case AST_WHILE:
             {
                 CFGLabel* bodyLabel = new CFGLabel();
