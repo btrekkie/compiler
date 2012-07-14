@@ -109,19 +109,19 @@ typedef struct ASTNodeStruct {
      */
     char* tokenStr;
     /**
-     * The first child of this node, if any.
+     * The first child of this node, as ordered in the source code, if any.
      */
     struct ASTNodeStruct* child1;
     /**
-     * The second child of this node, if any.
+     * The second child of this node, as ordered in the source code, if any.
      */
     struct ASTNodeStruct* child2;
     /**
-     * The third child of this node, if any.
+     * The third child of this node, as ordered in the source code, if any.
      */
     struct ASTNodeStruct* child3;
     /**
-     * The fourth child of this node, if any.
+     * The fourth child of this node, as ordered in the source code, if any.
      */
     struct ASTNodeStruct* child4;
     /**

@@ -23,8 +23,8 @@ public:
      * @param value a reference in which to store the results.
      * @return whether the literal value was within the proper integer or long
      *     bounds (-2147483648 to 2147483647 for integers and
-     *     -9223372036854775808 to -9223372036854775807 for longs).  If the
-     *     value is not in bounds, "value" is not altered.
+     *     -9223372036854775808 to 9223372036854775807 for longs).  If the value
+     *     is not in bounds, "value" is not altered.
      */
     static bool getIntLiteralValue(std::string str, long long& value);
 };

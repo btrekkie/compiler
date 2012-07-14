@@ -15,10 +15,12 @@
 #include "ASTUtil.hpp"
 #include "BreakEvaluator.hpp"
 #include "CFG.hpp"
+#include "CompilerErrors.hpp"
 #include "CPPCompiler.hpp"
 #include "Interface.hpp"
 #include "Universe.hpp"
 #include "UniverseSet.hpp"
+#include "VarResolver.hpp"
 
 using namespace std;
 
@@ -34,11 +36,6 @@ using namespace std;
 class Compiler {
 private:
     /**
-     * The filename of the source file.  This is only used when printing
-     * compiler errors.  We do not actually read the file.
-     */
-    string filename;
-    /**
      * A map from the identifiers of the available methods to their interfaces.
      * TODO (classes) include methods from other classes
      * TODO support method overloading
@@ -49,16 +46,30 @@ private:
      */
     vector<CFGStatement*> statements;
     /**
-     * A map from the identifiers of fields and local variables to their
-     * corresponding CFGOperands.
+     * A map from nodes of type AST_IDENTIFIER to integers identifying those
+     * variables.  See the comments for VarResolver::resolveVars for more
+     * information.
      */
-    map<string, CFGOperand*> allVars;
+    map<ASTNode*, int> varIDs;
     /**
-     * A stack of maps indicating the variables in the current frame / scope.
-     * Each element is a map from the identifiers of fields and local variables
-     * in the frame to their corresponding CFGOperands.
+     * A map from the local variable ids in varIDs to the CFGOperands for those
+     * variables.
      */
-    vector<map<string, CFGOperand*>*> frameVars;
+    map<int, CFGOperand*> varIDToOperand;
+    /**
+     * A set of the identifiers of the class's fields.
+     */
+    set<string> fieldIdentifiers;
+    /**
+     * A map from the identifiers of the class's fields to the CFGOperands for
+     * those fields.
+     */
+    map<string, CFGOperand*> fieldVars;
+    /**
+     * A map from the identifiers of the arguments to the method we are
+     * currently compiling to the CFGOperands for those variables.
+     */
+    map<string, CFGOperand*> argVars;
     /**
      * A BreakEvaluator maintaining compiler state pertaining to control flow
      * statements in the current method, if any: break statements, continue
@@ -66,19 +77,15 @@ private:
      */
     BreakEvaluator* breakEvaluator;
     /**
-     * An ostream to which we output compiler errors.
+     * The CompilerErrors object we are using to emit compiler errors.
      */
-    ostream* errorOutput;
-    /**
-     * Whether we called "emitError".
-     */
-    bool encounteredError;
+    CompilerErrors* errors;
     /**
      * The universe for the UniverseSets indicating initialized variables.
      */
     Universe<CFGOperand*>* varUniverse;
     /**
-     * A set of all of the local (non-field) variables, including method
+     * A set of all of the local (non-field) variables, excluding method
      * arguments, that have necessarily been initialized at the current point in
      * compilation.  We use the field in order to emit the proper compiler
      * errors about using uninitialized variables.  (If the current point is
@@ -88,7 +95,7 @@ private:
      */
     UniverseSet<CFGOperand*>* allInitializedVars;
     /**
-     * A stack of sets of local (non-field) variables, including method
+     * A stack of sets of local (non-field) variables, excluding method
      * arguments, that have necessarily been initialized in the branches of
      * compilation in which the current point of compilation resides, exculding
      * those initialized in a parent branch.  We use the field in order to emit
@@ -139,26 +146,8 @@ private:
      */
     map<CFGLabel*, vector<UniverseSet<CFGOperand*>*>*> incomingInitializedVars;
     
-    /**
-     * Outputs a compiler error.
-     * 
-     * Compilation does not immediately terminate upon calling this method.
-     * Callsites should proceed with suitable substitutes for the erroneous
-     * conditions (with the understanding that we will discard the CFGFile we
-     * ultimately produce), so that we can detect additional compiler errors
-     * without compiling the source file again.  For example, if the
-     * "compileExpression" function encounters a multiplication of non-numeric
-     * values, it should call "emitError", because such types cannot be added.
-     * Then, it might return a value like "new CFGOperand(0)", so that we can
-     * continue compilation.
-     * 
-     * @param node the node at which the error appears.
-     * @param error the text of the error.
-     */
     void emitError(ASTNode* node, string error) {
-        *errorOutput << "Compiler error in " << filename << " at line " <<
-            node->lineNumber << ": " << error << '\n';
-        encounteredError = true;
+        errors->emitError(node, error);
     }
     
     /**
@@ -172,70 +161,59 @@ private:
      */
     CFGOperand* getVarOperand(ASTNode* node, bool mustBeInitialized) {
         assert(node->type == AST_IDENTIFIER || !"Not a variable");
-        if (allVars.count(node->tokenStr) > 0) {
-            CFGOperand* var = allVars[node->tokenStr];
+        assert(
+            varIDs.count(node) > 0 ||
+            !"Missing variable id.  Probably a bug in VarResolver.");
+        string identifier = node->tokenStr;
+        int id = varIDs[node];
+        if (id >= 0) {
+            assert(
+                varIDToOperand.count(id) > 0 ||
+                "Attempting to get variable before creating it.  Possibly a "
+                "bug in VarResolver.");
+            CFGOperand* var = varIDToOperand[id];
             if (mustBeInitialized &&
-                !var->getIsField() &&
                 !allInitializedVars->contains(var) &&
                 initializedVarsStack.back() != NULL)
                 emitError(
                     node,
                     "Variable may be used before it is initialized");
             return var;
-        } else {
-            emitError(node, "Variable not declared in this scope");
+        } else if (argVars.count(identifier) > 0)
+            return argVars[identifier];
+        else if (fieldVars.count(identifier) > 0)
+            return argVars[identifier];
+        else
             return new CFGOperand(new CFGType("Object"));
-        }
     }
     
     /**
      * Creates and returns a new CFGOperand for a variable.
      * @param type the type of the variable.
-     * @param node the node in which the variable is declared.  The method emits
-     *     an error if there is already a variable with the same identifier.
-     * @param identifier the variable's identifier.
+     * @param node the node of type AST_IDENTIFIER in which the variable is
+     *     declared.
      * @param isField whether the variable is a class field.
      * @return the operand.
      */
     CFGOperand* createVar(
-        CFGType* type,
         ASTNode* node,
-        string identifier,
-        bool isField) {
-        if (allVars.count(identifier) == 0) {
-            CFGOperand* var = new CFGOperand(type, identifier, isField);
-            (*(frameVars.back()))[identifier] = var;
-            allVars[identifier] = var;
-            return var;
+        CFGType* type,
+        bool isField = false,
+        bool isArg = false) {
+        assert(node->type == AST_IDENTIFIER || !"Not a variable node");
+        CFGOperand* var = new CFGOperand(type, node->tokenStr, isField);
+        if (isArg)
+            argVars[var->getIdentifier()] = var;
+        else if (isField) {
+            fieldVars[var->getIdentifier()] = var;
+            fieldIdentifiers.insert(var->getIdentifier());
         } else {
-            // TODO allow shadowing (a variable with the same identifier as a
-            // field)
-            if (isField)
-                emitError(node, "Multiple fields with the same identifier");
-            else
-                emitError(node, "Multiple variables with the same identifier");
-            return allVars[identifier];
+            assert(
+                (varIDs.count(node) > 0 && varIDs[node] >= 0) ||
+                !"Missing variable id.  Probably a bug in VarResolver.");
+            varIDToOperand[varIDs[node]] = var;
         }
-    }
-    
-    /**
-     * Pushes a frame / scope for variables to the stack of frames.
-     */
-    void pushFrame() {
-        frameVars.push_back(new map<string, CFGOperand*>());
-    }
-    
-    /**
-     * Pops a frame / scope for variables from the stack of frames.
-     */
-    void popFrame() {
-        map<string, CFGOperand*>* frame = frameVars.back();
-        for (map<string, CFGOperand*>::const_iterator iterator = frame->begin();
-             iterator != frame->end();
-             iterator++)
-            allVars.erase(iterator->first);
-        delete frame;
-        frameVars.pop_back();
+        return var;
     }
     
     /**
@@ -1210,11 +1188,7 @@ private:
             CFGOperand* source = compileExpression(node->child3);
             if (type == NULL)
                 type = source->getType();
-            CFGOperand* destination = createVar(
-                type,
-                node,
-                node->child1->tokenStr,
-                isField);
+            CFGOperand* destination = createVar(node->child1, type, isField);
             appendAssignmentStatement(node, destination, source);
             markVarInitialized(destination);
         } else {
@@ -1225,7 +1199,7 @@ private:
                     "assigned in their declaration statement");
                 type = new CFGType("Int");
             }
-            createVar(type, node, node->tokenStr, isField);
+            createVar(node, type, isField);
         }
     }
     
@@ -1289,7 +1263,6 @@ private:
         CFGLabel* endLabel = new CFGLabel();
         breakEvaluator->pushBreakLabel(endLabel);
         breakEvaluator->pushContinueLabel(continueLabel);
-        pushFrame();
         switch (node->type) {
             case AST_DO_WHILE:
             {
@@ -1357,11 +1330,7 @@ private:
                 CFGType* loopVarType = getCFGType(node->child1, true);
                 if (loopVarType == NULL)
                     loopVarType = arrayElementType;
-                CFGOperand* loopVar = createVar(
-                    loopVarType,
-                    node->child2,
-                    node->child2->tokenStr,
-                    false);
+                CFGOperand* loopVar = createVar(node->child2, loopVarType);
                 CFGOperand* element = new CFGOperand(arrayElementType);
                 statements.push_back(
                     new CFGStatement(
@@ -1405,7 +1374,6 @@ private:
         mergeIncomingInitializedVars(endLabel);
         breakEvaluator->popContinueLabel();
         mergeIncomingInitializedVars(continueLabel);
-        popFrame();
     }
     
     /**
@@ -1707,9 +1675,7 @@ private:
                 compileExpression(node);
                 break;
             case AST_BLOCK:
-                pushFrame();
                 compileStatementList(node->child1);
-                popFrame();
                 break;
             case AST_BREAK:
             case AST_CONTINUE:
@@ -1768,10 +1734,10 @@ private:
     CFGOperand* createArgItemVar(ASTNode* node) {
         assert(node->child3 == NULL || !"TODO default arguments");
         return createVar(
+            node->child2,
             getCFGType(node->child1, false),
-            node,
-            node->child2->tokenStr,
-            false);
+            false,
+            true);
     }
     
     /**
@@ -1796,16 +1762,12 @@ private:
         string identifier = node->child2->tokenStr;
         varUniverse = new Universe<CFGOperand*>();
         allInitializedVars = new UniverseSet<CFGOperand*>(varUniverse);
-        pushFrame();
         pushInitializedVarsBranch();
+        argVars.clear();
         vector<CFGOperand*> args;
-        if (node->child4 != NULL) {
+        if (node->child4 != NULL)
             createArgListVars(node->child3, args);
-            for (vector<CFGOperand*>::const_iterator iterator = args.begin();
-                 iterator != args.end();
-                 iterator++)
-                markVarInitialized(*iterator);
-        }
+        varIDs = VarResolver::resolveVars(node, fieldIdentifiers, errors);
         CFGOperand* returnVar;
         if (node->child1->type == AST_VOID)
             returnVar = NULL;
@@ -1822,7 +1784,6 @@ private:
         else
             compileStatementList(node->child3);
         
-        popFrame();
         if (returnVar != NULL && initializedVarsStack.back() != NULL)
             // Initialized vars are NULL.  Thus, the end of the method (right
             // before the return label) is reachable.  Thus, we might not have a
@@ -1942,10 +1903,7 @@ private:
         getBuiltInMethodInterfaces();
         getMethodInterfaces(node->child2);
         statements.clear();
-        pushFrame();
         compileFieldDeclarations(node->child2);
-        map<string, CFGOperand*> fields = allVars;
-        popFrame();
         vector<CFGStatement*> initStatements = statements;
         vector<CFGMethod*> methods;
         compileMethodDefinitions(node->child2, methods);
@@ -1959,7 +1917,7 @@ private:
         
         return new CFGClass(
             node->child1->tokenStr,
-            fields,
+            fieldVars,
             methods,
             initStatements);
     }
@@ -1973,13 +1931,13 @@ public:
      */
     CFGFile* compileFile(
         ASTNode* node,
-        string filename2,
-        ostream& errorOutput2) {
-        filename = filename2;
-        encounteredError = false;
-        errorOutput = &errorOutput2;
+        string filename,
+        ostream& errorOutput) {
+        errors = new CompilerErrors(errorOutput, filename);
         CFGFile* file = new CFGFile(compileClass(node->child1));
-        if (!encounteredError)
+        bool hasEmittedError = errors->getHasEmittedError();
+        delete errors;
+        if (!hasEmittedError)
             return file;
         else {
             delete file;
