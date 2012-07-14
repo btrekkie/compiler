@@ -1,0 +1,7 @@
+testAlteration:
+1
+2
+false
+42
+14.5
+true

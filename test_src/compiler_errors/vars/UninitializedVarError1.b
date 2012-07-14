@@ -1,6 +1,6 @@
 class UninitializedVarError1 {
     void test(Int foo) {
-        Int bar;
+        var bar;
         switch (foo) {
             case 1:
                 bar = 1;

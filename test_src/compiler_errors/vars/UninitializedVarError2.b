@@ -1,6 +1,6 @@
 class UninitializedVarError2 {
     void test(Int foo) {
-        Int bar;
+        var bar;
         if (foo == 0)
             bar = 1;
         else

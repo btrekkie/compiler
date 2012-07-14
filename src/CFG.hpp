@@ -5,10 +5,7 @@
 #include <set>
 #include <string>
 #include <vector>
-
-class CFGType;
-class ClassInterface;
-class MethodInterface;
+#include "Interface.hpp"
 
 /**
  * A type of operation performed by CFGStatements.
@@ -61,9 +58,9 @@ private:
      */
     bool isField;
     /**
-     * The compile-time type of this operand.
+     * The reduced compile-time type of this operand.
      */
-    CFGType* type;
+    CFGReducedType type;
     /**
      * The identifier of this variable.  "identifier" is "" if this is a literal
      * value, or if it does not appear in the source file, but rather is an
@@ -101,11 +98,11 @@ public:
      * does not appear in the source file, but rather is an intermediate
      * variable for an expression.
      */
-    explicit CFGOperand(CFGType* type2);
+    explicit CFGOperand(CFGReducedType type2);
     /**
      * Coinstructs a new CFGOperand for a variable.
      */
-    CFGOperand(CFGType* type2, std::string identifier2, bool isField2);
+    CFGOperand(CFGReducedType type2, std::string identifier2, bool isField2);
     /**
      * Constructs a new CFGOperand for a literal integer value.
      */
@@ -124,18 +121,13 @@ public:
     explicit CFGOperand(double value);
     bool getIsVar();
     bool getIsField();
-    CFGType* getType();
+    CFGReducedType getType();
     std::string getIdentifier();
     bool getBoolValue();
     int getIntValue();
     long long getLongValue();
     float getFloatValue();
     double getDoubleValue();
-    /**
-     * Sets the compile-time type of this operand.  This may only be called
-     * once, and only if a null type was passed to the constructor.
-     */
-    void setType(CFGType* type);
     /**
      * Returns a new CFGOperand for the literal Int value 1.
      */
@@ -287,14 +279,25 @@ private:
      */
     std::string identifier;
     /**
-     * A variable in which we store the method's return value.
+     * A variable in which we store the method's return value, or NULL if the
+     * method does not have a return value.
      */
     CFGOperand* returnVar;
     /**
-     * Variables indicating the methods arguments (in the order in which they
+     * The type of the method's return value, or NULL if the method does not
+     * have a return value.
+     */
+    CFGType* returnType;
+    /**
+     * Variables indicating the method's arguments (in the order in which they
      * are declared).
      */
     std::vector<CFGOperand*> args;
+    /**
+     * The types of the method's arguments (in the order in which they are
+     * declared).
+     */
+    std::vector<CFGType*> argTypes;
     /**
      * The sequence of compiled statements indicating the method's
      * implementation.
@@ -304,7 +307,9 @@ public:
     CFGMethod(
         std::string identifier2,
         CFGOperand* returnVar2,
+        CFGType* returnType2,
         std::vector<CFGOperand*> args2,
+        std::vector<CFGType*> argTypes2,
         std::vector<CFGStatement*> statements2);
     std::string getIdentifier();
     CFGOperand* getReturnVar();
@@ -318,8 +323,8 @@ public:
 
 /**
  * A compiled class implementation.  For purposes of deallocation, the class is
- * the owner of the CFGMethods, CFGStatements, CFGOperands, CFGTypes, and
- * CFGLabels it stores.
+ * the owner of the CFGMethods, CFGStatements, CFGOperands, and CFGLabels it
+ * stores.
  */
 class CFGClass {
 private:
@@ -328,10 +333,15 @@ private:
      */
     std::string identifier;
     /**
-     * A map from the (unqualified) identifier of the class's fields to the
+     * A map from the (unqualified) identifiers of the class's fields to the
      * CFGOperands for those variables.
      */
     std::map<std::string, CFGOperand*> fields;
+    /**
+     * A map from the (unqualified) identifiers of the class's fields to the
+     * types of those variables.
+     */
+    std::map<std::string, CFGType*> fieldTypes;
     /**
      * A map from the (unqualified) identifiers of the class's methods to their
      * compiled implementations.  The way we store methods will need to change
@@ -367,6 +377,7 @@ public:
     CFGClass(
         std::string identifier2,
         std::map<std::string, CFGOperand*> fields2,
+        std::map<std::string, CFGType*> fieldTypes2,
         std::vector<CFGMethod*> methods2,
         std::vector<CFGStatement*> initStatements2);
     ~CFGClass();

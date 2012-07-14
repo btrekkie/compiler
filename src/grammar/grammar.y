@@ -18,8 +18,8 @@ extern int yylineno;
 %}
 
 %start file
-%token AUTO BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF NEW RETURN SWITCH
-%token TRUE VOID WHILE
+%token BREAK CASE CLASS CONTINUE DEFAULT DO FALSE FOR IF NEW RETURN SWITCH TRUE
+%token VAR VOID WHILE
 %token BOOLEAN_AND BOOLEAN_OR
 %token EQUALS NOT_EQUALS
 %token LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
@@ -47,8 +47,8 @@ classBodyItem : fieldDeclaration
                 { $$ = $1; };
 fieldDeclaration : varDeclaration
                    { $$ = $1; };
-varDeclaration : type varDeclarationList ';'
-                 { $$ = astNew2(AST_VAR_DECLARATION, $1, $2); };
+varDeclaration : VAR varDeclarationList ';'
+                 { $$ = astNew1(AST_VAR_DECLARATION, $2); };
 varDeclarationList : varDeclarationList ',' varDeclarationItem
                      { $$ = astNew2(AST_VAR_DECLARATION_LIST, $1, $3); }
                    | varDeclarationItem
@@ -61,14 +61,10 @@ varDeclarationItem : IDENTIFIER
                            $1,
                            astNew0(AST_ASSIGN),
                            $3); };
-type : AUTO
-       { $$ = astNew0(AST_AUTO); }
-     | nonAutoType
-       { $$ = $1; };
-nonAutoType : parenthesesExpression
-              { $$ = astNew1(AST_TYPE, $1); }
-            | type OPEN_AND_CLOSE_BRACKET
-              { $$ = astNew1(AST_TYPE_ARRAY, $1); };
+type : qualifiedIdentifier
+       { $$ = astNew1(AST_TYPE, $1); }
+     | type OPEN_AND_CLOSE_BRACKET
+       { $$ = astNew1(AST_TYPE_ARRAY, $1); };
 methodDefinition : type IDENTIFIER '(' argList ')' methodBody
                    { $$ = astNew4(
                          AST_METHOD_DEFINITION, $1, $2, $4, $6); }
@@ -197,17 +193,18 @@ forComponentStatement : directAssignmentExpression
                         { $$ = $1; }
                       | methodCall
                         { $$ = $1; }
-                      | type IDENTIFIER '=' expression
-                        { $$ = astNew2(
+                      | VAR IDENTIFIER '=' expression
+                        { $$ = astNew1(
                               AST_VAR_DECLARATION,
-                              $1,
                               astNew3(
                                   AST_ASSIGNMENT_EXPRESSION,
                                   $2,
                                   astNew0(AST_ASSIGN),
                                   $4)); };
-forInStatement : FOR '(' type IDENTIFIER ':' expression ')' statement
-                 { $$ = astNew4(AST_FOR_IN, $3, $4, $6, $8); };
+forInStatement : FOR '(' VAR IDENTIFIER ':' expression ')' statement
+                 { $$ = astNew3(AST_FOR_IN_DECLARED, $4, $6, $8); }
+               | FOR '(' IDENTIFIER ':' expression ')' statement
+                 { $$ = astNew3(AST_FOR_IN, $3, $5, $7); };
 controlFlowStatement : BREAK ';'
                        { $$ = astNew0(AST_BREAK); }
                      | BREAK INT_LITERAL ';'
@@ -342,13 +339,7 @@ castFriendlyUnaryExpression : '~' castUnfriendlyUnaryExpression
                             | parenthesesExpression
                               { $$ = $1; };
 parenthesesExpression : '(' expression ')'
-                        // Don't simply return $1, because for the "type" rule,
-                        // the compiler needs to emit an error if the "type"
-                        // contains parentheses.  We cannot just alter the
-                        // "type" rule to use "qualifiedIdentifier" rather than
-                        // "parenthesesExpression", because that would result
-                        // in a reduce / reduce conflict.
-                        { $$ = astNew1(AST_PARENTHESES, $2); }
+                        { $$ = $2; }
                       | parenthesesExpression '[' expression ']'
                         { $$ = astNew2(AST_ARRAY_GET, $1, $3); }
                       | methodCall

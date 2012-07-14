@@ -6,21 +6,21 @@
 class Branching {
     Int getBitCountUsingBinarySearch(Int value) {
         // Inline comment
-        Bool hasAtLeastOneBit = (value & 8) != 0 || (value & 4) != 0 ||
+        var hasAtLeastOneBit = (value & 8) != 0 || (value & 4) != 0 ||
             (value & 2) != 0 || (value & 1) != 0; // Another inline comment
-        Bool hasAtLeastTwoBits =
+        var hasAtLeastTwoBits =
             ((value & 2) != 0 && (value & 1) != 0) ||
             ((value & 4) != 0 && (value & 1) != 0) ||
             ((value & 4) != 0 && (value & 2) != 0) ||
             ((value & 8) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 2) != 0) ||
             ((value & 8) != 0 && (value & 4) != 0);
-        Bool hasAtLeastThreeBits =
+        var hasAtLeastThreeBits =
             ((value & 4) != 0 && (value & 2) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 2) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 4) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 4) != 0 && (value & 2) != 0);
-        Bool hasFourBits = (value & 8) != 0 && (value & 4) != 0 &&
+        var hasFourBits = (value & 8) != 0 && (value & 4) != 0 &&
             (value & 2) != 0 && (value & 1) != 0;
         if (!hasAtLeastTwoBits) {
             if (!hasAtLeastOneBit)
@@ -36,16 +36,16 @@ class Branching {
     }
     
     void testBitCountUsingBinarySearch() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingBinarySearch(i));
         println(0);
     }
     
     Int getBitCountUsingBools(Int value) {
-        Bool bit3 = (value & 8) != 0;
-        Bool bit2 = (value & 4) != 0;
-        Bool bit1 = (value & 2) != 0;
-        Bool bit0 = (value & 1) != 0;
+        var bit3 = (value & 8) != 0;
+        var bit2 = (value & 4) != 0;
+        var bit1 = (value & 2) != 0;
+        var bit0 = (value & 1) != 0;
         if (!bit3 && !bit2 && !bit1 && !bit0)
             return 0;
         else if ((!bit3 && !bit2 && !bit1 && bit0) ||
@@ -70,7 +70,7 @@ class Branching {
     }
     
     void testBitCountUsingBools() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingBools(i));
         println(0);
     }
@@ -115,15 +115,15 @@ class Branching {
     }
     
     void testBitCountUsingElseif() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingElseif(i));
         println(0);
     }
     
     Int getBitCountUsingSwitch1(Int value) {
-        Int numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+        var numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
             (((value & 2) == 0) ? 1 : 0);
-        Int numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+        var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
             (((value & 1) == 0) ? 1 : 0);
         switch (numOddZeroes + numEvenZeroes) {
             case 0:
@@ -141,15 +141,15 @@ class Branching {
     }
     
     void testBitCountUsingSwitch1() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingSwitch1(i));
         println(0);
     }
     
     Int getBitCountUsingSwitch2(Int value) {
-        Int numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+        var numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
             (((value & 2) == 0) ? 1 : 0);
-        Int numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+        var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
             (((value & 1) == 0) ? 1 : 0);
         switch (numOddZeroes + numEvenZeroes) {
             case 0:
@@ -166,17 +166,17 @@ class Branching {
     }
     
     void testBitCountUsingSwitch2() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingSwitch2(i));
         println(0);
     }
     
     Int getBitCountUsingSwitch3(Int value) {
-        Int numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+        var numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
             (((value & 2) == 0) ? 1 : 0);
-        Int numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+        var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
             (((value & 1) == 0) ? 1 : 0);
-        Int bitCount;
+        var bitCount;
         switch (numOddZeroes + numEvenZeroes) {
             case 0:
                 return 4;
@@ -195,27 +195,54 @@ class Branching {
     }
     
     void testBitCountUsingSwitch3() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingSwitch3(i));
         println(0);
     }
     
+    Int getBitCountUsingSwitch4(Int value) {
+        var numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+            (((value & 2) == 0) ? 1 : 0);
+        var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+            (((value & 1) == 0) ? 1 : 0);
+        switch (numOddZeroes + numEvenZeroes) {
+            case 0:
+            case 1:
+                if (numOddZeroes + numEvenZeroes == 0)
+                    return 4;
+                else
+                    return 3;
+            case 3:
+                return 1;
+            case 4:
+                return 0;
+            default:
+                return 2;
+        }
+    }
+    
+    void testBitCountUsingSwitch4() {
+        for (var i = 0; i < 32; i++)
+            print(getBitCountUsingSwitch4(i));
+        println(0);
+    }
+    
     Int getBitCountUsingTernary(Int value) {
-        Bool hasAtLeastOneBit = (value & 8) != 0 || (value & 4) != 0 ||
+        var hasAtLeastOneBit = (value & 8) != 0 || (value & 4) != 0 ||
             (value & 2) != 0 || (value & 1) != 0;
-        Bool hasAtLeastTwoBits =
+        var hasAtLeastTwoBits =
             ((value & 2) != 0 && (value & 1) != 0) ||
             ((value & 4) != 0 && (value & 1) != 0) ||
             ((value & 4) != 0 && (value & 2) != 0) ||
             ((value & 8) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 2) != 0) ||
             ((value & 8) != 0 && (value & 4) != 0);
-        Bool hasAtLeastThreeBits =
+        var hasAtLeastThreeBits =
             ((value & 4) != 0 && (value & 2) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 2) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 4) != 0 && (value & 1) != 0) ||
             ((value & 8) != 0 && (value & 4) != 0 && (value & 2) != 0);
-        Bool hasFourBits = (value & 8) != 0 && (value & 4) != 0 &&
+        var hasFourBits = (value & 8) != 0 && (value & 4) != 0 &&
             (value & 2) != 0 && (value & 1) != 0;
         return !hasAtLeastTwoBits
             ? !hasAtLeastOneBit ? 0 : 1
@@ -223,7 +250,7 @@ class Branching {
     }
     
     void testBitCountUsingTernary() {
-        for (Int i = 0; i < 32; i++)
+        for (var i = 0; i < 32; i++)
             print(getBitCountUsingTernary(i));
         println(0);
     }

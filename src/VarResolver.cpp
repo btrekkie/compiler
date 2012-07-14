@@ -121,11 +121,12 @@ private:
      * and its descendants.
      */
     void visitVarDeclarationList(ASTNode* node) {
-        if (node->type == AST_VAR_DECLARATION_LIST) {
+        if (node->type != AST_VAR_DECLARATION_LIST)
+            visitVarDeclarationItem(node);
+        else {
             visitVarDeclarationList(node->child1);
             visitVarDeclarationItem(node->child2);
-        } else
-            visitVarDeclarationItem(node);
+        }
     }
     
     /**
@@ -171,7 +172,7 @@ private:
             case AST_TYPE_ARRAY:
                 return;
             case AST_VAR_DECLARATION:
-                visitVarDeclarationList(node->child2);
+                visitVarDeclarationList(node->child1);
                 return;
             default:
                 shouldPushFrame = false;
@@ -179,9 +180,9 @@ private:
         if (shouldPushFrame)
             pushFrame();
         if (node->type == AST_FOR_IN) {
-            createVar(node->child2);
+            createVar(node->child1);
+            visitNode(node->child2);
             visitNode(node->child3);
-            visitNode(node->child4);
         } else if (node->child1 != NULL) {
             visitNode(node->child1);
             if (node->child2 != NULL) {

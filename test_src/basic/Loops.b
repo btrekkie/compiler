@@ -4,10 +4,10 @@
  */
 class Loops {
     void testBreak() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++)
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++)
                     sum += i + j + k;
                 if (i + j == 3)
                     break;
@@ -19,10 +19,10 @@ class Loops {
     }
     
     void testBreak1() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++) {
                     if (i + j + k == 5)
                         break 1;
                     sum += i + j + k;
@@ -35,10 +35,10 @@ class Loops {
     }
     
     void testBreak2() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++) {
                     if (i + j + k == 5)
                         break 2;
                     sum += i + j + k;
@@ -51,10 +51,10 @@ class Loops {
     }
     
     void testBreak3() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++) {
                     if (i + j + k == 5)
                         break 3;
                     sum += i + j + k;
@@ -67,12 +67,12 @@ class Loops {
     }
     
     void testContinue() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
                 if (i + j == 3)
                     continue;
-                for (Int k = 1; k <= 3; k++)
+                for (var k = 1; k <= 3; k++)
                     sum += i + j + k;
             }
             sum++;
@@ -81,10 +81,10 @@ class Loops {
     }
     
     void testContinue1() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++) {
                     if (i + j + k == 5)
                         continue 1;
                     sum += i + j + k;
@@ -97,10 +97,10 @@ class Loops {
     }
     
     void testContinue2() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++) {
                     if (i + j + k == 5)
                         continue 2;
                     sum += i + j + k;
@@ -113,10 +113,10 @@ class Loops {
     }
     
     void testContinue3() {
-        Int sum = 0;
-        for (Int i = 1; i <= 3; i++) {
-            for (Int j = 1; j <= 3; j++) {
-                for (Int k = 1; k <= 3; k++) {
+        var sum = 0;
+        for (var i = 1; i <= 3; i++) {
+            for (var j = 1; j <= 3; j++) {
+                for (var k = 1; k <= 3; k++) {
                     if (i + j + k == 5)
                         continue 3;
                     sum += i + j + k;
@@ -129,12 +129,12 @@ class Loops {
     }
     
     void testDoWhile() {
-        Int value = 10;
-        Int factorsSum;
+        var value = 10;
+        var factorsSum;
         do {
             value++;
             factorsSum = 0;
-            for (Int i = 1; i < value; i++) {
+            for (var i = 1; i < value; i++) {
                 if (value % i == 0)
                     factorsSum += i;
             }
@@ -143,10 +143,10 @@ class Loops {
     }
     
     void testTriangular() {
-        Int sum = 0;
-        for (Int i = 1; i <= 5; i++) {
-            for (Int j = i; j <= 5; j++) {
-                for (Int k = j; k <= 5; k++)
+        var sum = 0;
+        for (var i = 1; i <= 5; i++) {
+            for (var j = i; j <= 5; j++) {
+                for (var k = j; k <= 5; k++)
                     sum += i + j + k;
             }
         }
@@ -154,12 +154,12 @@ class Loops {
     }
     
     void testWhile() {
-        Int value = 10;
-        Int factorsSum = 0;
+        var value = 10;
+        var factorsSum = 0;
         while (factorsSum != value) {
             value++;
             factorsSum = 0;
-            for (Int i = 1; i < value; i++) {
+            for (var i = 1; i < value; i++) {
                 if (value % i == 0)
                     factorsSum += i;
             }

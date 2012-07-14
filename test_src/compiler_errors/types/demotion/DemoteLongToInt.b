@@ -1,6 +1,6 @@
 class DemoteLongToInt {
-    void test() {
-        Int value = 100L;
+    void test(Int value) {
+        value = 100L;
         println(value);
     }
 }

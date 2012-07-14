@@ -56,26 +56,38 @@ private:
     }
     
     /**
-     * Outputs the C++ type corresponding to the specified source code type.
+     * Outputs the C++ type corresponding to the specified reduced source code
+     * type.
      */
-    void outputType(CFGType* type) {
-        assert(type->getNumDimensions() == 0 || !"TODO arrays");
-        if (type->getClassName() == "Int")
-            *output << "int";
-        else if (type->getClassName() == "Long")
-            *output << "long long";
-        else if (type->getClassName() == "Float")
-            *output << "float";
-        else if (type->getClassName() == "Double")
-            *output << "double";
-        else if (type->getClassName() == "Bool")
-            *output << "bool";
-        else if (type->getClassName() == "Byte")
-            *output << "char";
-        else
-            assert(!"TODO classes");
+    void outputType(CFGReducedType type) {
+        switch (type) {
+            case REDUCED_TYPE_BOOL:
+                *output << "bool";
+                break;
+            case REDUCED_TYPE_BYTE:
+                *output << "char";
+                break;
+            case REDUCED_TYPE_INT:
+                *output << "int";
+                break;
+            case REDUCED_TYPE_LONG:
+                *output << "long long";
+                break;
+            case REDUCED_TYPE_FLOAT:
+                *output << "float";
+                break;
+            case REDUCED_TYPE_DOUBLE:
+                *output << "double";
+                break;
+            default:
+                assert(!"TODO classes");
+        }
     }
     
+    /**
+     * Adds the specified local variable operand to the "localVarIdentifiers"
+     * map.  Assumes that it is not already present.
+     */
     void createNewLocalVarDeclaration(CFGOperand* operand) {
         assert(
             (operand->getIsVar() && !operand->getIsField()) ||
@@ -104,6 +116,9 @@ private:
         }
     }
     
+    /**
+     * Outputs C++ code declaring the specified CFGOperand local variable.
+     */
     void outputVarDeclarationIfNecessary(CFGOperand* operand) {
         assert(operand->getIsVar() || !"Not a variable");
         if (operand->getIsField() || localVarIdentifiers.count(operand) > 0)
@@ -127,19 +142,25 @@ private:
                         !"Missing local variable declaration");
                 *output << localVarIdentifiers[operand];
             }
-        } else if (operand->getType()->getClassName() == "Int")
+        } else if (operand->getType() == REDUCED_TYPE_INT)
             *output << operand->getIntValue();
-        else if (operand->getType()->getClassName() == "Long")
+        else if (operand->getType() == REDUCED_TYPE_LONG)
             *output << operand->getLongValue() << "ll";
-        else if (operand->getType()->getClassName() == "Float")
-            *output << operand->getFloatValue() << "f";
-        else if (operand->getType()->getClassName() == "Double")
+        else if (operand->getType() == REDUCED_TYPE_DOUBLE)
             *output << operand->getDoubleValue();
-        else if (operand->getType()->getClassName() == "Bool") {
+        else if (operand->getType() == REDUCED_TYPE_BOOL) {
             if (operand->getBoolValue())
                 *output << "true";
             else
                 *output << "false";
+        } else if (operand->getType() == REDUCED_TYPE_FLOAT) {
+            ostringstream str;
+            str << operand->getFloatValue();
+            *output << str.str();
+            if (str.str().find('.') == string::npos &&
+                str.str().find('e') == string::npos)
+                *output << '.';
+            *output << 'f';
         } else
             assert(!"TODO (classes) null values");
     }
@@ -316,7 +337,7 @@ private:
         if (statement->getMethodIdentifier() == "print" ||
             statement->getMethodIdentifier() == "println") {
             *output << "cout << ";
-            if (!args.at(0)->getType()->isBool())
+            if (!args.at(0)->getType() == REDUCED_TYPE_BOOL)
                 outputOperand(args.at(0));
             else {
                 *output << '(';

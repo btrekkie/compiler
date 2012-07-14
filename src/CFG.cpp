@@ -7,16 +7,19 @@ using namespace std;
 CFGOperand::CFGOperand(bool value) {
     isVar = false;
     boolValue = value;
-    type = CFGType::boolType();
+    type = REDUCED_TYPE_BOOL;
 }
 
-CFGOperand::CFGOperand(CFGType* type2) {
+CFGOperand::CFGOperand(CFGReducedType type2) {
     type = type2;
     isVar = true;
     isField = false;
 }
 
-CFGOperand::CFGOperand(CFGType* type2, string identifier2, bool isField2) {
+CFGOperand::CFGOperand(
+    CFGReducedType type2,
+    string identifier2,
+    bool isField2) {
     type = type2;
     identifier = identifier2;
     isField = isField2;
@@ -26,25 +29,25 @@ CFGOperand::CFGOperand(CFGType* type2, string identifier2, bool isField2) {
 CFGOperand::CFGOperand(int value) {
     isVar = false;
     intValue = value;
-    type = CFGType::intType();
+    type = REDUCED_TYPE_INT;
 }
 
 CFGOperand::CFGOperand(long long value) {
     isVar = false;
     longValue = value;
-    type = new CFGType("Long");
+    type = REDUCED_TYPE_LONG;
 }
 
 CFGOperand::CFGOperand(float value) {
     isVar = false;
     floatValue = value;
-    type = new CFGType("Float");
+    type = REDUCED_TYPE_FLOAT;
 }
 
 CFGOperand::CFGOperand(double value) {
     isVar = false;
     doubleValue = value;
-    type = new CFGType("Double");
+    type = REDUCED_TYPE_DOUBLE;
 }
 
 bool CFGOperand::getIsVar() {
@@ -55,7 +58,7 @@ bool CFGOperand::getIsField() {
     return isField;
 }
 
-CFGType* CFGOperand::getType() {
+CFGReducedType CFGOperand::getType() {
     return type;
 }
 
@@ -81,11 +84,6 @@ float CFGOperand::getFloatValue() {
 
 double CFGOperand::getDoubleValue() {
     return doubleValue;
-}
-
-void CFGOperand::setType(CFGType* type2) {
-    assert(type == NULL || !"Cannot set the type twice");
-    type = type2;
 }
 
 CFGOperand* CFGOperand::one() {
@@ -202,13 +200,17 @@ CFGStatement* CFGStatement::jump(CFGLabel* label2) {
 }
 
 CFGMethod::CFGMethod(
-    std::string identifier2,
+    string identifier2,
     CFGOperand* returnVar2,
-    std::vector<CFGOperand*> args2,
-    std::vector<CFGStatement*> statements2) {
+    CFGType* returnType2,
+    vector<CFGOperand*> args2,
+    vector<CFGType*> argTypes2,
+    vector<CFGStatement*> statements2) {
     identifier = identifier2;
     returnVar = returnVar2;
+    returnType = returnType2;
     args = args2;
+    argTypes = argTypes2;
     statements = statements2;
 }
 
@@ -229,26 +231,18 @@ vector<CFGStatement*> CFGMethod::getStatements() {
 }
 
 MethodInterface* CFGMethod::getInterface() {
-    CFGType* returnType;
-    if (returnVar != NULL)
-        returnType = new CFGType(returnVar->getType());
-    else
-        returnType = NULL;
-    vector<CFGType*> argTypes;
-    for (vector<CFGOperand*>::const_iterator iterator = args.begin();
-         iterator != args.end();
-         iterator++)
-        argTypes.push_back(new CFGType((*iterator)->getType()));
     return new MethodInterface(returnType, argTypes, identifier);
 }
 
 CFGClass::CFGClass(
     string identifier2,
     map<string, CFGOperand*> fields2,
+    map<string, CFGType*> fieldTypes2,
     vector<CFGMethod*> methods2,
     vector<CFGStatement*> initStatements2) {
     identifier = identifier2;
     fields = fields2;
+    fieldTypes = fieldTypes2;
     initStatements = initStatements2;
     for (vector<CFGMethod*>::const_iterator iterator = methods2.begin();
          iterator != methods2.end();
@@ -277,18 +271,6 @@ CFGClass::~CFGClass() {
         operands.insert(iterator->second);
     deleteStatements(initStatements, operands);
     operands.erase(NULL);
-    
-    set<CFGType*> types;
-    for (set<CFGOperand*>::const_iterator iterator = operands.begin();
-         iterator != operands.end();
-         iterator++) {
-        types.insert((*iterator)->getType());
-        delete *iterator;
-    }
-    for (set<CFGType*>::const_iterator iterator = types.begin();
-         iterator != types.end();
-         iterator++)
-        delete *iterator;
 }
 
 void CFGClass::addMethod(CFGMethod* method) {
@@ -337,10 +319,12 @@ ClassInterface* CFGClass::getInterface() {
     for (map<string, CFGOperand*>::const_iterator iterator = fields.begin();
          iterator != fields.end();
          iterator++) {
+        assert(fieldTypes.count(iterator->first) > 0 || !"Missing field type");
         CFGOperand* field = iterator->second;
         fieldInterfaces.push_back(
             new FieldInterface(
-                new CFGType(field->getType()), field->getIdentifier()));
+                fieldTypes[iterator->first],
+                field->getIdentifier()));
     }
     vector<MethodInterface*> methodInterfaces;
     vector<CFGMethod*> methodsVector = getMethods();

@@ -25,18 +25,19 @@ private:
      */
     std::vector<CFGLabel*> continueLabels;
     /**
-     * A stack of the "break levels" associated the break labels.  The vector is
-     * parallel to "breakLabels".  A "break level" is defined to be the num of
-     * the number of loops or switch statements we can break and the number of
-     * loops we can continue.  In other words, when we add a value to
+     * A stack of the "break levels" associated with the break labels.  The
+     * vector is parallel to "breakLabels".  A "break level" is defined to be
+     * the num of the number of loops or switch statements we can break and the
+     * number of loops we can continue.  In other words, when we add a value to
      * "breakLevels", that value is breakLabels.size() + continueLabels.size().
-     * 0 is the lowest permissible break level.
+     * 0 is the break level of the first line of a method.  -1 is the level to
+     * which a return statement "breaks".
      */
     std::vector<int> breakLevels;
     /**
-     * A stack of the "break levels" associated the continue labels.  The vector
-     * is parallel to "continueLabels".  See the comments for "breakLevels" for
-     * a definition of "break level".
+     * A stack of the "break levels" associated with the continue labels.  The
+     * vector is parallel to "continueLabels".  See the comments for
+     * "breakLevels" for a definition of "break level".
      */
     std::vector<int> continueLevels;
     /**
@@ -94,10 +95,10 @@ private:
      * this block, at minimum, we will break out of two loops to the body of the
      * first for loop, which has break level 2.
      * 
-     * The return value of this method is necessarily greater than or equal to
-     * the current break level (breakLevels.size() + continueLevels.size()).
-     * The implementation of this method will temporarily alter "breakLevels"
-     * and "continueLevels" to reflect the state of the node we are currently
+     * The return value of this method is necessarily less than or equal to the
+     * current break level (breakLevels.size() + continueLevels.size()).  The
+     * implementation of this method will temporarily alter "breakLevels" and
+     * "continueLevels" to reflect the state of the node we are currently
      * checking.
      */
     int computeMaxBreakLevel(ASTNode* node);

@@ -1,6 +1,6 @@
 class SwitchFallthroughError2 {
     void test() {
-        Int value = 1;
+        var value = 1;
         switch (1) {
             case 1:
                 break;

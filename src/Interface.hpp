@@ -5,6 +5,16 @@
 #include <string>
 #include <vector>
 
+enum CFGReducedType {
+    REDUCED_TYPE_BOOL,
+    REDUCED_TYPE_BYTE,
+    REDUCED_TYPE_INT,
+    REDUCED_TYPE_LONG,
+    REDUCED_TYPE_FLOAT,
+    REDUCED_TYPE_DOUBLE,
+    REDUCED_TYPE_OBJECT
+};
+
 /**
  * The compile-time type of a CFGOperand.
  */
@@ -24,7 +34,7 @@ private:
      * Returns an integer indicating the relative level of promotion of this
      * type.  A greater number indicates a more promoted type.  Assumes
      * isNumeric() is true.  See the comments for "isMorePromotedThan" for more
-     * information regardin promotion.
+     * information regarding promotion.
      */
     int getPromotionLevel();
 public:
@@ -73,6 +83,10 @@ public:
      * string does not represent a CFGType.  This is the inverse of toString().
      */
     static CFGType* fromString(std::string str);
+    /**
+     * Returns the reduced type of this type.
+     */
+    CFGReducedType getReducedType();
 };
 
 /**

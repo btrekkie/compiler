@@ -87,9 +87,12 @@ int BreakEvaluator::computeMaxBreakLevel(ASTNode* node) {
             break;
         }
         case AST_CASE_LIST:
-            maxBreakLevel = max(
-                computeMaxBreakLevel(node->child1),
-                computeMaxBreakLevel(node->child3));
+            if (node->child3->type == AST_EMPTY_STATEMENT_LIST)
+                maxBreakLevel = computeMaxBreakLevel(node->child1);
+            else
+                maxBreakLevel = max(
+                    computeMaxBreakLevel(node->child1),
+                    computeMaxBreakLevel(node->child3));
             break;
         case AST_CONTINUE:
         {
@@ -118,13 +121,16 @@ int BreakEvaluator::computeMaxBreakLevel(ASTNode* node) {
             continueLevels.pop_back();
             maxBreakLevel = min(maxBreakLevel, breakLevel);
             break;
+        case AST_EMPTY_CASE_LIST:
+            maxBreakLevel = -1;
+            break;
         case AST_IF_ELSE:
             maxBreakLevel = max(
-                computeMaxBreakLevel(node->child1),
-                computeMaxBreakLevel(node->child2));
+                computeMaxBreakLevel(node->child2),
+                computeMaxBreakLevel(node->child3));
             break;
         case AST_RETURN:
-            maxBreakLevel = 0;
+            maxBreakLevel = -1;
             break;
         case AST_STATEMENT_LIST:
             maxBreakLevel = computeMaxBreakLevel(node->child1);
@@ -134,12 +140,12 @@ int BreakEvaluator::computeMaxBreakLevel(ASTNode* node) {
         case AST_SWITCH:
             breakLevels.push_back(
                 (int)breakLevels.size() + (int)continueLevels.size());
-            if (hasDefaultLabel(node->child2))
+            if (!hasDefaultLabel(node->child2))
+                maxBreakLevel = breakLevel;
+            else
                 maxBreakLevel = min(
                     computeMaxBreakLevel(node->child2),
                     breakLevel);
-            else
-                maxBreakLevel = breakLevel;
             breakLabels.pop_back();
             break;
         default:

@@ -1,6 +1,7 @@
 #include <assert.h>
 #include "grammar/ASTNode.h"
 #include "ASTUtil.hpp"
+#include "Interface.hpp"
 
 using namespace std;
 
@@ -64,5 +65,21 @@ bool ASTUtil::getIntLiteralValue(string str, long long& value) {
         if (isNegative)
             value = -value;
         return true;
+    }
+}
+
+CFGType* ASTUtil::getCFGType(ASTNode* node) {
+    if (node->type == AST_TYPE_ARRAY) {
+        CFGType* childType = getCFGType(node->child1);
+        CFGType* type = new CFGType(
+            childType->getClassName(),
+            childType->getNumDimensions() + 1);
+        delete childType;
+        return type;
+    } else {
+        assert(node->type == AST_TYPE || !"Not a type node");
+        assert(
+            node->child1->type != AST_QUALIFIED_IDENTIFIER || !"TODO modules");
+        return new CFGType(node->child1->tokenStr);
     }
 }

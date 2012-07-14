@@ -1,6 +1,6 @@
 class UninitializedVarError5 {
     void test(Int foo) {
-        Int bar;
+        var bar;
         do {
             if (i == foo)
                 break;

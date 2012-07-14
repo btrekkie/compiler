@@ -1,6 +1,6 @@
 class UnsignedRightShiftBoolError4 {
     void test() {
-        Bool value = true;
+        var value = true;
         println(value >>>= 6);
     }
 }

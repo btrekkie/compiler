@@ -1,6 +1,6 @@
 class IncrementBoolError2 {
     void test() {
-        Bool value = true;
+        var value = true;
         println(++value);
     }
 }

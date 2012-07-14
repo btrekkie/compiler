@@ -4,15 +4,15 @@
  */
 class InitializedVars {
     void checkAnd(Int foo) {
-        Int bar;
-        Bool baz = (bar = 3) > foo && foo + bar < 10;
+        var bar;
+        var baz = (bar = 3) > foo && foo + bar < 10;
         println(bar);
     }
     
     void checkBreak() {
-        for (Int i = 0; i < 5; i++) {
-            Int bar;
-            Int j = 0;
+        for (var i = 0; i < 5; i++) {
+            var bar;
+            var j = 0;
             do {
                 if (i + j == 3)
                     break 2;
@@ -23,14 +23,14 @@ class InitializedVars {
     }
     
     void checkForCondition() {
-        Int bar;
-        for (Int i = 0; i < (bar = 5); i++)
+        var bar;
+        for (var i = 0; i < (bar = 5); i++)
             println(i);
         println(bar);
     }
     
     void checkSwitch(Int foo) {
-        Int bar;
+        var bar;
         switch (foo) {
             case 1:
                 bar = 0;

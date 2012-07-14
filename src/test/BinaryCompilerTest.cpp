@@ -78,16 +78,20 @@ map<string, string> BinaryCompilerTest::readExpectedOutput(
 }
 
 void BinaryCompilerTest::checkSourceFile(string file) {
-    DirHandle* handle = DirHandle::fromDir(SRC_DIR + "/" + file);
+    DirHandle* handle = DirHandle::fromDir(SRC_DIR + '/' + file);
     if (handle) {
         string subfile;
-        while ((subfile = handle->getNextFilename()) != "")
-            checkSourceFile(file + '/' + subfile);
+        while ((subfile = handle->getNextFilename()) != "") {
+            if (file != "")
+                checkSourceFile(file + '/' + subfile);
+            else
+                checkSourceFile(subfile);
+        }
         return;
     } else if (file.substr(max((int)file.length() - 4, 0), 4) == ".txt")
         return;
     
-    if (file.substr(0, 17) == "/compiler_errors/") {
+    if (file.substr(0, 16) == "compiler_errors/") {
         string errorOutputFilename = FileManager::getTempFilename();
         ofstream errorOutput(errorOutputFilename.c_str());
         string classIdentifier = BinaryCompiler::compileFile(
@@ -119,8 +123,8 @@ void BinaryCompilerTest::checkSourceFile(string file) {
         BUILD_DIR,
         classIdentifier);
     map<string, string> expectedOutputs = readExpectedOutput(
-        FileManager::getParentDir(SRC_DIR + "/" + file) + "/" +
-            classIdentifier + ".txt");
+        FileManager::getParentDir(SRC_DIR + '/' + file) + "/" +
+        classIdentifier + ".txt");
     vector<MethodInterface*> methods = interface->getMethods();
     int numTestMethods = 0;
     for (vector<MethodInterface*>::const_iterator iterator = methods.begin();

@@ -21,10 +21,10 @@ yacc --verbose --debug -d grammar/grammar.y -o grammar/grammar.cpp
 cc -c grammar/lex.yy.c -o grammar/lex.yy.o
 cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
 
-export FILES="ASTUtil BinaryCompiler BreakEvaluator CFG Compiler "\
-"CompilerErrors CPPCompiler FileManager Interface InterfaceInput "\
+export FILES="ASTUtil BinaryCompiler BreakEvaluator CFG CFGPartialType "\
+"Compiler CompilerErrors CPPCompiler FileManager Interface InterfaceInput "\
 "InterfaceOutput JSONDecoder JSONEncoder JSONValue Parser Process "\
-"VarResolver grammar/grammar"
+"TypeEvaluator VarResolver grammar/grammar"
 
 # Target-specific logic
 if [ $1 = "compiler" ]

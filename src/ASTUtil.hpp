@@ -4,6 +4,8 @@
 #include <string>
 #include "grammar/ASTNode.h"
 
+class CFGType;
+
 /**
  * Provides static utility methods pertaining to an AST.
  */
@@ -27,6 +29,11 @@ public:
      *     is not in bounds, "value" is not altered.
      */
     static bool getIntLiteralValue(std::string str, long long& value);
+    /**
+     * Returns the CFGType representation of the specified type node (the "type"
+     * rule in grammar.y).
+     */
+    static CFGType* getCFGType(ASTNode* node);
 };
 
 #endif

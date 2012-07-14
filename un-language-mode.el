@@ -9,7 +9,7 @@
 (add-to-list 'auto-mode-alist '("\\.b\\'" . un-language-mode))
 (defconst un-language-font-lock-keywords-1
   (list
-   '("\\<\\(auto\\|break\\|case\\|class\\|continue\\|default\\|do\\|else\\|for\\|if\\|new\\|return\\|switch\\|void\\|while\\)\\>" . font-lock-keyword-face)
+   '("\\<\\(break\\|case\\|class\\|continue\\|default\\|do\\|else\\|for\\|if\\|new\\|return\\|switch\\|var\\|void\\|while\\)\\>" . font-lock-keyword-face)
    '("\\('\\w*'\\)" . font-lock-variable-name-face))
   "Highlighting for Un mode")
 (defconst un-language-font-lock-keywords-2

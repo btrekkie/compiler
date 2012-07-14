@@ -19,7 +19,6 @@ void blockComment();
 
 "/*" { blockComment(); }
 \/\/[^\n]*\n { }
-"auto" { return AUTO; }
 "break" { return BREAK; }
 "case" { return CASE; }
 "class" { return CLASS; }
@@ -34,6 +33,7 @@ void blockComment();
 "return" { return RETURN; }
 "switch" { return SWITCH; }
 "true" { return TRUE; }
+"var" { return VAR; }
 "void" { return VOID; }
 "while" { return WHILE; }
 

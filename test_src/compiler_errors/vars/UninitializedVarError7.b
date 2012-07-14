@@ -1,6 +1,6 @@
 class UninitializedVarError7 {
     void test(Int foo) {
-        Int bar;
+        var bar;
         do {
             foo++;
             break;

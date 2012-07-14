@@ -112,6 +112,25 @@ CFGType* CFGType::fromString(string str) {
     return new CFGType(className, numDimensions);
 }
 
+CFGReducedType CFGType::getReducedType() {
+    if (numDimensions > 0)
+        return REDUCED_TYPE_OBJECT;
+    else if (className == "Bool")
+        return REDUCED_TYPE_BOOL;
+    else if (className == "Byte")
+        return REDUCED_TYPE_BYTE;
+    else if (className == "Int")
+        return REDUCED_TYPE_INT;
+    else if (className == "Long")
+        return REDUCED_TYPE_LONG;
+    else if (className == "Float")
+        return REDUCED_TYPE_FLOAT;
+    else if (className == "Double")
+        return REDUCED_TYPE_DOUBLE;
+    else
+        return REDUCED_TYPE_OBJECT;
+}
+
 FieldInterface::FieldInterface(CFGType* type2, string identifier2) {
     type = type2;
     identifier = identifier2;

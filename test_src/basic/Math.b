@@ -3,26 +3,26 @@
  */
 class Math {
     Long factorial1(Int value) {
-        Long factorial = 1;
-        for (Int i = 2; i <= value; i++)
+        var factorial = 1L;
+        for (var i = 2; i <= value; i++)
             factorial *= i;
         return factorial;
     }
     
     void testFactorial1() {
-        for (Int i = 1; i <= 20; i++)
+        for (var i = 1; i <= 20; i++)
             println(factorial1(i));
     }
     
     Long factorial2(Long value) {
-        Long factorial = 1;
-        for (Long i = 2; i <= value; i++)
+        var factorial = 1L;
+        for (var i = 2; i <= value; i++)
             factorial *= i;
         return factorial;
     }
     
     void testFactorial2() {
-        for (Long i = 1; i <= 20; i++)
+        for (var i = 1; i <= 20; i++)
             println(factorial2(i));
     }
     
@@ -38,11 +38,11 @@ class Math {
     }
     
     Int findPrime(Int start) {
-        Bool isPrime = false;
-        Int value;
+        var isPrime = false;
+        var value;
         for (value = start; !isPrime; value++) {
             isPrime = true;
-            for (Int divisor = 2; divisor <= value / 2; divisor++) {
+            for (var divisor = 2; divisor <= value / 2; divisor++) {
                 if (value % divisor == 0) {
                     isPrime = false;
                     break;
@@ -68,9 +68,9 @@ class Math {
         Int denominator1,
         Int numerator2,
         Int denominator2) {
-        Int numerator = numerator1 * denominator2 + numerator2 * denominator1;
-        Int denominator = denominator1 * denominator2;
-        Int gcd = gcd(numerator, denominator);
+        var numerator = numerator1 * denominator2 + numerator2 * denominator1;
+        var denominator = denominator1 * denominator2;
+        var gcd = gcd(numerator, denominator);
         return numerator / gcd + denominator / gcd;
     }
     
@@ -82,12 +82,12 @@ class Math {
     
     Int gcd(Int x, Int y) {
         if (x < y) {
-            Int temp = x;
+            var temp = x;
             x = y;
             y = temp;
         }
         while (y > 0) {
-            Int temp = x % y;
+            var temp = x % y;
             x = y;
             y = temp;
         }
@@ -102,15 +102,15 @@ class Math {
     }
     
     Float sqrtf(Float value) {
-        Float sqrt = 2;
-        for (Int i = 0; i < 5; i++)
+        var sqrt = 2;
+        for (var i = 0; i < 5; i++)
             sqrt = (sqrt + value / sqrt) / 2;
         return sqrt;
     }
     
     Double sqrtd(Double value) {
-        Double sqrt = 2;
-        for (Int i = 0; i < 5; i++)
+        var sqrt = 2;
+        for (var i = 0; i < 5; i++)
             sqrt = (sqrt + value / sqrt) / 2;
         return sqrt;
     }
