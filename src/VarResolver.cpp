@@ -152,10 +152,15 @@ private:
             case AST_DO_WHILE:
             case AST_FOR:
             case AST_FOR_IN:
-            case AST_SWITCH:
             case AST_WHILE:
                 shouldPushFrame = true;
                 break;
+            case AST_CASE_LIST:
+                visitNode(node->child1);
+                pushFrame();
+                visitNode(node->child3);
+                popFrame();
+                return;
             case AST_IDENTIFIER:
                 nodeToVar[node] = getVarID(node);
                 return;

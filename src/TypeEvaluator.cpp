@@ -1167,7 +1167,7 @@ private:
     
     /**
      * Visits the iteration portion of the specified loop node (a while or
-     * for loop), excluding any portion that we also execute unconditionally.
+     * for loop), including any portion that we also execute unconditionally.
      */
     void visitLoopIteration(ASTNode* node) {
         pushBranch();

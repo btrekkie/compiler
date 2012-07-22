@@ -205,6 +205,63 @@ class Branching {
             (((value & 2) == 0) ? 1 : 0);
         var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
             (((value & 1) == 0) ? 1 : 0);
+        var bitCount = 0;
+        switch (numOddZeroes + numEvenZeroes) {
+            case 0:
+                bitCount = 4;
+                break;
+            case 1:
+                return 3;
+            case 2:
+                bitCount = 2;
+                break;
+            case 3:
+                return 1;
+            case 4:
+        }
+        return bitCount;
+    }
+    
+    void testBitCountUsingSwitch4() {
+        for (var i = 0; i < 32; i++)
+            print(getBitCountUsingSwitch4(i));
+        println(0);
+    }
+    
+    Int getBitCountUsingSwitch5(Int value) {
+        var numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+            (((value & 2) == 0) ? 1 : 0);
+        var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+            (((value & 1) == 0) ? 1 : 0);
+        var bitCount = -1;
+        switch (numOddZeroes + numEvenZeroes) {
+            case 0:
+                bitCount = 4;
+                break;
+            case 1:
+                return 3;
+            case 2:
+                bitCount = 2;
+                break;
+            case 3:
+                return 1;
+            case 4:
+                bitCount = 0;
+        }
+        return bitCount;
+    }
+    
+    void testBitCountUsingSwitch5() {
+        for (var i = 0; i < 32; i++)
+            print(getBitCountUsingSwitch5(i));
+        println(0);
+    }
+    
+    Int getBitCountUsingSwitch6(Int value) {
+        var numOddZeroes = (((value & 8) == 0) ? 1 : 0) +
+            (((value & 2) == 0) ? 1 : 0);
+        var numEvenZeroes = (((value & 4) == 0) ? 1 : 0) +
+            (((value & 1) == 0) ? 1 : 0);
         switch (numOddZeroes + numEvenZeroes) {
             case 0:
             case 1:
@@ -221,9 +278,9 @@ class Branching {
         }
     }
     
-    void testBitCountUsingSwitch4() {
+    void testBitCountUsingSwitch6() {
         for (var i = 0; i < 32; i++)
-            print(getBitCountUsingSwitch4(i));
+            print(getBitCountUsingSwitch6(i));
         println(0);
     }
     
