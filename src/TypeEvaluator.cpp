@@ -27,7 +27,7 @@
  * One particularly interesting quirk is loops that require multiple iterations
  * to determine variable types.  For example, consider this method:
  * 
- * void foo(int numIterations) {
+ * void foo(Int numIterations) {
  *     var a = 1;
  *     var b = 1;
  *     var c = 1;
@@ -53,16 +53,13 @@
  * a fixed point, we have computed all of the relevant types.
  * 
  * I believe that the running time of "evaluateTypes" is
- * O(n^3 d (log(n) + log(f))), where n is the size of the method, d is the
+ * O(n^2 d (log(nd) + log(f))), where n is the size of the method, d is the
  * maximum depth of any class hierarchy, and f is the number of fields in the
  * enclosing class.  The nd term is the maximum number of times we may need to
  * update expressions' types.  An additional n comes from the maximum number of
  * nodes we visit between updates.  (Such worst-case behavior is realized in
- * loop-like situations as in the above example.)  A third n term comes from the
- * linear time required to update "incomingVarTypesStack" when we encounter a
- * control flow statement.  If we were to optimize the worst-case performance of
- * "evaluateTypes", the third n term is my guess as to the easiest one to
- * eliminate.
+ * loop-like situations as in the above example.)  The algorithm currently uses
+ * O(nd) space; with a bit of effort we can reduce this to O(n).
  */
 
 #include <algorithm>
@@ -73,6 +70,7 @@
 #include "CFGPartialType.hpp"
 #include "CompilerErrors.hpp"
 #include "Interface.hpp"
+#include "LinkedList.hpp"
 #include "TypeEvaluator.hpp"
 
 using namespace std;
@@ -159,20 +157,69 @@ private:
      */
     vector<map<int, CFGPartialType*>*> reverseVarTypesStack;
     /**
-     * A stack indicating the values of "allVarTypes" at the (reachable) break
-     * and continue statements that target the different break levels.  The
-     * stack does not contain any NULL values, and the elements of the stack do
-     * not contain any NULL maps.
+     * A stack indicating the values of varTypesLinkedListStack.back() at the
+     * (reachable) break and continue statements that target the different break
+     * levels.  The stack does not contain any NULL values.
      * 
      * For example, say there are two (reachable) break statements that break to
      * level 3.  Say that at the point of the first break statement, the
      * variables "i" and "j" were of type Int, and at the point of the second
      * break statement, the variable "i" was of type Long and the variable "j"
-     * was uninitialized.  Then incomingVarTypesStack[3] will be the following:
+     * was uninitialized.  Then incomingVarTypesStack[3] will be a linked list
+     * indicating the following mappings:
      * 
      * [{i: Int, j: Int}, {i: Long}]
      */
-    vector<vector<map<int, CFGPartialType*>*>*> incomingVarTypesStack;
+    vector<vector<LinkedList<pair<int, CFGPartialType*> >*>*>
+        incomingVarTypesStack;
+    /**
+     * A stack of linked lists indicating the entries of "allVarTypes" in the
+     * order in which they were added for each branch.  Each node contains a
+     * variable id and the type associated with that id, or NULL if no type is
+     * associated with the id.  If a linked list contains multiple entries for a
+     * given variable id, the type of the id is the type indicated by the
+     * earlier node.  If it is impossible to reach the relevant point of
+     * computation, the appropriate linked list is NULL.
+     * 
+     * The usage of such linked lists (as compared to maps) allows us to store
+     * "incomingVarTypesStack" using linked lists, which enables good worst-case
+     * performance.
+     * 
+     * Here is an example method and the values of "varTypesLinkedListStack"
+     * immediately after executing each statement:
+     * 
+     *                         varTypesLinkedListStack:
+     * void foo(Int input) {
+     *    var i = 1;           [[i, Int]]
+     *    var j;               [[i, Int]]
+     *    if (input > 0) {     
+     *       if (input == 1) { 
+     *          j = 2;         [[i, Int], [j, Int] => [i, Int]]
+     *       } else {          
+     *          j = 3;         [[i, Int], [j, Int] => [i, Int]]
+     *       }                 
+     *    }                    
+     *    println(i);          [[i, Int]]
+     *    if (input > 0) {     
+     *       if (input == 1) { 
+     *          i = 2L;        [[i, Int], [i, Long] => [i, Int]]
+     *          j = 4;         [[i, Int], [j, Int] => [i, Long] => [i, Int]]
+     *          return;        [[i, Int], NULL]
+     *          j = 5.0;       [[i, Int], NULL]
+     *       } else            
+     *          j = 6L;        [[i, Int], [j, Long] => [i, Int]]
+     *    } else               
+     *       j = 7;            [[i, Int], [j, Int] => [i, Int]]
+     *    println(j);          [[j, Long] => [i, Int]]
+     * }
+     */
+    vector<LinkedList<pair<int, CFGPartialType*> >*> varTypesLinkedListStack;
+    /**
+     * A vector of the LinkedList nodes previously added to
+     * "varTypesLinkedListStack".  The vector keeps track of the LinkedList
+     * nodes that we need to deallocate.
+     */
+    vector<LinkedList<pair<int, CFGPartialType*> >*> linkedListNodes;
     /**
      * A stack indicating whether we are doing a "trail run" though an iteration
      * of each loop.  During such trial runs, we do not emit any errors.  We
@@ -263,7 +310,28 @@ private:
     }
     
     /**
-     * Pushes a new branch entry to "reverseVarTypesStack".
+     * Updates "allVarTypes" and "varTypesLinkedListStack" so as to alter the
+     * type of the variable with the specified id.  A NULL type indicates that
+     * the variable no longer has a type (that is, the variable is not
+     * guaranteed to be initialized).
+     */
+    void setVarType(int varID, CFGPartialType* type) {
+        if (type != NULL)
+            allVarTypes[varID] = type;
+        else
+            allVarTypes.erase(varID);
+        LinkedList<pair<int, CFGPartialType*> >* linkedList =
+            new LinkedList<pair<int, CFGPartialType*> >(
+                pair<int, CFGPartialType*>(varID, type),
+                varTypesLinkedListStack.back());
+        varTypesLinkedListStack[varTypesLinkedListStack.size() - 1] =
+            linkedList;
+        linkedListNodes.push_back(linkedList);
+    }
+    
+    /**
+     * Pushes new branch entries to "reverseVarTypesStack" and
+     * "varTypesLinkedListStack".
      */
     void pushBranch() {
         if (!reverseVarTypesStack.empty() &&
@@ -271,12 +339,14 @@ private:
             reverseVarTypesStack.push_back(NULL);
         else
             reverseVarTypesStack.push_back(new map<int, CFGPartialType*>());
+        varTypesLinkedListStack.push_back(varTypesLinkedListStack.back());
     }
     
     /**
-     * Pops a branch entry from "reverseVarTypesStack".  This has the effect of
-     * updating "allVarTypes" to reflect the fact that the branch may (or may
-     * not) have been executed.  For example, consider the following method:
+     * Pops branch entries from "reverseVarTypesStack" and
+     * "varTypesLinkedListStack".  This has the effect of updating "allVarTypes"
+     * and "varTypesLinkedListStack" to reflect the fact that the branch may (or
+     * may not) have been executed.  For example, consider the following method:
      * 
      * void foo(Bool condition) {
      *     var i = 1.0;
@@ -290,53 +360,42 @@ private:
      * }
      * 
      * Immediately before popping the entry for the if statement, "allVarTypes"
-     * is {i: Int, k: Int}, and "reverseVarTypesStack" is
-     * [{i: NULL, k: NULL}, {i: Double, j: NULL}].  After popping the entry,
-     * "allVarTypes" is {i: Double, k: Int} and "reverseVarTypesStack" is
-     * [{i: NULL, k: NULL}].
+     * is {i: Int, k: Int}, "reverseVarTypesStack" is
+     * [{i: NULL, k: NULL}, {i: Double, j: NULL}], and "varTypesLinkedListStack"
+     * is [[k, Int] => [i, Double],
+     * [j, Int] => [i, Int] => [k, Int] => [i, Double]].  After popping the
+     * entry, "allVarTypes" is {i: Double, k: Int}, "reverseVarTypesStack" is
+     * [{i: NULL, k: NULL}], and "varTypesLinkedListStack" is
+     * [[i, Int] => [k, Int] => [i, Double]].
      * 
-     * @return a map indicating the types of the variables that were set in the
-     *     branch.  In the above example, this method would return
-     *     {i: Int, j: Int}.  A null return value indicates that it is
-     *     impossible to reach the end of the branch, due to control flow
-     *     statements such as break statements.
+     * @return the LinkedList that was formerly the top entry of
+     *     "varTypesLinkedListStack".
      */
-    map<int, CFGPartialType*>* popBranchWithoutDiscarding() {
+    LinkedList<pair<int, CFGPartialType*> >* popBranch() {
         map<int, CFGPartialType*>* reverseVarTypes =
             reverseVarTypesStack.back();
         reverseVarTypesStack.pop_back();
-        if (reverseVarTypes == NULL)
-            return NULL;
-        else {
+        if (reverseVarTypes != NULL) {
             // Undo "reverseVarTypes"
-            map<int, CFGPartialType*>* varTypes =
-                new map<int, CFGPartialType*>();
             for (map<int, CFGPartialType*>::const_iterator iterator =
                      reverseVarTypes->begin();
                  iterator != reverseVarTypes->end();
                  iterator++) {
                 int varID = iterator->first;
-                if (iterator->second == NULL) {
-                    (*varTypes)[varID] = allVarTypes[varID];
+                if (iterator->second == NULL)
                     allVarTypes.erase(varID);
-                } else if (allVarTypes.count(varID) > 0)
+                else if (allVarTypes.count(varID) > 0)
                     allVarTypes[varID] = getLeastCommonType(
                         allVarTypes[varID],
                         iterator->second);
             }
             
             delete reverseVarTypes;
-            return varTypes;
         }
-    }
-    
-    /**
-     * Same as popBranchWithoutDiscarding(), but deallocates the returned map.
-     */
-    void popBranch() {
-        map<int, CFGPartialType*>* varTypes = popBranchWithoutDiscarding();
-        if (varTypes != NULL)
-            delete varTypes;
+        LinkedList<pair<int, CFGPartialType*> >* varTypes =
+            varTypesLinkedListStack.back();
+        varTypesLinkedListStack.pop_back();
+        return varTypes;
     }
     
     /**
@@ -348,7 +407,7 @@ private:
         breakLevels.push_back(
             (int)(breakLevels.size() + (int)continueLevels.size()));
         incomingVarTypesStack.push_back(
-            new vector<map<int, CFGPartialType*>*>());
+            new vector<LinkedList<pair<int, CFGPartialType*> >*>());
     }
     
     /**
@@ -359,14 +418,84 @@ private:
         continueLevels.push_back(
             (int)(breakLevels.size() + (int)continueLevels.size()));
         incomingVarTypesStack.push_back(
-            new vector<map<int, CFGPartialType*>*>());
+            new vector<LinkedList<pair<int, CFGPartialType*> >*>());
     }
     
     /**
-     * Updates "allVarTypes" and the last entry of "reverseVarTypesStack" to
-     * reflect the fact that the current point of computation can (only) be
-     * reached from branches with the specified variable types.  For example,
-     * say we have the following method:
+     * Returns the earliest LinkedList node that is in both "first" and
+     * "second".  Return NULL if there is no common node.
+     */
+    template<class T>
+    LinkedList<T>* getLeastCommonAncestor(
+        LinkedList<T>* first,
+        LinkedList<T>* second) {
+        set<LinkedList<T>*> nodes;
+        while (first != NULL || second != NULL) {
+            if (first != NULL) {
+                if (nodes.count(first) > 0)
+                    return first;
+                nodes.insert(first);
+                first = first->getNext();
+            }
+            if (second != NULL) {
+                if (nodes.count(second) > 0)
+                    return second;
+                nodes.insert(second);
+                second = second->getNext();
+            }
+        }
+        return NULL;
+    }
+    
+    /**
+     * Returns the earliest LinkedList node that is in each of the specified
+     * lists.  Return NULL if there is no common node.
+     */
+    template<class T>
+    LinkedList<T>* getLeastCommonAncestor(vector<LinkedList<T>*>& lists) {
+        LinkedList<T>* ancestor = lists.at(0);
+        for (int i = 1; i < (int)lists.size(); i++)
+            ancestor = getLeastCommonAncestor(ancestor, lists.at(i));
+        return ancestor;
+    }
+    
+    /**
+     * Returns a map of all of the mappings in "start" that precede the node
+     * "end".  A NULL value indicates that the returned map should have no
+     * mapping for the corresponding integer.  If a given integer appears in
+     * multiple entries, the earlier one takes precedence.
+     */
+    map<int, CFGPartialType*> linkedListToMap(
+        LinkedList<pair<int, CFGPartialType*> >* end,
+        LinkedList<pair<int, CFGPartialType*> >* start) {
+        vector<LinkedList<pair<int, CFGPartialType*> >*> nodes;
+        for (LinkedList<pair<int, CFGPartialType*> >* node = start;
+             node != end;
+             node = node->getNext())
+            nodes.push_back(node);
+        map<int, CFGPartialType*> varTypes;
+        for (int i = (int)nodes.size() - 1; i >= 0; i--) {
+            if (nodes[i]->getValue().second != NULL)
+                varTypes[nodes[i]->getValue().first] =
+                    nodes[i]->getValue().second;
+            else
+                varTypes.erase(nodes[i]->getValue().first);
+        }
+        return varTypes;
+    }
+    
+    /**
+     * Updates "allVarTypes" and the last elements of "reverseVarTypesStack" and
+     * "varTypesLinkedListStack" to reflect the fact that the current point of
+     * computation can (only) be reached from branches whose variable types are
+     * indicated by the specified LinkedList.  Each LinkedList in
+     * "incomingVarTypes" must be a predecessor of
+     * varTypesLinkedListStack.back() or equal to
+     * varTypesLinkedListStack.back().  See the comments for
+     * "varTypesLinkedListStack" for more information regarding the linked list
+     * representation of types.
+     * 
+     * For example, say we have the following method:
      * 
      * void foo(Int input) {
      *     var i = 1;
@@ -384,20 +513,21 @@ private:
      *             j = 5L;
      *             k = 6;
      *     }
+     *     println(i + j + k);
      * }
      * 
      * We will call "mergeIncomingBranches" once: for the end of the switch
-     * statement.  At that point, "allVarTypes" is {i: Int} and
-     * "reverseVarTypesStack" is [{i: NULL}].  The argument to the call is
-     * [{i: Long, j: Int}, {i: Double, j: Long, k: Int}].  After we call the
-     * method, "allVarTypes" is {i: Int, j: Long} and "reverseVarTypesStack" is
-     * [{i: NULL, j: NULL}].
-     * 
-     * We ignore each value in "incomingVarTypes" that is the same as the
-     * corresponding value in "allVarTypes".  Such values are optional.
+     * statement.  At that point, "allVarTypes" is {i: Int},
+     * "reverseVarTypesStack" is [{i: NULL}], and "varTypesLinkedListStack" is
+     * [[i, Int]].  The argument to the call is
+     * [[j, Int] => [i, Long] => [i, Int],
+     * [k, Int] => [j, Long] => [i, Double] => [i, Int]].  After we call the
+     * method, "allVarTypes" is {i: Double, j: Long}, "reverseVarTypesStack" is
+     * [{i: NULL, j: NULL}], and "varTypesLinkedListStack" is
+     * [[j, Long] => [i, Double] => [i, Int]].
      */
     void mergeIncomingBranches(
-        vector<map<int, CFGPartialType*>*>& incomingVarTypes) {
+        vector<LinkedList<pair<int, CFGPartialType*> >*>& incomingVarTypes) {
         map<int, CFGPartialType*>* reverseVarTypes =
             reverseVarTypesStack.back();
         
@@ -413,15 +543,13 @@ private:
             for (map<int, CFGPartialType*>::const_iterator iterator =
                      reverseVarTypes->begin();
                  iterator != reverseVarTypes->end();
-                 iterator++) {
-                if (iterator->second != NULL)
-                    allVarTypes[iterator->first] = iterator->second;
-                else
-                    allVarTypes.erase(iterator->first);
-            }
+                 iterator++)
+                setVarType(iterator->first, iterator->second);
             delete reverseVarTypes;
             reverseVarTypesStack.pop_back();
             reverseVarTypesStack.push_back(NULL);
+            varTypesLinkedListStack.pop_back();
+            varTypesLinkedListStack.push_back(NULL);
             return;
         }
         
@@ -429,16 +557,23 @@ private:
         // initialized in "allVarTypes", but should be now.  "initializedVars"
         // consists of each variable id that is in all of the maps, but not in
         // "allVarTypes".
+        LinkedList<pair<int, CFGPartialType*> >* ancestor;
+        if (incomingVarTypes.size() > 1)
+            ancestor = getLeastCommonAncestor(incomingVarTypes);
+        else
+            ancestor = varTypesLinkedListStack.back();
         set<int> initializedVars;
-        for (vector<map<int, CFGPartialType*>*>::const_iterator iterator =
-                 incomingVarTypes.begin();
+        for (vector<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+                 iterator = incomingVarTypes.begin();
              iterator != incomingVarTypes.end();
              iterator++) {
-            map<int, CFGPartialType*>* varTypes = *iterator;
+            map<int, CFGPartialType*> varTypes = linkedListToMap(
+                ancestor,
+                *iterator);
             if (iterator == incomingVarTypes.begin()) {
                 for (map<int, CFGPartialType*>::const_iterator iterator2 =
-                         varTypes->begin();
-                     iterator2 != varTypes->end();
+                         varTypes.begin();
+                     iterator2 != varTypes.end();
                      iterator2++) {
                     int varID = iterator2->first;
                     if (allVarTypes.count(varID) == 0)
@@ -450,7 +585,7 @@ private:
                          initializedVars.begin();
                      iterator2 != initializedVars.end();
                      iterator2++) {
-                    if (varTypes->count(*iterator2) > 0)
+                    if (varTypes.count(*iterator2) > 0)
                         newInitializedVars.insert(*iterator2);
                 }
                 initializedVars = newInitializedVars;
@@ -458,14 +593,16 @@ private:
         }
         
         // Update "allVarTypes" and "reverseVarTypes"
-        for (vector<map<int, CFGPartialType*>*>::const_iterator iterator =
-                 incomingVarTypes.begin();
+        for (vector<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+                 iterator = incomingVarTypes.begin();
              iterator != incomingVarTypes.end();
              iterator++) {
-            map<int, CFGPartialType*>* varTypes = *iterator;
+            map<int, CFGPartialType*> varTypes = linkedListToMap(
+                ancestor,
+                *iterator);
             for (map<int, CFGPartialType*>::const_iterator iterator2 =
-                     varTypes->begin();
-                 iterator2 != varTypes->end();
+                     varTypes.begin();
+                 iterator2 != varTypes.end();
                  iterator2++) {
                 int varID = iterator2->first;
                 if (reverseVarTypes->count(varID) == 0) {
@@ -475,11 +612,13 @@ private:
                         (*reverseVarTypes)[varID] = NULL;
                 }
                 if (allVarTypes.count(varID) > 0) {
-                    allVarTypes[varID] = getLeastCommonType(
-                        allVarTypes[varID],
-                        iterator2->second);
+                    setVarType(
+                        varID, 
+                        getLeastCommonType(
+                            allVarTypes[varID],
+                            iterator2->second));
                 } else if (initializedVars.count(varID) > 0)
-                    allVarTypes[varID] = iterator2->second;
+                    setVarType(varID, iterator2->second);
             }
         }
     }
@@ -492,15 +631,10 @@ private:
      * "mergeIncomingBranches" for more information.
      */
     void popIncomingVarTypes() {
-        vector<map<int, CFGPartialType*>*>* incomingVarTypes =
+        vector<LinkedList<pair<int, CFGPartialType*> >*>* incomingVarTypes =
             incomingVarTypesStack.back();
         incomingVarTypesStack.pop_back();
         mergeIncomingBranches(*incomingVarTypes);
-        for (vector<map<int, CFGPartialType*>*>::const_iterator iterator =
-                 incomingVarTypes->begin();
-             iterator != incomingVarTypes->end();
-             iterator++)
-            delete *iterator;
         delete incomingVarTypes;
     }
     
@@ -565,7 +699,7 @@ private:
                 else
                     (*(reverseVarTypesStack.back()))[varID] = NULL;
             }
-            allVarTypes[varID] = type;
+            setVarType(varID, type);
         }
     }
     
@@ -805,24 +939,15 @@ private:
                 CFGPartialType* conditionType = visitExpression(node->child1);
                 if (!conditionType->getType()->isBool())
                     emitError(node, "Operand must be a boolean");
+                vector<LinkedList<pair<int, CFGPartialType*> >*>
+                    incomingVarTypes;
                 pushBranch();
                 CFGPartialType* trueType = visitExpression(node->child2);
-                map<int, CFGPartialType*>* trueVarTypes =
-                    popBranchWithoutDiscarding();
+                incomingVarTypes.push_back(popBranch());
                 pushBranch();
                 CFGPartialType* falseType = visitExpression(node->child3);
-                map<int, CFGPartialType*>* falseVarTypes =
-                    popBranchWithoutDiscarding();
-                vector<map<int, CFGPartialType*>*> incomingVarTypes;
-                if (trueVarTypes != NULL)
-                    incomingVarTypes.push_back(trueVarTypes);
-                if (falseVarTypes != NULL)
-                    incomingVarTypes.push_back(falseVarTypes);
+                incomingVarTypes.push_back(popBranch());
                 mergeIncomingBranches(incomingVarTypes);
-                if (trueVarTypes != NULL)
-                    delete trueVarTypes;
-                if (falseVarTypes != NULL)
-                    delete falseVarTypes;
                 return getLeastCommonType(trueType, falseType);
             }
             default:
@@ -1078,8 +1203,9 @@ private:
                             (int)min(
                                 numLoops,
                                 (long long)continueLevels.size()));
-                incomingVarTypesStack.at(breakLevel)->push_back(
-                    new map<int, CFGPartialType*>(allVarTypes));
+                if (reverseVarTypesStack.back() != NULL)
+                    incomingVarTypesStack.at(breakLevel)->push_back(
+                        varTypesLinkedListStack.back());
                 break;
             }
             case AST_RETURN:
@@ -1100,14 +1226,12 @@ private:
             for (map<int, CFGPartialType*>::const_iterator iterator =
                      reverseVarTypes->begin();
                  iterator != reverseVarTypes->end();
-                 iterator++) {
-                if (iterator->second != NULL)
-                    allVarTypes[iterator->first] = iterator->second;
-                else
-                    allVarTypes.erase(iterator->first);
-            }
+                 iterator++)
+                setVarType(iterator->first, iterator->second);
             reverseVarTypesStack.pop_back();
             reverseVarTypesStack.push_back(NULL);
+            varTypesLinkedListStack.pop_back();
+            varTypesLinkedListStack.push_back(NULL);
         }
     }
     
@@ -1222,11 +1346,7 @@ private:
         // Visit the loop's initialization
         visitLoopInitialization(node);
         pushBreakLevel();
-        incomingVarTypesStack.back()->push_back(
-            new map<int, CFGPartialType*>());
         pushContinueLevel();
-        incomingVarTypesStack.back()->push_back(
-            new map<int, CFGPartialType*>());
         isCheckingLoopStack.push_back(true);
         visitLoopInitializationAndIteration(node);
         hasChangedStack.push_back(true);
@@ -1253,7 +1373,9 @@ private:
             // condition is essential.  Without it, TypeEvaluator would take
             // exponential time.)
             visitLoopIteration(node);
+        incomingVarTypesStack.back()->push_back(varTypesLinkedListStack.back());
         popBreakLevel();
+        incomingVarTypesStack.back()->push_back(varTypesLinkedListStack.back());
         popContinueLevel();
     }
     
@@ -1311,22 +1433,23 @@ private:
                         "Condition must be a boolean value");
                 pushBranch();
                 visitStatement(node->child2);
-                map<int, CFGPartialType*>* trueVarTypes =
-                    popBranchWithoutDiscarding();
+                bool isTrueBranchReachable = reverseVarTypesStack.back() !=
+                    NULL;
+                LinkedList<pair<int, CFGPartialType*> >* trueVarTypes =
+                    popBranch();
                 pushBranch();
                 visitStatement(node->child3);
-                map<int, CFGPartialType*>* falseVarTypes =
-                    popBranchWithoutDiscarding();
-                vector<map<int, CFGPartialType*>*> incomingVarTypes;
-                if (trueVarTypes != NULL)
+                bool isFalseBranchReachable = reverseVarTypesStack.back() !=
+                    NULL;
+                LinkedList<pair<int, CFGPartialType*> >* falseVarTypes =
+                    popBranch();
+                vector<LinkedList<pair<int, CFGPartialType*> >*>
+                    incomingVarTypes;
+                if (isTrueBranchReachable)
                     incomingVarTypes.push_back(trueVarTypes);
-                if (falseVarTypes != NULL)
+                if (isFalseBranchReachable)
                     incomingVarTypes.push_back(falseVarTypes);
                 mergeIncomingBranches(incomingVarTypes);
-                if (trueVarTypes != NULL)
-                    delete trueVarTypes;
-                if (falseVarTypes != NULL)
-                    delete falseVarTypes;
                 break;
             }
             case AST_SWITCH:
@@ -1338,12 +1461,12 @@ private:
                 CFGPartialType* type = visitExpression(node->child1);
                 if (!type->getType()->isIntegerLike() ||
                     type->getType()->getClassName() == "Long")
-                    emitError(node, "Operand must be an Int or Byte");
+                    emitError(node->child1, "Operand must be an Int or Byte");
                 bool hasDefaultLabel = false;
                 visitCaseList(node->child2, hasDefaultLabel);
                 if (!hasDefaultLabel) {
                     incomingVarTypesStack.back()->push_back(
-                        new map<int, CFGPartialType*>());
+                        varTypesLinkedListStack.back());
                 }
                 popBreakLevel();
                 break;
@@ -1499,6 +1622,7 @@ public:
             returnType = ASTUtil::getCFGType(node->child1);
         else
             returnType = NULL;
+        varTypesLinkedListStack.push_back(NULL);
         isCheckingLoopStack.push_back(false);
         hasChangedStack.push_back(false);
         pushBranch();
@@ -1511,6 +1635,12 @@ public:
         isCheckingLoopStack.pop_back();
         hasChangedStack.pop_back();
         popBranch();
+        for (vector<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+                 iterator = linkedListNodes.begin();
+             iterator != linkedListNodes.end();
+             iterator++)
+            delete *iterator;
+        linkedListNodes.clear();
     }
     
     CFGReducedType getExpressionType(ASTNode* node) {

@@ -165,6 +165,39 @@ class ChangingTypes {
         checkSwitch(2);
     }
     
+    void checkUnreachableLoopType(Bool input) {
+        var foo = 0;
+        for (var i = 0; i < 1; i++) {
+            if (input) {
+                return;
+                foo = 1.5;
+                break;
+            } else
+                foo = 1000040;
+        }
+        println(foo);
+    }
+    
+    void testUnreachableLoopType() {
+        checkUnreachableLoopType(true);
+        checkUnreachableLoopType(false);
+    }
+    
+    void checkUnreachableType(Bool input) {
+        var foo;
+        if (input) {
+            return;
+            foo = 1.5;
+        } else
+            foo = 1000040;
+        println(foo);
+    }
+    
+    void testUnreachableType() {
+        checkUnreachableType(true);
+        checkUnreachableType(false);
+    }
+    
     void checkWhileLoopTypes(Int input) {
         var foo = 1000040;
         println(foo);

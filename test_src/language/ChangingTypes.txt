@@ -91,6 +91,12 @@ testSwitch:
 1000040
 3.00004e+06
 
+testUnreachableLoopType:
+1000040
+
+testUnreachableType:
+1000040
+
 testWhileLoopTypes:
 1000040
 1.00004e+06
