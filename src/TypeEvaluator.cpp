@@ -53,13 +53,13 @@
  * a fixed point, we have computed all of the relevant types.
  * 
  * I believe that the running time of "evaluateTypes" is
- * O(n^2 d (log(nd) + log(f))), where n is the size of the method, d is the
- * maximum depth of any class hierarchy, and f is the number of fields in the
- * enclosing class.  The nd term is the maximum number of times we may need to
- * update expressions' types.  An additional n comes from the maximum number of
- * nodes we visit between updates.  (Such worst-case behavior is realized in
- * loop-like situations as in the above example.)  The algorithm currently uses
- * O(nd) space; with a bit of effort we can reduce this to O(n).
+ * O(n^2 d (n + log(nd) + log(f)) + 1), where n is the size of the method, d is
+ * the maximum depth of any class hierarchy, and f is the number of fields in
+ * the enclosing class.  The nd term is the maximum number of times we may need
+ * to update expressions' types.  An additional n comes from the maximum number
+ * of nodes we visit between updates.  (Such worst-case behavior is realized in
+ * loop-like situations as in the above example.)  Another n term comes from the
+ * execution time of the popBranch() method.
  */
 
 #include <algorithm>
@@ -173,6 +173,25 @@ private:
     vector<vector<LinkedList<pair<int, CFGPartialType*> >*>*>
         incomingVarTypesStack;
     /**
+     * A stack of maps from indices in "incomingVarTypesStack" to the sizes of
+     * the suggested "incomingVarTypesStack" elements prior to executing each of
+     * the loops that contain the current point of execution.  (Each map only
+     * contains entries for elements whose sizes have changed, excluding those
+     * whose sizes changed in the nested child loop.)
+     * 
+     * We use the map in order to remove and deallocate the linked lists added
+     * to "incomingVarTypesStack" during loop "trial runs", so as to achieve
+     * memory usage of O(n).  See the comments for "isCheckingLoopStack" for
+     * more information regardig trial runs.
+     */
+    vector<map<int, int>*> prevIncomingSizesStack;
+    /**
+     * A vector of linked lists that we may deallocate, because they are no
+     * longer in use.  Such lists are added when visiting nodes of type
+     * AST_RETURN; hence the field's name.
+     */
+    vector<LinkedList<pair<int, CFGPartialType*> >*> returnNodesToDelete;
+    /**
      * A stack of linked lists indicating the entries of "allVarTypes" in the
      * order in which they were added for each branch.  Each node contains a
      * variable id and the type associated with that id, or NULL if no type is
@@ -215,13 +234,12 @@ private:
      */
     vector<LinkedList<pair<int, CFGPartialType*> >*> varTypesLinkedListStack;
     /**
-     * A vector of the LinkedList nodes previously added to
-     * "varTypesLinkedListStack".  The vector keeps track of the LinkedList
-     * nodes that we need to deallocate.
+     * A set of the LinkedList nodes previously added to
+     * "varTypesLinkedListStack" that have not yet been deallocated.
      */
-    vector<LinkedList<pair<int, CFGPartialType*> >*> linkedListNodes;
+    set<LinkedList<pair<int, CFGPartialType*> >*> linkedListNodes;
     /**
-     * A stack indicating whether we are doing a "trail run" though an iteration
+     * A stack indicating whether we are doing a "trial run" though an iteration
      * of each loop.  During such trial runs, we do not emit any errors.  We
      * wait until all of the trial runs are finished and we are executing the
      * real run.
@@ -326,7 +344,7 @@ private:
                 varTypesLinkedListStack.back());
         varTypesLinkedListStack[varTypesLinkedListStack.size() - 1] =
             linkedList;
-        linkedListNodes.push_back(linkedList);
+        linkedListNodes.insert(linkedList);
     }
     
     /**
@@ -1203,9 +1221,13 @@ private:
                             (int)min(
                                 numLoops,
                                 (long long)continueLevels.size()));
-                if (reverseVarTypesStack.back() != NULL)
+                if (reverseVarTypesStack.back() != NULL) {
+                    if (prevIncomingSizesStack.back()->count(breakLevel) == 0)
+                        (*(prevIncomingSizesStack.back()))[breakLevel] =
+                            (int)incomingVarTypesStack.at(breakLevel)->size();
                     incomingVarTypesStack.at(breakLevel)->push_back(
                         varTypesLinkedListStack.back());
+                }
                 break;
             }
             case AST_RETURN:
@@ -1230,8 +1252,13 @@ private:
                 setVarType(iterator->first, iterator->second);
             reverseVarTypesStack.pop_back();
             reverseVarTypesStack.push_back(NULL);
-            varTypesLinkedListStack.pop_back();
-            varTypesLinkedListStack.push_back(NULL);
+            if (varTypesLinkedListStack.back() != NULL) {
+                if (node->type == AST_RETURN)
+                    returnNodesToDelete.push_back(
+                        varTypesLinkedListStack.back());
+                varTypesLinkedListStack.pop_back();
+                varTypesLinkedListStack.push_back(NULL);
+            }
         }
     }
     
@@ -1338,6 +1365,124 @@ private:
     }
     
     /**
+     * Deallocates the unneeded linked list nodes we just produced in a "trial
+     * run" iteration of a loop.  See the comments for "isCheckingLoopStack" for
+     * more information regarding trial runs.  This has the effect of deleting
+     * the newly created linked list nodes that only appear in
+     * "incomingVarTypesStack" or "returnNodesToDelete".  It also condenses the
+     * list varTypesLinkedListStack.back() by removing and deallocating nodes
+     * containing mappings that are superceded by later mappings.
+     * 
+     * The purpose of deallocating such nodes immediately rather than at the end
+     * of the call to "evaluateTypes" is to achieve memory usage of O(n).
+     * 
+     * @param varTypesLinkedListEnd the earliest node in
+     *     varTypesLinkedListStack.back() that we should avoid deallocating,
+     *     because we need it elsewhere.
+     */
+    void condenseLoopIterationLinkedLists(
+        LinkedList<pair<int, CFGPartialType*> >* varTypesLinkedListEnd) {
+        LinkedList<pair<int, CFGPartialType*> >* varTypesLinkedListStart =
+            varTypesLinkedListStack.back();
+        map<int, LinkedList<pair<int, CFGPartialType*> >*> varIDToNode;
+        set<LinkedList<pair<int, CFGPartialType*> >*> nodesToRemove;
+        for (LinkedList<pair<int, CFGPartialType*> >* node =
+                 varTypesLinkedListStart;
+             node != varTypesLinkedListEnd;
+             node = node->getNext()) {
+            if (varIDToNode.count(node->getValue().first) > 0)
+                nodesToRemove.insert(varIDToNode[node->getValue().first]);
+            varIDToNode[node->getValue().first] = node;
+        }
+        set<LinkedList<pair<int, CFGPartialType*> >*> nodesToKeep;
+        set<LinkedList<pair<int, CFGPartialType*> >*> nodesToDelete;
+        LinkedList<pair<int, CFGPartialType*> >* node = varTypesLinkedListStart;
+        while (nodesToRemove.count(node) > 0)
+            node = node->getNext();
+        while (node != varTypesLinkedListEnd) {
+            LinkedList<pair<int, CFGPartialType*> >* next = node->getNext();
+            while (nodesToRemove.count(next) > 0) {
+                nodesToDelete.insert(next);
+                next = next->getNext();
+            }
+            node->setNext(next);
+            nodesToKeep.insert(node);
+            node = next;
+        }
+        
+        vector<LinkedList<pair<int, CFGPartialType*> >*> listsToDelete;
+        for (map<int, int>::const_iterator iterator =
+                 prevIncomingSizesStack.back()->begin();
+             iterator != prevIncomingSizesStack.back()->end();
+             iterator++) {
+            while ((int)incomingVarTypesStack[iterator->first]->size() >
+                   iterator->second) {
+                listsToDelete.push_back(
+                    incomingVarTypesStack[iterator->first]->back());
+                incomingVarTypesStack[iterator->first]->pop_back();
+            }
+        }
+        prevIncomingSizesStack.back()->clear();
+        for (vector<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+                 iterator = returnNodesToDelete.begin();
+             iterator != returnNodesToDelete.end();
+             iterator++)
+            listsToDelete.push_back(*iterator);
+        returnNodesToDelete.clear();
+        
+        for (vector<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+                 iterator = listsToDelete.begin();
+             iterator != listsToDelete.end();
+             iterator++) {
+            for (LinkedList<pair<int, CFGPartialType*> >* node = *iterator;
+                 node != varTypesLinkedListEnd;
+                 node = node->getNext()) {
+                if (nodesToKeep.count(node) == 0)
+                    nodesToDelete.insert(node);
+            }
+        }
+        for (set<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+                 iterator = nodesToDelete.begin();
+             iterator != nodesToDelete.end();
+             iterator++) {
+            linkedListNodes.erase(*iterator);
+            delete *iterator;
+        }
+    }
+    
+    /**
+     * Pops an element from "prevIncomingSizesStack", updating the new last
+     * element of "prevIncomingSizesStack" to include the popped mappings.
+     */
+    void popIncomingSizes() {
+        map<int, int>* oldSizes = prevIncomingSizesStack.back();
+        prevIncomingSizesStack.pop_back();
+        map<int, int>* sizes = prevIncomingSizesStack.back();
+        prevIncomingSizesStack.pop_back();
+        map<int, int>* largeMap;
+        map<int, int>* smallMap;
+        if (sizes->size() > oldSizes->size()) {
+            largeMap = sizes;
+            smallMap = oldSizes;
+        } else {
+            largeMap = oldSizes;
+            smallMap = sizes;
+        }
+        for (map<int, int>::const_iterator iterator = smallMap->begin();
+             iterator != smallMap->end();
+             iterator++) {
+            if (sizes->count(iterator->first) > 0)
+                // The mappings from "sizes" take precedence over those from
+                // "oldSizes"
+                (*largeMap)[iterator->first] = (*sizes)[iterator->first];
+            else
+                (*largeMap)[iterator->first] = iterator->second;
+        }
+        delete smallMap;
+        prevIncomingSizesStack.push_back(largeMap);
+    }
+    
+    /**
      * Visits the specified loop node node (a while or for loop).  The method's
      * implementation may require us to visit the loop's body multiple times;
      * see the comments at the top of the file.
@@ -1347,13 +1492,33 @@ private:
         visitLoopInitialization(node);
         pushBreakLevel();
         pushContinueLevel();
+        LinkedList<pair<int, CFGPartialType*> >* varTypesLinkedList =
+            varTypesLinkedListStack.back();
+        prevIncomingSizesStack.push_back(new map<int, int>());
         isCheckingLoopStack.push_back(true);
-        visitLoopInitializationAndIteration(node);
-        hasChangedStack.push_back(true);
+        if (node->type != AST_DO_WHILE) {
+            visitLoopInitializationAndIteration(node);
+            hasChangedStack.push_back(true);
+        } else {
+            hasChangedStack.push_back(false);
+            visitLoopInitializationAndIteration(node);
+            if (hasChangedStack.back()) {
+                // Propagate the "hasChanged" flag down the stack
+                hasChangedStack.pop_back();
+                hasChangedStack.pop_back();
+                hasChangedStack.push_back(true);
+                hasChangedStack.push_back(true);
+            }
+        }
         
         // Repeatedly visit the loop's body until this did not cause us to
         // change any variable types
+        bool isFirst = true;
         while (hasChangedStack.back()) {
+            if (isFirst) {
+                condenseLoopIterationLinkedLists(varTypesLinkedList);
+                isFirst = false;
+            }
             hasChangedStack.pop_back();
             hasChangedStack.push_back(false);
             visitLoopIteration(node);
@@ -1366,6 +1531,7 @@ private:
             }
         }
         
+        popIncomingSizes();
         isCheckingLoopStack.pop_back();
         hasChangedStack.pop_back();
         if (!isCheckingLoopStack.back())
@@ -1623,6 +1789,7 @@ public:
         else
             returnType = NULL;
         varTypesLinkedListStack.push_back(NULL);
+        prevIncomingSizesStack.push_back(new map<int, int>());
         isCheckingLoopStack.push_back(false);
         hasChangedStack.push_back(false);
         pushBranch();
@@ -1635,7 +1802,10 @@ public:
         isCheckingLoopStack.pop_back();
         hasChangedStack.pop_back();
         popBranch();
-        for (vector<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
+        delete prevIncomingSizesStack.at(0);
+        prevIncomingSizesStack.clear();
+        returnNodesToDelete.clear();
+        for (set<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
                  iterator = linkedListNodes.begin();
              iterator != linkedListNodes.end();
              iterator++)

@@ -33,6 +33,10 @@ public:
     LinkedList<T>* getNext() {
         return next;
     }
+    
+    void setNext(LinkedList<T>* next2) {
+        next = next2;
+    }
 };
 
 #endif
