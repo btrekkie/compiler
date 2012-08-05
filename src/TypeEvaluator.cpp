@@ -262,6 +262,14 @@ private:
      * know that we have the correct expression types.
      */
     vector<bool> hasChangedStack;
+    /**
+     * A map from the CFGPartialTypes we allocated to the current number of
+     * references to them in linked lists and "nodeTypes".  For every other
+     * CFGPartialTypes reference stored in a field, there is guaranteed to be a
+     * corresponding reference in a linked list.  When a type's reference count
+     * reaches 0, we deallocate it.
+     */
+    map<CFGPartialType*, int> typeReferenceCounts;
     
     /**
      * Emits an error if the top entry of "isCheckingLoopStack" is false.  This
@@ -328,6 +336,32 @@ private:
     }
     
     /**
+     * Increments typeReferenceCounts[type].
+     */
+    void incrementReferenceCount(CFGPartialType* type) {
+        if (typeReferenceCounts.count(type) > 0)
+            typeReferenceCounts[type]++;
+        else
+            typeReferenceCounts[type] = 1;
+    }
+    
+    /**
+     * Decrements typeReferenceCounts[type].  Deallocates "type" if this causes
+     * the count to go to 0.
+     */
+    void decrementReferenceCount(CFGPartialType* type) {
+        assert(
+            typeReferenceCounts.count(type) > 0 ||
+            !"Cannot decrement reference count below 0");
+        if (typeReferenceCounts[type] > 1)
+            typeReferenceCounts[type]--;
+        else {
+            typeReferenceCounts.erase(type);
+            delete type;
+        }
+    }
+    
+    /**
      * Updates "allVarTypes" and "varTypesLinkedListStack" so as to alter the
      * type of the variable with the specified id.  A NULL type indicates that
      * the variable no longer has a type (that is, the variable is not
@@ -345,6 +379,8 @@ private:
         varTypesLinkedListStack[varTypesLinkedListStack.size() - 1] =
             linkedList;
         linkedListNodes.insert(linkedList);
+        if (type != NULL)
+            incrementReferenceCount(type);
     }
     
     /**
@@ -693,6 +729,9 @@ private:
         assert(
             varIDs.count(node) > 0 ||
             !"Missing variable id.  Probably a bug in VarResolver.");
+        incrementReferenceCount(type);
+        if (nodeTypes.count(node) > 0)
+            decrementReferenceCount(nodeTypes[node]);
         nodeTypes[node] = type;
         string identifier = node->tokenStr;
         if (varIDs[node] < 0) {
@@ -1183,6 +1222,7 @@ private:
         if (nodeTypes.count(node) == 0 ||
             (!isEqual(nodeTypes[node], type) &&
              reverseVarTypesStack.back() != NULL)) {
+            incrementReferenceCount(type);
             nodeTypes[node] = type;
             hasChangedStack.pop_back();
             hasChangedStack.push_back(true);
@@ -1446,6 +1486,8 @@ private:
              iterator != nodesToDelete.end();
              iterator++) {
             linkedListNodes.erase(*iterator);
+            if ((*iterator)->getValue().second != NULL)
+                decrementReferenceCount((*iterator)->getValue().second);
             delete *iterator;
         }
     }
@@ -1808,8 +1850,11 @@ public:
         for (set<LinkedList<pair<int, CFGPartialType*> >*>::const_iterator
                  iterator = linkedListNodes.begin();
              iterator != linkedListNodes.end();
-             iterator++)
+             iterator++) {
+            if ((*iterator)->getValue().second != NULL)
+                decrementReferenceCount((*iterator)->getValue().second);
             delete *iterator;
+        }
         linkedListNodes.clear();
     }
     

@@ -46,7 +46,7 @@ export EXIT_CODE=0
 for FILE in $FILES
 do
     export OBJ_FILES="$OBJ_FILES $FILE.o"
-    c++ -c $FILE.cpp -Wall -o $FILE.o
+    c++ -g -c $FILE.cpp -Wall -o $FILE.o
     export CUR_EXIT_CODE=$?
     if [ $CUR_EXIT_CODE -ne 0 ]
     then

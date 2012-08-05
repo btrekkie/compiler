@@ -53,7 +53,7 @@ public:
      * 
      * "evaluateTypes" is responsible for emitting the relevant type errors:
      * "operand / condition value is of incorrect type", "using uninitialized
-     * variable" (since "unitialized" is essentially a variable type), and
+     * variable" (since "uninitialized" is essentially a variable type), and
      * "incorrect types in assignment".
      * 
      * @param node the node.
