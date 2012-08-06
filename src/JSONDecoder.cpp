@@ -7,15 +7,19 @@ using namespace std;
 void JSONDecoder::deleteVector(vector<JSONValue*> value) {
     for (vector<JSONValue*>::const_iterator iterator = value.begin();
          iterator != value.end();
-         iterator++)
-        delete *iterator;
+         iterator++) {
+        if (*iterator != NULL)
+            delete *iterator;
+    }
 }
 
 void JSONDecoder::deleteMap(map<string, JSONValue*> value) {
     for (map<string, JSONValue*>::const_iterator iterator = value.begin();
          iterator != value.end();
-         iterator++)
-        delete iterator->second;
+         iterator++) {
+        if (iterator->second != NULL)
+            delete iterator->second;
+    }
 }
 
 bool JSONDecoder::isNumber(string str) {
@@ -270,6 +274,8 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;
                 }
+                string keyStr = key->getStrValue();
+                delete key;
                 JSONValue* tempValue = NULL;
                 type = readScalarOrSeparator(input, tempValue);
                 if (type != ':') {
@@ -284,7 +290,7 @@ char JSONDecoder::readValueOrSeparator(std::istream& input, JSONValue*& value) {
                     deleteMap(object);
                     return JSON_DECODE_TYPE_ERROR;
                 }
-                object[key->getStrValue()] = objectValue;
+                object[keyStr] = objectValue;
                 type = readScalarOrSeparator(input, tempValue);
                 if (type != ',' && type != '}') {
                     if (tempValue != NULL)

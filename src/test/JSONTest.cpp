@@ -223,7 +223,10 @@ void JSONTest::testEncoder() {
         "abc",
         new JSONValue("def"));
     istringstream input(output.str());
-    assertValuesEqual(expected, JSONDecoder::decode(input));
+    JSONValue* actual = JSONDecoder::decode(input);
+    assertValuesEqual(expected, actual);
+    delete expected;
+    delete actual;
 }
 
 string JSONTest::getName() {

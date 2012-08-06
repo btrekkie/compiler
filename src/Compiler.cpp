@@ -811,14 +811,13 @@ private:
         else if ((int)args.size() > numArgs) {
             if (numArgs >= 0)
                 emitError(node, "Too many arguments to method call");
-        } else {
-            CFGStatement* statement = new CFGStatement(
-                CFG_METHOD_CALL,
-                destination,
-                NULL);
-            statement->setMethodIdentifierAndArgs(identifier, args);
-            statements.push_back(statement);
         }
+        CFGStatement* statement = new CFGStatement(
+            CFG_METHOD_CALL,
+            destination,
+            NULL);
+        statement->setMethodIdentifierAndArgs(identifier, args);
+        statements.push_back(statement);
         return destination;
     }
     
@@ -1171,11 +1170,12 @@ private:
             case AST_RETURN:
                 if (node->child1 != NULL) {
                     CFGOperand* operand = compileExpression(node->child1);
-                    if (breakEvaluator->getReturnVar() == NULL)
+                    if (breakEvaluator->getReturnVar() == NULL) {
                         emitError(
                             node,
                             "Cannot return a value from a void method");
-                    else
+                        delete operand;
+                    } else
                         statements.push_back(
                             new CFGStatement(
                                 CFG_ASSIGN,
@@ -1399,6 +1399,12 @@ private:
             !breakEvaluator->alwaysBreaks(statementListNode))
             emitError(node, "Method may finish without returning a value");
         statements.push_back(CFGStatement::fromLabel(returnLabel));
+        for (map<CFGReducedType, map<int, CFGOperand*>*>::const_iterator
+                 iterator = varIDToOperands.begin();
+             iterator != varIDToOperands.end();
+             iterator++)
+            delete iterator->second;
+        varIDToOperands.clear();
         delete breakEvaluator;
         breakEvaluator = NULL;
         delete typeEvaluator;

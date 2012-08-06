@@ -79,7 +79,7 @@ map<string, string> BinaryCompilerTest::readExpectedOutput(
 
 void BinaryCompilerTest::checkSourceFile(string file) {
     DirHandle* handle = DirHandle::fromDir(SRC_DIR + '/' + file);
-    if (handle) {
+    if (handle != NULL) {
         string subfile;
         while ((subfile = handle->getNextFilename()) != "") {
             if (file != "")
@@ -87,6 +87,7 @@ void BinaryCompilerTest::checkSourceFile(string file) {
             else
                 checkSourceFile(subfile);
         }
+        delete handle;
         return;
     } else if (file.substr(max((int)file.length() - 4, 0), 4) == ".txt")
         return;
@@ -171,6 +172,7 @@ void BinaryCompilerTest::checkSourceFile(string file) {
         (int)expectedOutputs.size(),
         "Expected output file for " + classIdentifier +
         " contains output for non-test or non-existent methods");
+    delete interface;
 }
 
 string BinaryCompilerTest::getName() {

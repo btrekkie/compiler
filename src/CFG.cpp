@@ -214,6 +214,15 @@ CFGMethod::CFGMethod(
     statements = statements2;
 }
 
+CFGMethod::~CFGMethod() {
+    if (returnType != NULL)
+        delete returnType;
+    for (vector<CFGType*>::const_iterator iterator = argTypes.begin();
+         iterator != argTypes.end();
+         iterator++)
+        delete *iterator;
+}
+
 string CFGMethod::getIdentifier() {
     return identifier;
 }
@@ -231,7 +240,20 @@ vector<CFGStatement*> CFGMethod::getStatements() {
 }
 
 MethodInterface* CFGMethod::getInterface() {
-    return new MethodInterface(returnType, argTypes, identifier);
+    CFGType* returnTypeCopy;
+    if (returnType != NULL)
+        returnTypeCopy = new CFGType(returnType);
+    else
+        returnTypeCopy = NULL;
+    vector<CFGType*> argTypesCopy;
+    for (vector<CFGType*>::const_iterator iterator = argTypes.begin();
+         iterator != argTypes.end();
+         iterator++)
+        argTypesCopy.push_back(new CFGType(*iterator));
+    return new MethodInterface(
+        returnTypeCopy,
+        argTypesCopy,
+        identifier);
 }
 
 CFGClass::CFGClass(
@@ -271,6 +293,10 @@ CFGClass::~CFGClass() {
         operands.insert(iterator->second);
     deleteStatements(initStatements, operands);
     operands.erase(NULL);
+    for (set<CFGOperand*>::const_iterator iterator = operands.begin();
+         iterator != operands.end();
+         iterator++)
+        delete *iterator;
 }
 
 void CFGClass::addMethod(CFGMethod* method) {
@@ -282,14 +308,35 @@ void CFGClass::addMethod(CFGMethod* method) {
 
 void CFGClass::deleteStatements(
     vector<CFGStatement*> statements,
-    set<CFGOperand*> operands) {
+    set<CFGOperand*>& operands) {
     for (vector<CFGStatement*>::const_iterator iterator = statements.begin();
          iterator != statements.end();
          iterator++) {
-        operands.insert((*iterator)->getDestination());
-        if ((*iterator)->getLabel())
-            delete (*iterator)->getLabel();
-        delete *iterator;
+        CFGStatement* statement = *iterator;
+        operands.insert(statement->getDestination());
+        operands.insert(statement->getArg1());
+        operands.insert(statement->getArg2());
+        switch (statement->getOperation()) {
+            case CFG_IF:
+            case CFG_SWITCH:
+                for (int i = 0; i < statement->getNumSwitchLabels(); i++)
+                    operands.insert(statement->getSwitchValue(i));
+                break;
+            case CFG_METHOD_CALL:
+            {
+                vector<CFGOperand*> methodArgs = statement->getMethodArgs();
+                for (vector<CFGOperand*>::const_iterator iterator =
+                         methodArgs.begin();
+                     iterator != methodArgs.end();
+                     iterator++)
+                    operands.insert(*iterator);
+                break;
+            }
+            default:;
+        }
+        if (statement->getLabel())
+            delete statement->getLabel();
+        delete statement;
     }
 }
 

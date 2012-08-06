@@ -311,6 +311,7 @@ public:
         std::vector<CFGOperand*> args2,
         std::vector<CFGType*> argTypes2,
         std::vector<CFGStatement*> statements2);
+    ~CFGMethod();
     std::string getIdentifier();
     CFGOperand* getReturnVar();
     std::vector<CFGOperand*> getArgs();
@@ -372,7 +373,7 @@ private:
      */
     void deleteStatements(
         std::vector<CFGStatement*> statements,
-        std::set<CFGOperand*> operands);
+        std::set<CFGOperand*>& operands);
 public:
     CFGClass(
         std::string identifier2,

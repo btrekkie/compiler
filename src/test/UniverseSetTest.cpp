@@ -129,4 +129,13 @@ void UniverseSetTest::test() {
         }
     }
     assertTrue(areSetsCorrect, "unionWith failed");
+    
+    delete emptySet;
+    delete multiplesOf2;
+    delete multiplesOf3;
+    delete multiplesOf4;
+    delete multiplesOf5;
+    delete smallSet;
+    delete testSet;
+    delete testSet2;
 }

@@ -59,7 +59,7 @@
  * to update expressions' types.  An additional n comes from the maximum number
  * of nodes we visit between updates.  (Such worst-case behavior is realized in
  * loop-like situations as in the above example.)  Another n term comes from the
- * execution time of the popBranch() method.
+ * run time of the popBranch() method.
  */
 
 #include <algorithm>
@@ -1219,13 +1219,16 @@ private:
                 assert(!"Unhandled expression type");
                 break;
         }
-        if (nodeTypes.count(node) == 0 ||
-            (!isEqual(nodeTypes[node], type) &&
-             reverseVarTypesStack.back() != NULL)) {
+        if (nodeTypes.count(node) == 0 || !isEqual(nodeTypes[node], type)) {
             incrementReferenceCount(type);
             nodeTypes[node] = type;
             hasChangedStack.pop_back();
             hasChangedStack.push_back(true);
+        } else {
+            CFGPartialType* storedType = nodeTypes[node];
+            if (typeReferenceCounts.count(type) == 0)
+                delete type;
+            type = storedType;
         }
         return type;
     }
@@ -1290,6 +1293,7 @@ private:
                  iterator != reverseVarTypes->end();
                  iterator++)
                 setVarType(iterator->first, iterator->second);
+            delete reverseVarTypes;
             reverseVarTypesStack.pop_back();
             reverseVarTypesStack.push_back(NULL);
             if (varTypesLinkedListStack.back() != NULL) {
@@ -1813,6 +1817,10 @@ public:
              iterator != types.end();
              iterator++)
             delete *iterator;
+        for (map<string, CFGType*>::const_iterator iterator = argTypes.begin();
+             iterator != argTypes.end();
+             iterator++)
+            delete iterator->second;
     }
     
     void evaluateTypes(
@@ -1841,6 +1849,13 @@ public:
             visitArgList(node->child3);
             visitStatementList(node->child4);
         }
+        
+        for (map<string, CFGType*>::const_iterator iterator = argTypes.begin();
+             iterator != argTypes.end();
+             iterator++)
+            delete iterator->second;
+        argTypes.clear();
+        delete returnType;
         isCheckingLoopStack.pop_back();
         hasChangedStack.pop_back();
         popBranch();
