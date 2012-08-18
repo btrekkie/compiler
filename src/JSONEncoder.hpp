@@ -16,7 +16,7 @@ private:
     /**
      * The output stream to which to append the encoded value.
      */
-    std::ostream* output;
+    std::wostream* output;
     /**
      * The number of levels of indentation at the beginning of new lines.
      */
@@ -37,7 +37,7 @@ private:
      */
     void outputHexChar(int value);
 public:
-    JSONEncoder(std::ostream& output2);
+    JSONEncoder(std::wostream& output2);
     /**
      * Outputs for the beginning of a new array.  To output an array, we do the
      * following:
@@ -81,7 +81,7 @@ public:
     /**
      * Outputs an object's key.
      */
-    void appendObjectKey(std::string key);
+    void appendObjectKey(std::wstring key);
     /**
      * Outputs for the end of an object.
      */
@@ -94,7 +94,7 @@ public:
     /**
      * Outputs the specified string value.
      */
-    void appendStr(std::string value);
+    void appendStr(std::wstring value);
     /**
      * Outputs the specified double value.
      */

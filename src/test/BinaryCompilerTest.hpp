@@ -25,7 +25,7 @@
  * 32
  * 
  * An expected output file consists of a sequence of expected outputs for each
- * "test method", that is, for each method whose identifier begins with "test".
+ * "test method", that is, for each method whose identifier begins with L"test".
  * The output for a given method is indicated with the method's identifier,
  * followed by a colon, followed by a newline, followed by the output.  The
  * expected output must end with exactly one newline character.  Any additional
@@ -44,15 +44,15 @@ private:
      * file".  The returned map is a map from method identifiers to expected
      * output strings.
      */
-    std::map<std::string, std::string> readExpectedOutput(
-        std::string expectedOutputFilename);
+    std::map<std::wstring, std::wstring> readExpectedOutput(
+        std::wstring expectedOutputFilename);
     /**
      * Tests the specified file or the files in the specified directory, which
-     * is specified relative to "testsrc".
+     * is specified relative to "test_src".
      */
-    void checkSourceFile(std::string file);
+    void checkSourceFile(std::wstring file);
 public:
-    std::string getName();
+    std::wstring getName();
     void test();
 };
 

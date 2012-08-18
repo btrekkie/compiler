@@ -5,7 +5,7 @@
 extern int yylineno;
 
 /**
- * Returns a new ASTNode, with the "lineNumber" field set appropriately and all
+ * Returns a new ASTNode, with the L"lineNumber" field set appropriately and all
  * the other fields set to NULL and 0.
  */
 ASTNode* astNew() {
@@ -19,8 +19,8 @@ ASTNode* astNew() {
 ASTNode* astNewStr(int type, const char* tokenStr) {
     ASTNode* node = astNew();
     node->type = type;
-    node->tokenStr = (char*)malloc(strlen(tokenStr) + 1);
-    memcpy(node->tokenStr, tokenStr, strlen(tokenStr) + 1);
+    node->tokenStr = (wchar_t*)malloc((strlen(tokenStr) + 1) * sizeof(wchar_t));
+    mbstowcs(node->tokenStr, tokenStr, strlen(tokenStr) + 1);
     return node;
 }
 

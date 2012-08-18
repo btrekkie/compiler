@@ -9,11 +9,11 @@ int yyparse();
  * @param file the file.
  * @return an opaque object indicating the resources this function call
  *     allocated.  After calling yyparse() (or if we choose not to call
- *     yyparse()), we should deallocate the object using "freeParseData".
+ *     yyparse()), we should deallocate the object using L"freeParseData".
  */
 void* setFileToParse(FILE* file);
 /**
- * Deallocates the object returned from a previous call to "setFileToParse".
+ * Deallocates the object returned from a previous call to L"setFileToParse".
  */
 void freeParseData(void* data);
 

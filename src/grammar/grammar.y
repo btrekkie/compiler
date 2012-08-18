@@ -13,7 +13,7 @@ extern "C" {
 
 #define YYSTYPE ASTNode*
 
-extern char yytext[];
+extern wchar_t yytext[];
 extern int yylineno;
 %}
 

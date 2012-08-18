@@ -21,14 +21,14 @@ public:
      * @param filename the source file to compile, relative to the root source
      *     directory.
      * @param errorOutput an ostream to which to output compiler errors.
-     * @return the identifier of the class we compiled, or "" if the operation
+     * @return the identifier of the class we compiled, or L"" if the operation
      *     was unsuccessful.
      */
-    static std::string compileFile(
-        std::string srcDir,
-        std::string buildDir,
-        std::string filename,
-        std::ostream& errorOutput);
+    static std::wstring compileFile(
+        std::wstring srcDir,
+        std::wstring buildDir,
+        std::wstring filename,
+        std::wostream& errorOutput);
     /**
      * Compiles an executable file, using the intermediate files produced for
      * the class in a previous call to "compileFile".  To that end, this method
@@ -42,10 +42,10 @@ public:
      * @return whether the operation was successful.
      */
     static bool compileExecutable(
-        std::string buildDir,
-        std::string executableFilename,
-        std::string className,
-        std::string mainMethodName);
+        std::wstring buildDir,
+        std::wstring executableFilename,
+        std::wstring className,
+        std::wstring mainMethodName);
     /**
      * Returns the ClassInterface for the class with the specified name.  This
      * method may use intermediate files produced for the class in a previous
@@ -54,8 +54,8 @@ public:
      * @param className the class's identifier.
      */
     static ClassInterface* getClassInterface(
-        std::string buildDir,
-        std::string className);
+        std::wstring buildDir,
+        std::wstring className);
 };
 
 #endif

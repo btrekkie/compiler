@@ -13,7 +13,7 @@ private:
      * of an executable file (as opposed to something more elaborate, such as a
      * command with a pipe or with output redirection).
      */
-    std::string command;
+    std::wstring command;
     /**
      * The maximum amount of time for which to run the process before
      * terminating it.  A value that is less than or equal to zero indicates
@@ -29,19 +29,19 @@ private:
      * The process's standard output stream.  This is not set until run() is
      * called.
      */
-    std::string stdOut;
+    std::wstring stdOut;
     /**
      * Whether the process timed out.  This is not set until run() is called.
      * See the comments for "timeout" for more information.
      */
     bool timedOut;
 public:
-    Process(std::string command2);
+    Process(std::wstring command2);
     void setTimeout(double timeout2);
     void setMaxStdOutCaptureBytes(int maxStdOutCaptureBytes2);
     void run();
     bool getTimedOut();
-    std::string getStdOut();
+    std::wstring getStdOut();
 };
 
 #endif

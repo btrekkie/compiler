@@ -62,11 +62,11 @@ private:
      */
     CFGReducedType type;
     /**
-     * The identifier of this variable.  "identifier" is "" if this is a literal
-     * value, or if it does not appear in the source file, but rather is an
-     * intermediate variable for an expression.
+     * The identifier of this variable.  "identifier" is L"" if this is a
+     * literal value, or if it does not appear in the source file, but rather is
+     * an intermediate variable for an expression.
      */
-    std::string identifier;
+    std::wstring identifier;
     /**
      * The boolean value of this operand, if this is a literal boolean.
      */
@@ -102,7 +102,7 @@ public:
     /**
      * Coinstructs a new CFGOperand for a variable.
      */
-    CFGOperand(CFGReducedType type2, std::string identifier2, bool isField2);
+    CFGOperand(CFGReducedType type2, std::wstring identifier2, bool isField2);
     /**
      * Constructs a new CFGOperand for a literal integer value.
      */
@@ -122,7 +122,7 @@ public:
     bool getIsVar();
     bool getIsField();
     CFGReducedType getType();
-    std::string getIdentifier();
+    std::wstring getIdentifier();
     bool getBoolValue();
     int getIntValue();
     long long getLongValue();
@@ -171,7 +171,7 @@ private:
     /**
      * The identifier of the method being called, if any.
      */
-    std::string methodIdentifier;
+    std::wstring methodIdentifier;
     /**
      * The operands to the method being called, if any.
      */
@@ -226,7 +226,7 @@ public:
     CFGOperand* getDestination();
     CFGOperand* getArg1();
     CFGOperand* getArg2();
-    std::string getMethodIdentifier();
+    std::wstring getMethodIdentifier();
     std::vector<CFGOperand*> getMethodArgs();
     CFGLabel* getLabel();
     /**
@@ -234,7 +234,7 @@ public:
      * once.
      */
     void setMethodIdentifierAndArgs(
-        std::string methodIdentifier2,
+        std::wstring methodIdentifier2,
         std::vector<CFGOperand*> methodArgs2);
     /**
      * Returns the size of "switchLabels".  See the comments for that field for
@@ -277,7 +277,7 @@ private:
     /**
      * The method's (unqualified) identifier.
      */
-    std::string identifier;
+    std::wstring identifier;
     /**
      * A variable in which we store the method's return value, or NULL if the
      * method does not have a return value.
@@ -305,14 +305,14 @@ private:
     std::vector<CFGStatement*> statements;
 public:
     CFGMethod(
-        std::string identifier2,
+        std::wstring identifier2,
         CFGOperand* returnVar2,
         CFGType* returnType2,
         std::vector<CFGOperand*> args2,
         std::vector<CFGType*> argTypes2,
         std::vector<CFGStatement*> statements2);
     ~CFGMethod();
-    std::string getIdentifier();
+    std::wstring getIdentifier();
     CFGOperand* getReturnVar();
     std::vector<CFGOperand*> getArgs();
     std::vector<CFGStatement*> getStatements();
@@ -332,23 +332,23 @@ private:
     /**
      * The class's identifier.
      */
-    std::string identifier;
+    std::wstring identifier;
     /**
      * A map from the (unqualified) identifiers of the class's fields to the
      * CFGOperands for those variables.
      */
-    std::map<std::string, CFGOperand*> fields;
+    std::map<std::wstring, CFGOperand*> fields;
     /**
      * A map from the (unqualified) identifiers of the class's fields to the
      * types of those variables.
      */
-    std::map<std::string, CFGType*> fieldTypes;
+    std::map<std::wstring, CFGType*> fieldTypes;
     /**
      * A map from the (unqualified) identifiers of the class's methods to their
      * compiled implementations.  The way we store methods will need to change
      * when we add support for method overloading.
      */
-    std::map<std::string, CFGMethod*> methods;
+    std::map<std::wstring, CFGMethod*> methods;
     /**
      * The sequence of compiled statements indicating the class's initialization
      * statements.  The initialization statements differ from the constructors
@@ -376,14 +376,14 @@ private:
         std::set<CFGOperand*>& operands);
 public:
     CFGClass(
-        std::string identifier2,
-        std::map<std::string, CFGOperand*> fields2,
-        std::map<std::string, CFGType*> fieldTypes2,
+        std::wstring identifier2,
+        std::map<std::wstring, CFGOperand*> fields2,
+        std::map<std::wstring, CFGType*> fieldTypes2,
         std::vector<CFGMethod*> methods2,
         std::vector<CFGStatement*> initStatements2);
     ~CFGClass();
-    std::string getIdentifier();
-    std::map<std::string, CFGOperand*> getFields();
+    std::wstring getIdentifier();
+    std::map<std::wstring, CFGOperand*> getFields();
     /**
      * Returns a list of this class's methods, in an arbitrary order.
      */

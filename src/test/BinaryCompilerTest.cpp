@@ -9,6 +9,7 @@
 #include "../FileManager.hpp"
 #include "../Interface.hpp"
 #include "../Process.hpp"
+#include "../StringUtil.hpp"
 #include "BinaryCompilerTest.hpp"
 
 using namespace std;
@@ -16,169 +17,173 @@ using namespace std;
 /**
  * The root directory containing the test source files.
  */
-static string SRC_DIR = "../test_src";
+static wstring SRC_DIR = L"../test_src";
 /**
  * The root build directory to use when compiling test source files.
  */
-static string BUILD_DIR = "../test_build";
+static wstring BUILD_DIR = L"../test_build";
 
 /**
- * Returns a string that is the same as "str", but with any '\n' characters at
+ * Returns a wstring that is the same as "str", but with any L'\n' characters at
  * the end removed.
  */
-static string stripTrailingNewlines(string str) {
-    return str.substr(0, str.find_last_not_of('\n') + 1);
+static wstring stripTrailingNewlines(wstring str) {
+    return str.substr(0, str.find_last_not_of(L'\n') + 1);
 }
 
-map<string, string> BinaryCompilerTest::readExpectedOutput(
-    string expectedOutputFilename) {
-    map<string, string> outputs;
+map<wstring, wstring> BinaryCompilerTest::readExpectedOutput(
+    wstring expectedOutputFilename) {
+    map<wstring, wstring> outputs;
     int fileSize = FileManager::getSize(expectedOutputFilename);
     assertTrue(
         fileSize >= 0,
-        "Could not read expected output file " + expectedOutputFilename);
-    char* lineBuffer = new char[fileSize + 1];
-    ifstream input(expectedOutputFilename.c_str());
-    string methodIdentifier;
-    ostringstream methodOutput;
+        L"Could not read expected output file " + expectedOutputFilename);
+    wchar_t* lineBuffer = new wchar_t[fileSize + 1];
+    wifstream input(
+        StringUtil::asciiWstringToString(expectedOutputFilename).c_str());
+    wstring methodIdentifier;
+    wostringstream methodOutput;
     input.getline(lineBuffer, fileSize + 1);
     while (!input.eof()) {
-        string line = lineBuffer;
-        if (line == "" || line.substr(line.length() - 1, 1) != ":")
-            methodOutput << line << "\n";
+        wstring line = lineBuffer;
+        if (line == L"" || line.substr(line.length() - 1, 1) != L":")
+            methodOutput << line << L"\n";
         else {
-            string methodOutputStr = stripTrailingNewlines(methodOutput.str());
+            wstring methodOutputStr = stripTrailingNewlines(methodOutput.str());
             int lastChar;
             for (lastChar = (int)methodOutputStr.length() - 1;
-                 lastChar >= 0 && methodOutputStr.at(lastChar) == '\n';
+                 lastChar >= 0 && methodOutputStr.at(lastChar) == L'\n';
                  lastChar--);
-            if (methodIdentifier != "")
-                outputs[methodIdentifier] = methodOutputStr + '\n';
+            if (methodIdentifier != L"")
+                outputs[methodIdentifier] = methodOutputStr + L'\n';
             else
                 assertEqual(
-                    string(""),
+                    wstring(L""),
                     methodOutputStr,
-                    "Expected output file has text before first method's "
-                        "output");
+                    L"Expected output file has text before first method's "
+                    L"output");
             methodIdentifier = line.substr(0, line.length() - 1);
-            methodOutput.str("");
+            methodOutput.str(L"");
             assertEqual(
                 0,
                 (int)outputs.count(methodIdentifier),
-                "Multiple outputs for method " + methodIdentifier);
+                L"Multiple outputs for method " + methodIdentifier);
         }
         input.getline(lineBuffer, fileSize + 1);
     }
     input.close();
     delete[] lineBuffer;
-    if (methodIdentifier != "")
+    if (methodIdentifier != L"")
         outputs[methodIdentifier] = stripTrailingNewlines(methodOutput.str()) +
-            '\n';
+            L'\n';
     return outputs;
 }
 
-void BinaryCompilerTest::checkSourceFile(string file) {
-    DirHandle* handle = DirHandle::fromDir(SRC_DIR + '/' + file);
+void BinaryCompilerTest::checkSourceFile(wstring file) {
+    DirHandle* handle = DirHandle::fromDir(SRC_DIR + L'/' + file);
     if (handle != NULL) {
-        string subfile;
-        while ((subfile = handle->getNextFilename()) != "") {
-            if (file != "")
-                checkSourceFile(file + '/' + subfile);
+        wstring subfile;
+        while ((subfile = handle->getNextFilename()) != L"") {
+            if (file != L"")
+                checkSourceFile(file + L'/' + subfile);
             else
                 checkSourceFile(subfile);
         }
         delete handle;
         return;
-    } else if (file.substr(max((int)file.length() - 4, 0), 4) == ".txt")
+    } else if (file.substr(max((int)file.length() - 4, 0), 4) == L".txt")
         return;
     
-    if (file.substr(0, 16) == "compiler_errors/") {
-        string errorOutputFilename = FileManager::getTempFilename();
-        ofstream errorOutput(errorOutputFilename.c_str());
-        string classIdentifier = BinaryCompiler::compileFile(
+    if (file.substr(0, 16) == L"compiler_errors/") {
+        wstring errorOutputFilename = FileManager::getTempFilename();
+        wofstream errorOutput(
+            StringUtil::asciiWstringToString(errorOutputFilename).c_str());
+        wstring classIdentifier = BinaryCompiler::compileFile(
             SRC_DIR,
             BUILD_DIR,
             file,
             errorOutput);
-        remove(errorOutputFilename.c_str());
+        remove(StringUtil::asciiWstringToString(errorOutputFilename).c_str());
         assertEqual(
-            string(""),
+            wstring(L""),
             classIdentifier,
-            "Compiler did not emit any errors for the erroneous file " + file);
+            L"Compiler did not emit any errors for the erroneous file " + file);
         return;
     }
     
-    string errorOutputFilename = FileManager::getTempFilename();
-    ofstream errorOutput(errorOutputFilename.c_str());
-    string classIdentifier = BinaryCompiler::compileFile(
+    wstring errorOutputFilename = FileManager::getTempFilename();
+    wofstream errorOutput(
+        StringUtil::asciiWstringToString(errorOutputFilename).c_str());
+    wstring classIdentifier = BinaryCompiler::compileFile(
         SRC_DIR,
         BUILD_DIR,
         file,
-        cerr);
-    remove(errorOutputFilename.c_str());
+        wcerr);
+    remove(StringUtil::asciiWstringToString(errorOutputFilename).c_str());
     assertNotEqual(
-        string(""),
+        wstring(L""),
         classIdentifier,
-        "Failed to compile file " + file);
+        L"Failed to compile file " + file);
     ClassInterface* interface = BinaryCompiler::getClassInterface(
         BUILD_DIR,
         classIdentifier);
-    map<string, string> expectedOutputs = readExpectedOutput(
-        FileManager::getParentDir(SRC_DIR + '/' + file) + "/" +
-        classIdentifier + ".txt");
+    map<wstring, wstring> expectedOutputs = readExpectedOutput(
+        FileManager::getParentDir(SRC_DIR + L'/' + file) + L"/" +
+        classIdentifier + L".txt");
     vector<MethodInterface*> methods = interface->getMethods();
     int numTestMethods = 0;
     for (vector<MethodInterface*>::const_iterator iterator = methods.begin();
          iterator != methods.end();
          iterator++) {
         MethodInterface* method = *iterator;
-        string methodIdentifier = method->getIdentifier();
-        if (methodIdentifier.substr(0, 4) == "test") {
+        wstring methodIdentifier = method->getIdentifier();
+        if (methodIdentifier.substr(0, 4) == L"test") {
             numTestMethods++;
             assertEqual(
                 0,
                 (int)method->getArgTypes().size(),
-                "Test method may not take any arguments");
+                L"Test method may not take any arguments");
             assertEqual(
                 1,
                 (int)expectedOutputs.count(methodIdentifier),
-                "Missing expected output for method " + classIdentifier + '.' +
-                methodIdentifier);
-            string executableFilename = FileManager::getTempFilename();
+                L"Missing expected output for method " + classIdentifier +
+                L'.' + methodIdentifier);
+            wstring executableFilename = FileManager::getTempFilename();
             bool result = BinaryCompiler::compileExecutable(
                 BUILD_DIR,
                 executableFilename,
                 classIdentifier,
                 methodIdentifier);
-            assertTrue(result, "Failed to compile executable");
+            assertTrue(result, L"Failed to compile executable");
             
-            string expectedOutput = expectedOutputs[methodIdentifier];
+            wstring expectedOutput = expectedOutputs[methodIdentifier];
             Process process(executableFilename);
             process.setTimeout(5);
             process.setMaxStdOutCaptureBytes(
                 2 * expectedOutput.length() + 1000);
             process.run();
-            remove(executableFilename.c_str());
+            remove(
+                StringUtil::asciiWstringToString(executableFilename).c_str());
             assertEqual(
                 expectedOutput,
                 process.getStdOut(),
-                "Output for method " + classIdentifier + '.' +
-                    methodIdentifier + " does not match the text in the "
-                    "expected output file");
+                L"Output for method " + classIdentifier + L'.' +
+                    methodIdentifier + L" does not match the text in the "
+                    L"expected output file");
         }
     }
     assertEqual(
         numTestMethods,
         (int)expectedOutputs.size(),
-        "Expected output file for " + classIdentifier +
-        " contains output for non-test or non-existent methods");
+        L"Expected output file for " + classIdentifier +
+        L" contains output for non-test or non-existent methods");
     delete interface;
 }
 
-string BinaryCompilerTest::getName() {
-    return "BinaryCompilerTest";
+wstring BinaryCompilerTest::getName() {
+    return L"BinaryCompilerTest";
 }
 
 void BinaryCompilerTest::test() {
-    checkSourceFile("");
+    checkSourceFile(L"");
 }

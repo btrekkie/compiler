@@ -18,7 +18,7 @@ CFGOperand::CFGOperand(CFGReducedType type2) {
 
 CFGOperand::CFGOperand(
     CFGReducedType type2,
-    string identifier2,
+    wstring identifier2,
     bool isField2) {
     type = type2;
     identifier = identifier2;
@@ -62,7 +62,7 @@ CFGReducedType CFGOperand::getType() {
     return type;
 }
 
-string CFGOperand::getIdentifier() {
+wstring CFGOperand::getIdentifier() {
     return identifier;
 }
 
@@ -126,13 +126,13 @@ CFGOperand* CFGStatement::getDestination() {
     return destination;
 }
 
-string CFGStatement::getMethodIdentifier() {
-    assert(methodArgs != NULL || !"Have not set method args");
+wstring CFGStatement::getMethodIdentifier() {
+    assert(methodArgs != NULL || !L"Have not set method args");
     return methodIdentifier;
 }
 
 vector<CFGOperand*> CFGStatement::getMethodArgs() {
-    assert(methodArgs != NULL || !"Have not set method args");
+    assert(methodArgs != NULL || !L"Have not set method args");
     return *methodArgs;
 }
 
@@ -149,9 +149,9 @@ CFGLabel* CFGStatement::getLabel() {
 }
 
 void CFGStatement::setMethodIdentifierAndArgs(
-    string methodIdentifier2,
+    wstring methodIdentifier2,
     vector<CFGOperand*> methodArgs2) {
-    assert(methodArgs == NULL || !"Cannot set method args twice");
+    assert(methodArgs == NULL || !L"Cannot set method args twice");
     methodIdentifier = methodIdentifier2;
     methodArgs = new vector<CFGOperand*>(methodArgs2);
 }
@@ -164,12 +164,12 @@ int CFGStatement::getNumSwitchLabels() {
 }
 
 CFGOperand* CFGStatement::getSwitchValue(int index) {
-    assert(switchLabels != NULL || !"Have not set switch values");
+    assert(switchLabels != NULL || !L"Have not set switch values");
     return switchValues->at(index);
 }
 
 CFGLabel* CFGStatement::getSwitchLabel(int index) {
-    assert(switchLabels != NULL || !"Have not set switch labels");
+    assert(switchLabels != NULL || !L"Have not set switch labels");
     return switchLabels->at(index);
 }
 
@@ -178,8 +178,8 @@ void CFGStatement::setSwitchValuesAndLabels(
     vector<CFGLabel*> switchLabels2) {
     assert(
         switchValues2.size() == switchLabels2.size() ||
-        !"Different number of values and labels");
-    assert(switchLabels == NULL || !"Cannot set switch labels twice");
+        !L"Different number of values and labels");
+    assert(switchLabels == NULL || !L"Cannot set switch labels twice");
     switchValues = new vector<CFGOperand*>(switchValues2);
     switchLabels = new vector<CFGLabel*>(switchLabels2);
 }
@@ -200,7 +200,7 @@ CFGStatement* CFGStatement::jump(CFGLabel* label2) {
 }
 
 CFGMethod::CFGMethod(
-    string identifier2,
+    wstring identifier2,
     CFGOperand* returnVar2,
     CFGType* returnType2,
     vector<CFGOperand*> args2,
@@ -223,7 +223,7 @@ CFGMethod::~CFGMethod() {
         delete *iterator;
 }
 
-string CFGMethod::getIdentifier() {
+wstring CFGMethod::getIdentifier() {
     return identifier;
 }
 
@@ -257,9 +257,9 @@ MethodInterface* CFGMethod::getInterface() {
 }
 
 CFGClass::CFGClass(
-    string identifier2,
-    map<string, CFGOperand*> fields2,
-    map<string, CFGType*> fieldTypes2,
+    wstring identifier2,
+    map<wstring, CFGOperand*> fields2,
+    map<wstring, CFGType*> fieldTypes2,
     vector<CFGMethod*> methods2,
     vector<CFGStatement*> initStatements2) {
     identifier = identifier2;
@@ -274,7 +274,7 @@ CFGClass::CFGClass(
 
 CFGClass::~CFGClass() {
     set<CFGOperand*> operands;
-    for (map<string, CFGMethod*>::const_iterator iterator = methods.begin();
+    for (map<wstring, CFGMethod*>::const_iterator iterator = methods.begin();
          iterator != methods.end();
          iterator++) {
         CFGMethod* method = iterator->second;
@@ -287,7 +287,7 @@ CFGClass::~CFGClass() {
         operands.insert(method->getReturnVar());
         delete method;
     }
-    for (map<string, CFGOperand*>::const_iterator iterator = fields.begin();
+    for (map<wstring, CFGOperand*>::const_iterator iterator = fields.begin();
          iterator != fields.end();
          iterator++)
         operands.insert(iterator->second);
@@ -302,7 +302,7 @@ CFGClass::~CFGClass() {
 void CFGClass::addMethod(CFGMethod* method) {
     assert(
         methods.count(method->getIdentifier()) == 0 ||
-            !"TODO method overloading");
+            !L"TODO method overloading");
     methods[method->getIdentifier()] = method;
 }
 
@@ -340,17 +340,17 @@ void CFGClass::deleteStatements(
     }
 }
 
-string CFGClass::getIdentifier() {
+wstring CFGClass::getIdentifier() {
     return identifier;
 }
 
-map<string, CFGOperand*> CFGClass::getFields() {
+map<wstring, CFGOperand*> CFGClass::getFields() {
     return fields;
 }
 
 vector<CFGMethod*> CFGClass::getMethods() {
     vector<CFGMethod*> methodsVector;
-    for (map<string, CFGMethod*>::const_iterator iterator = methods.begin();
+    for (map<wstring, CFGMethod*>::const_iterator iterator = methods.begin();
          iterator != methods.end();
          iterator++)
         methodsVector.push_back(iterator->second);
@@ -363,10 +363,10 @@ vector<CFGStatement*> CFGClass::getInitStatements() {
 
 ClassInterface* CFGClass::getInterface() {
     vector<FieldInterface*> fieldInterfaces;
-    for (map<string, CFGOperand*>::const_iterator iterator = fields.begin();
+    for (map<wstring, CFGOperand*>::const_iterator iterator = fields.begin();
          iterator != fields.end();
          iterator++) {
-        assert(fieldTypes.count(iterator->first) > 0 || !"Missing field type");
+        assert(fieldTypes.count(iterator->first) > 0 || !L"Missing field type");
         CFGOperand* field = iterator->second;
         fieldInterfaces.push_back(
             new FieldInterface(
@@ -375,7 +375,7 @@ ClassInterface* CFGClass::getInterface() {
     }
     vector<MethodInterface*> methodInterfaces;
     vector<CFGMethod*> methodsVector = getMethods();
-    for (map<std::string, CFGMethod*>::const_iterator iterator =
+    for (map<std::wstring, CFGMethod*>::const_iterator iterator =
              methods.begin();
          iterator != methods.end();
          iterator++)

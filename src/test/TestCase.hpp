@@ -24,7 +24,7 @@ private:
      * Indicates an unsuccessful assertion.
      * @param message a string describing the failure.
      */
-    void assertionFailed(std::string message);
+    void assertionFailed(std::wstring message);
 protected:
     /**
      * Asserts that the specified value is true.
@@ -32,28 +32,28 @@ protected:
      * @param message if "value" is false, a string describing the assertion
      *     failure.
      */
-    void assertTrue(bool value, std::string message);
+    void assertTrue(bool value, std::wstring message);
     /**
      * Asserts that the specified value is false.
      * @param value the value to check.
      * @param message if "value" is true, a string describing the assertion
      *     failure.
      */
-    void assertFalse(bool value, std::string message);
+    void assertFalse(bool value, std::wstring message);
     /**
      * Asserts that the specified value is NULL.
      * @param value the value to check.
      * @param message if "value" is non-null, a string describing the assertion
      *     failure.
      */
-    void assertNull(void* value, std::string message);
+    void assertNull(void* value, std::wstring message);
     /**
      * Asserts that the specified value is something other than NULL.
      * @param value the value to check.
      * @param message if "value" is NULL, a string describing the assertion
      *     failure.
      */
-    void assertNotNull(void* value, std::string message);
+    void assertNotNull(void* value, std::wstring message);
     
     /**
      * Asserts that the specified values are equal, when compared using the ==
@@ -64,13 +64,13 @@ protected:
      *     the assertion failure.
      */
     template<class T>
-    void assertEqual(T expected, T actual, std::string message) {
+    void assertEqual(T expected, T actual, std::wstring message) {
         if (actual == expected)
             assertionPassed();
         else {
-            std::ostringstream fullMessage;
-            fullMessage << "Expected " << expected << ", but got " << actual <<
-                ": " << message;
+            std::wostringstream fullMessage;
+            fullMessage << L"Expected " << expected << L", but got " <<
+                actual << L": " << message;
             assertionFailed(fullMessage.str());
         }
     }
@@ -84,13 +84,13 @@ protected:
      *     assertion failure.
      */
     template<class T>
-    void assertNotEqual(T value, T actual, std::string message) {
+    void assertNotEqual(T value, T actual, std::wstring message) {
         if (actual != value)
             assertionPassed();
         else {
-            std::ostringstream fullMessage;
-            fullMessage << "Expected " << actual << "to be different from " <<
-                value << ": " << message;
+            std::wostringstream fullMessage;
+            fullMessage << L"Expected " << actual << L"to be different from " <<
+                value << L": " << message;
             assertionFailed(fullMessage.str());
         }
     }
@@ -99,7 +99,7 @@ public:
      * Returns a human-readable string identifying this unit test.  The
      * recommended return value of this method is the class's name.
      */
-    virtual std::string getName() = 0;
+    virtual std::wstring getName() = 0;
     /**
      * Called by TestRunner to execute all of the test assertions.
      */

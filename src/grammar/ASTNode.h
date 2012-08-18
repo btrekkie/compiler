@@ -107,7 +107,7 @@ typedef struct ASTNodeStruct {
     /**
      * If this node indicates a token, the text of the token.
      */
-    char* tokenStr;
+    wchar_t* tokenStr;
     /**
      * The first child of this node, as ordered in the source code, if any.
      */

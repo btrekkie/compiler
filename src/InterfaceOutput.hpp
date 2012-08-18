@@ -24,7 +24,7 @@ private:
     void outputFieldInterface(FieldInterface* interface);
     void outputMethodInterface(MethodInterface* interface);
 public:
-    InterfaceOutput(std::ostream& output2);
+    InterfaceOutput(std::wostream& output2);
     ~InterfaceOutput();
     void outputClassInterface(ClassInterface* interface);
 };

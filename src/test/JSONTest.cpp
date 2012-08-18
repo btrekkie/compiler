@@ -10,11 +10,11 @@ using namespace std;
 
 void JSONTest::assertValuesEqual(JSONValue* expected, JSONValue* actual) {
     if (expected == NULL) {
-        assertNull(actual, "Expected NULL but got a non-null value");
+        assertNull(actual, L"Expected NULL but got a non-null value");
         return;
     }
-    assertNotNull(actual, "Expected a non-null value but got NULL");
-    assertEqual(expected->getType(), actual->getType(), "Different types");
+    assertNotNull(actual, L"Expected a non-null value but got NULL");
+    assertEqual(expected->getType(), actual->getType(), L"Different types");
     switch (expected->getType()) {
         case JSON_TYPE_ARRAY:
         {
@@ -23,27 +23,28 @@ void JSONTest::assertValuesEqual(JSONValue* expected, JSONValue* actual) {
             assertEqual(
                 expectedArray.size(),
                 actualArray.size(),
-                "Different array sizes");
+                L"Different array sizes");
             for (int i = 0; i < (int)expectedArray.size(); i++)
                 assertValuesEqual(expectedArray.at(i), actualArray.at(i));
             break;
         }
         case JSON_TYPE_OBJECT:
         {
-            map<string, JSONValue*> expectedObject = expected->getObjectValue();
-            map<string, JSONValue*> actualObject = actual->getObjectValue();
+            map<wstring, JSONValue*> expectedObject =
+                expected->getObjectValue();
+            map<wstring, JSONValue*> actualObject = actual->getObjectValue();
             assertEqual(
                 expectedObject.size(),
                 actualObject.size(),
-                "Different object sizes");
-            for (map<string, JSONValue*>::const_iterator iterator =
+                L"Different object sizes");
+            for (map<wstring, JSONValue*>::const_iterator iterator =
                      expectedObject.begin();
                  iterator != expectedObject.end();
                  iterator++) {
                 assertEqual(
                     1,
                     (int)actualObject.count(iterator->first),
-                    "Different keys");
+                    L"Different keys");
                 assertValuesEqual(
                     iterator->second,
                     actualObject[iterator->first]);
@@ -54,36 +55,36 @@ void JSONTest::assertValuesEqual(JSONValue* expected, JSONValue* actual) {
             assertEqual(
                 expected->getStrValue(),
                 actual->getStrValue(),
-                "Different strings");
+                L"Different strings");
             break;
         case JSON_TYPE_NUMBER:
             assertEqual(
                 expected->getDoubleValue(),
                 actual->getDoubleValue(),
-                "Different numbers");
+                L"Different numbers");
             break;
         case JSON_TYPE_BOOL:
             assertEqual(
                 expected->getBoolValue(),
                 actual->getBoolValue(),
-                "Different booleans");
+                L"Different booleans");
             break;
         default:
-            assert(!"Unhandled JSON type");
+            assert(!L"Unhandled JSON type");
     }
 }
 
-void JSONTest::checkJSON(string str, JSONValue* expected) {
-    istringstream input(str);
+void JSONTest::checkJSON(wstring str, JSONValue* expected) {
+    wistringstream input(str);
     JSONValue* decoded = JSONDecoder::decode(input);
     assertValuesEqual(expected, decoded);
     if (decoded != NULL) {
         delete decoded;
-        ostringstream output;
+        wostringstream output;
         JSONEncoder encoder(output);
         encoder.appendValue(expected);
         encoder.endRoot();
-        istringstream input2(output.str());
+        wistringstream input2(output.str());
         decoded = JSONDecoder::decode(input2);
         assertValuesEqual(expected, decoded);
         delete decoded;
@@ -112,13 +113,13 @@ JSONValue* JSONTest::getArrayValue(
 }
 
 JSONValue* JSONTest::getObjectValue(
-    string key1,
+    wstring key1,
     JSONValue* value1,
-    string key2,
+    wstring key2,
     JSONValue* value2,
-    string key3,
+    wstring key3,
     JSONValue* value3) {
-    map<string, JSONValue*> object;
+    map<wstring, JSONValue*> object;
     object[key1] = value1;
     object[key2] = value2;
     object[key3] = value3;
@@ -126,74 +127,76 @@ JSONValue* JSONTest::getObjectValue(
 }
 
 void JSONTest::testJSON() {
-    checkJSON("", NULL);
-    checkJSON("123", new JSONValue(123));
-    checkJSON("false", new JSONValue(false));
-    checkJSON("true", new JSONValue(true));
-    checkJSON("[]", new JSONValue(vector<JSONValue*>()));
-    checkJSON("{}", new JSONValue(map<string, JSONValue*>()));
-    checkJSON("\"123\"", new JSONValue("123"));
+    checkJSON(L"", NULL);
+    checkJSON(L"123", new JSONValue(123));
+    checkJSON(L"false", new JSONValue(false));
+    checkJSON(L"true", new JSONValue(true));
+    checkJSON(L"[]", new JSONValue(vector<JSONValue*>()));
+    checkJSON(L"{}", new JSONValue(map<wstring, JSONValue*>()));
+    checkJSON(L"\"123\"", new JSONValue(L"123"));
     checkJSON(
-        "\"12\\t3\\n4\\\\\\\"\\\\\"",
-        new JSONValue("12\t3\n4\\\"\\"));
-    checkJSON("[", NULL);
+        L"\"12\\t3\\n4\\\\\\\"\\\\\"",
+        new JSONValue(L"12\t3\n4\\\"\\"));
+    checkJSON(L"[", NULL);
     checkJSON(
-        "[123, 456, \"789\", false]",
+        L"[123, 456, \"789\", false]",
         getArrayValue(
             new JSONValue(123),
             new JSONValue(456),
-            new JSONValue("789"),
+            new JSONValue(L"789"),
             new JSONValue(false)));
     checkJSON(
-        "    [123,456,\"789\",  \r   \t\r\n\n\r\t  false ]       ",
+        L"    [123,456,\"789\",  \r   \t\r\n\n\r\t  false ]       ",
         getArrayValue(
             new JSONValue(123),
             new JSONValue(456),
-            new JSONValue("789"),
+            new JSONValue(L"789"),
             new JSONValue(false)));
     checkJSON(
-        "[123, 456, [\"789\", -3.14, 2.718e-8, 1.618e20], false]",
+        L"[123, 456, [\"789\", -3.14, 2.718e-8, 1.618e20], false]",
         getArrayValue(
             new JSONValue(123),
             new JSONValue(456),
             getArrayValue(
-                new JSONValue("789"),
+                new JSONValue(L"789"),
                 new JSONValue(-3.14),
                 new JSONValue(2.718e-8),
                 new JSONValue(1.618e20)),
             new JSONValue(false)));
-    checkJSON("[123, 456, \"789\", false, ]", NULL);
-    checkJSON("[123, 456, \"789\", false] \"hey\"", NULL);
-    checkJSON("[123, 456, \"789\", false], \"hey\"", NULL);
+    checkJSON(L"[123, 456, \"789\", false, ]", NULL);
+    checkJSON(L"[123, 456, \"789\", false] \"hey\"", NULL);
+    checkJSON(L"[123, 456, \"789\", false], \"hey\"", NULL);
     checkJSON(
-        "{\"abc\": 123, \"def\" : [456, false], \"true\": 1}",
+        L"{\"abc\": 123, \"def\" : [456, false], \"true\": 1}",
         getObjectValue(
-            "abc",
+            L"abc",
             new JSONValue(123),
-            "def",
+            L"def",
             getArrayValue(new JSONValue(456), new JSONValue(false)),
-            "true",
+            L"true",
             new JSONValue(1)));
-    checkJSON("{\"abc\": 123, \"def\" : [456, false], 123: 1}", NULL);
-    checkJSON("\"a\\u00abcd\"", new JSONValue("a\253cd"));
-    checkJSON("\"a\\u00ab\"", new JSONValue("a\253"));
+    checkJSON(L"{\"abc\": 123, \"def\" : [456, false], 123: 1}", NULL);
+    checkJSON(L"\"a\\u12abcd\"", new JSONValue(L"a\u12ab" L"cd"));
+    checkJSON(L"\"a\\u12ab\"", new JSONValue(L"a\u12ab"));
+    checkJSON(L"\"a\\u00abcd\"", new JSONValue(L"a\253cd"));
+    checkJSON(L"\"a\\u00ab\"", new JSONValue(L"a\253"));
     
-    istringstream input("null");
-    assertNull(JSONDecoder::decode(input), "Decoding null failed");
-    ostringstream output;
+    wistringstream input(L"null");
+    assertNull(JSONDecoder::decode(input), L"Decoding null failed");
+    wostringstream output;
     JSONEncoder encoder(output);
     encoder.appendValue(NULL);
     encoder.endRoot();
-    istringstream input2(output.str());
-    assertNull(JSONDecoder::decode(input2), "Encoding null failed");
+    wistringstream input2(output.str());
+    assertNull(JSONDecoder::decode(input2), L"Encoding null failed");
 }
 
 void JSONTest::testEncoder() {
-    JSONValue* array = getArrayValue(new JSONValue("Foo"), NULL);
-    ostringstream output;
+    JSONValue* array = getArrayValue(new JSONValue(L"Foo"), NULL);
+    wostringstream output;
     JSONEncoder encoder(output);
     encoder.startObject();
-    encoder.appendObjectKey("bar");
+    encoder.appendObjectKey(L"bar");
     encoder.startArray();
     encoder.startArrayElement();
     encoder.appendDouble(1.5);
@@ -204,33 +207,33 @@ void JSONTest::testEncoder() {
     encoder.startArrayElement();
     encoder.appendInt(5);
     encoder.endArray();
-    encoder.appendObjectKey("baz");
+    encoder.appendObjectKey(L"baz");
     encoder.appendNull();
-    encoder.appendObjectKey("abc");
-    encoder.appendStr("def");
+    encoder.appendObjectKey(L"abc");
+    encoder.appendStr(L"def");
     encoder.endObject();
     encoder.endRoot();
     
     JSONValue* expected = getObjectValue(
-        "bar",
+        L"bar",
         getArrayValue(
             new JSONValue(1.5),
             new JSONValue(true),
             array,
             new JSONValue(5)),
-        "baz",
+        L"baz",
         NULL,
-        "abc",
-        new JSONValue("def"));
-    istringstream input(output.str());
+        L"abc",
+        new JSONValue(L"def"));
+    wistringstream input(output.str());
     JSONValue* actual = JSONDecoder::decode(input);
     assertValuesEqual(expected, actual);
     delete expected;
     delete actual;
 }
 
-string JSONTest::getName() {
-    return "JSONTest";
+wstring JSONTest::getName() {
+    return L"JSONTest";
 }
 
 void JSONTest::test() {

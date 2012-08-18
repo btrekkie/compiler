@@ -12,11 +12,11 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
+int main(int argc, wchar_t* argv[]) {
     if (argc != 4) {
-        cout << "Expected exactly three arguments: the root source file "
-            "directory, the root build directory, and the source file, "
-            "relative to the root source file directory.\n";
+        cout << L"Expected exactly three arguments: the root source file "
+            L"directory, the root build directory, and the source file, "
+            L"relative to the root source file directory.\n";
         return -1;
     } else {
         BinaryCompiler::compileFile(argv[1], argv[2], argv[3], cerr);

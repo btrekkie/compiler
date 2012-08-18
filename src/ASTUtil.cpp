@@ -5,28 +5,28 @@
 
 using namespace std;
 
-int ASTUtil::hexDigitToInt(char c) {
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    else if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
+int ASTUtil::hexDigitToInt(wchar_t c) {
+    if (c >= L'0' && c <= L'9')
+        return c - L'0';
+    else if (c >= L'A' && c <= L'F')
+        return c - L'A' + 10;
     else {
-        assert(c >= 'a' && c <= 'f' || !"Not a hexadecimal character");
-        return c - 'a' + 10;
+        assert(c >= L'a' && c <= L'f' || !L"Not a hexadecimal character");
+        return c - L'a' + 10;
     }
 }
 
-bool ASTUtil::getIntLiteralValue(string str, long long& value) {
-    char lastChar = str.at(str.length() - 1);
+bool ASTUtil::getIntLiteralValue(wstring str, long long& value) {
+    wchar_t lastChar = str.at(str.length() - 1);
     bool isLong;
-    if (lastChar != 'l' && lastChar != 'L')
+    if (lastChar != L'l' && lastChar != L'L')
         isLong = false;
     else {
         isLong = true;
         str = str.substr(0, str.length() - 1);
     }
-    bool isNegative = str.at(0) == '-';
-    if (str.substr(isNegative ? 1 : 0, 2) == "0x") {
+    bool isNegative = str.at(0) == L'-';
+    if (str.substr(isNegative ? 1 : 0, 2) == L"0x") {
         // Hexadecimal
         if (str.length() > (isLong ? 18 : 10))
             return false;
@@ -45,22 +45,22 @@ bool ASTUtil::getIntLiteralValue(string str, long long& value) {
         // Check bounds
         if (isLong) {
             if (isNegative) {
-                if (str.length() > 20 || str > "-9223372036854775808")
+                if (str.length() > 20 || str > L"-9223372036854775808")
                     return false;
-            } else if (str.length() > 19 || str > "9223372036854775807")
+            } else if (str.length() > 19 || str > L"9223372036854775807")
                 return false;
         } else if (isNegative) {
             if (str.length() > 11 ||
-                (str.length() == 11 && str > "-2147483648"))
+                (str.length() == 11 && str > L"-2147483648"))
                 return false;
         } else if (str.length() > 10 ||
-                   (str.length() == 10 && str > "2147483647"))
+                   (str.length() == 10 && str > L"2147483647"))
             return false;
         
         value = 0;
         for (int i = (isNegative ? 1 : 0); i < (int)str.length(); i++) {
             value *= 10;
-            value += str.at(i) - '0';
+            value += str.at(i) - L'0';
         }
         if (isNegative)
             value = -value;
@@ -77,9 +77,9 @@ CFGType* ASTUtil::getCFGType(ASTNode* node) {
         delete childType;
         return type;
     } else {
-        assert(node->type == AST_TYPE || !"Not a type node");
+        assert(node->type == AST_TYPE || !L"Not a type node");
         assert(
-            node->child1->type != AST_QUALIFIED_IDENTIFIER || !"TODO modules");
+            node->child1->type != AST_QUALIFIED_IDENTIFIER || !L"TODO modules");
         return new CFGType(node->child1->tokenStr);
     }
 }

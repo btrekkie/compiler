@@ -9,14 +9,14 @@ private:
      * Asserts that ASTUtil.getIntLiteralValue gives "expected" when passed
      * "str".
      */
-    void checkIntLiteralValue(std::string str, long long expected);
+    void checkIntLiteralValue(std::wstring str, long long expected);
     /**
      * Asserts that ASTUtile.getInttLiteralValue returns false and does not
      * alter its second argument when passed "str".
      */
-    void checkTooLarge(std::string str);
+    void checkTooLarge(std::wstring str);
 public:
-    std::string getName();
+    std::wstring getName();
     void test();
 };
 

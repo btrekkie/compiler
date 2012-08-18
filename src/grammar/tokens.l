@@ -132,7 +132,7 @@ void count() {
 
 void blockComment() {
     int depth = 1;
-    char c = input();
+    wchar_t c = input();
     while (depth > 0) {
         while (c != '*' && c != '/' && c != '\0')
           c = input();

@@ -19,10 +19,10 @@ static void deleteVector(vector<T*> values) {
 FieldInterface* InterfaceInput::readFieldInterface(JSONValue* value) {
     if (value == NULL || value->getType() != JSON_TYPE_OBJECT)
         return NULL;
-    JSONValue* identifierValue = value->getField("identifier");
+    JSONValue* identifierValue = value->getField(L"identifier");
     if (identifierValue == NULL || identifierValue->getType() != JSON_TYPE_STR)
         return NULL;
-    JSONValue* typeValue = value->getField("type");
+    JSONValue* typeValue = value->getField(L"type");
     if (typeValue == NULL || typeValue->getType() != JSON_TYPE_STR)
         return NULL;
     CFGType* type = CFGType::fromString(typeValue->getStrValue());
@@ -34,21 +34,21 @@ FieldInterface* InterfaceInput::readFieldInterface(JSONValue* value) {
 MethodInterface* InterfaceInput::readMethodInterface(JSONValue* value) {
     if (value == NULL || value->getType() != JSON_TYPE_OBJECT)
         return NULL;
-    JSONValue* identifierValue = value->getField("identifier");
+    JSONValue* identifierValue = value->getField(L"identifier");
     if (identifierValue == NULL || identifierValue->getType() != JSON_TYPE_STR)
         return NULL;
-    JSONValue* returnTypeValue = value->getField("returnType");
+    JSONValue* returnTypeValue = value->getField(L"returnType");
     if (returnTypeValue == NULL || returnTypeValue->getType() != JSON_TYPE_STR)
         return NULL;
     CFGType* returnType;
-    if (returnTypeValue->getStrValue() == "void")
+    if (returnTypeValue->getStrValue() == L"void")
         returnType = NULL;
     else {
         returnType = CFGType::fromString(returnTypeValue->getStrValue());
         if (returnType == NULL)
             return NULL;
     }
-    JSONValue* argTypesValue = value->getField("argTypes");
+    JSONValue* argTypesValue = value->getField(L"argTypes");
     if (argTypesValue == NULL || argTypesValue->getType() != JSON_TYPE_ARRAY)
         return NULL;
     vector<JSONValue*> argTypesValues = argTypesValue->getArrayValue();
@@ -74,16 +74,16 @@ MethodInterface* InterfaceInput::readMethodInterface(JSONValue* value) {
         identifierValue->getStrValue());
 }
 
-ClassInterface* InterfaceInput::readClassInterface(istream& input) {
+ClassInterface* InterfaceInput::readClassInterface(wistream& input) {
     auto_ptr<JSONValue> value(JSONDecoder::decode(input));
     if (value.get() == NULL || value->getType() != JSON_TYPE_OBJECT)
         return NULL;
-    JSONValue* identifierValue = value->getField("identifier");
+    JSONValue* identifierValue = value->getField(L"identifier");
     if (identifierValue == NULL || identifierValue->getType() != JSON_TYPE_STR)
         return NULL;
     
     // Read fields
-    JSONValue* fieldsValue = value->getField("fields");
+    JSONValue* fieldsValue = value->getField(L"fields");
     if (fieldsValue == NULL || fieldsValue->getType() != JSON_TYPE_ARRAY)
         return NULL;
     vector<JSONValue*> fieldsValues = fieldsValue->getArrayValue();
@@ -100,7 +100,7 @@ ClassInterface* InterfaceInput::readClassInterface(istream& input) {
     }
     
     // Read methods
-    JSONValue* methodsValue = value->getField("methods");
+    JSONValue* methodsValue = value->getField(L"methods");
     if (methodsValue == NULL || methodsValue->getType() != JSON_TYPE_ARRAY)
         return NULL;
     vector<JSONValue*> methodsValues = methodsValue->getArrayValue();

@@ -48,7 +48,7 @@ CFGLabel* BreakEvaluator::getContinueLabel(int numLoops) {
 bool BreakEvaluator::hasDefaultLabel(ASTNode* node) {
     if (node->type == AST_EMPTY_CASE_LIST)
         return false;
-    assert(node->type == AST_CASE_LIST || !"Not a switch statement body");
+    assert(node->type == AST_CASE_LIST || !L"Not a switch statement body");
     return node->child2->type == AST_CASE_LABEL_DEFAULT ||
         hasDefaultLabel(node->child1);
 }

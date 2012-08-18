@@ -23,8 +23,8 @@ static UniverseSet<int>* getMultiples(Universe<int>* universe, int value) {
     return set;
 }
 
-string UniverseSetTest::getName() {
-    return "UniverseSetTest";
+wstring UniverseSetTest::getName() {
+    return L"UniverseSetTest";
 }
 
 void UniverseSetTest::test() {
@@ -47,7 +47,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "Contains failed");
+    assertTrue(areSetsCorrect, L"Contains failed");
     
     testSet->unionWith(multiplesOf3);
     for (int i = 0; i <= MAX_TEST_VALUE; i++) {
@@ -57,7 +57,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "unionWith failed");
+    assertTrue(areSetsCorrect, L"unionWith failed");
     
     testSet->intersect(multiplesOf5);
     for (int i = 0; i <= MAX_TEST_VALUE; i++) {
@@ -67,7 +67,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "intersect failed");
+    assertTrue(areSetsCorrect, L"intersect failed");
     
     testSet->difference(multiplesOf2);
     for (int i = 0; i <= MAX_TEST_VALUE; i++) {
@@ -77,7 +77,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "difference failed");
+    assertTrue(areSetsCorrect, L"difference failed");
     
     testSet->unionWith(multiplesOf2);
     for (int i = 0; i <= MAX_TEST_VALUE; i++) {
@@ -88,7 +88,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "unionWith failed");
+    assertTrue(areSetsCorrect, L"unionWith failed");
     
     testSet->remove(24);
     testSet->add(115);
@@ -100,7 +100,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "contains failed");
+    assertTrue(areSetsCorrect, L"contains failed");
     
     // Test different-sized bit vectors
     Universe<int> universe2;
@@ -116,7 +116,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "Contains failed");
+    assertTrue(areSetsCorrect, L"Contains failed");
     
     testSet2->unionWith(multiplesOf4);
     for (int i = 0; i <= MAX_TEST_VALUE; i++) {
@@ -128,7 +128,7 @@ void UniverseSetTest::test() {
             break;
         }
     }
-    assertTrue(areSetsCorrect, "unionWith failed");
+    assertTrue(areSetsCorrect, L"unionWith failed");
     
     delete emptySet;
     delete multiplesOf2;

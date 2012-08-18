@@ -80,9 +80,9 @@ using namespace std;
  */
 class TypeEvaluatorImpl {
 private:
-    map<string, CFGType*>* fieldTypes;
+    map<wstring, CFGType*>* fieldTypes;
     map<ASTNode*, int> varIDs;
-    map<string, MethodInterface*>* methodInterfaces;
+    map<wstring, MethodInterface*>* methodInterfaces;
     CompilerErrors* errors;
     /**
      * A map from the nodes for the expressions to their types.
@@ -91,7 +91,7 @@ private:
     /**
      * A map from the method's arguments' identifiers to their types.
      */
-    map<string, CFGType*> argTypes;
+    map<wstring, CFGType*> argTypes;
     /**
      * The type of the return value of the method, or NULL if there is no return
      * value.
@@ -246,7 +246,7 @@ private:
      * 
      * See the comments at the top of the file regarding why we make multiple
      * passes through each loop.  Each pass we perform before reaching a fixed
-     * point in which none of the variable types changes is considered a "trail
+     * point in which none of the variable types changes is considered a "trial
      * run".  The purpose of suppressing errors during the trial run is to avoid
      * emitting the same error multiple times.
      * 
@@ -276,7 +276,7 @@ private:
      * is the method we call whenever we encounter a compilation error.  See the
      * comments for "isCheckingLoopStack" for more information.
      */
-    void emitError(ASTNode* node, string error) {
+    void emitError(ASTNode* node, wstring error) {
         if (!isCheckingLoopStack.back())
             errors->emitError(node, error);
     }
@@ -296,14 +296,14 @@ private:
             return type1;
         else if (fullType1->getNumDimensions() > 0 ||
                  fullType2->getNumDimensions() > 0)
-            return new CFGPartialType(new CFGType("Object"));
+            return new CFGPartialType(new CFGType(L"Object"));
         else if (fullType1->isNumeric() && fullType2->isNumeric()) {
             if (fullType1->isMorePromotedThan(fullType2))
                 return type1;
             else
                 return type2;
         } else
-            return new CFGPartialType(new CFGType("Object"));
+            return new CFGPartialType(new CFGType(L"Object"));
     }
     
     /**
@@ -352,7 +352,7 @@ private:
     void decrementReferenceCount(CFGPartialType* type) {
         assert(
             typeReferenceCounts.count(type) > 0 ||
-            !"Cannot decrement reference count below 0");
+            !L"Cannot decrement reference count below 0");
         if (typeReferenceCounts[type] > 1)
             typeReferenceCounts[type]--;
         else {
@@ -725,23 +725,23 @@ private:
      * specified type (e.g. if setting an Int argument to have a Double value).
      */
     void setVarValueType(ASTNode* node, CFGPartialType* type) {
-        assert(node->type == AST_IDENTIFIER || !"Not a variable node");
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable node");
         assert(
             varIDs.count(node) > 0 ||
-            !"Missing variable id.  Probably a bug in VarResolver.");
+            !L"Missing variable id.  Probably a bug in VarResolver.");
         incrementReferenceCount(type);
         if (nodeTypes.count(node) > 0)
             decrementReferenceCount(nodeTypes[node]);
         nodeTypes[node] = type;
-        string identifier = node->tokenStr;
+        wstring identifier = node->tokenStr;
         if (varIDs[node] < 0) {
             if (fieldTypes->count(identifier) > 0) {
                 if (!isSubtype(type, (*fieldTypes)[identifier]))
-                    emitError(node, "Incompatible types in assignment");
+                    emitError(node, L"Incompatible types in assignment");
                 return;
             } else if (argTypes.count(identifier) > 0) {
                 if (!isSubtype(type, argTypes[identifier]))
-                    emitError(node, "Incompatible types in assignment");
+                    emitError(node, L"Incompatible types in assignment");
                 return;
             }
         } else if (reverseVarTypesStack.back() != NULL) {
@@ -780,15 +780,15 @@ private:
      * @return the type of the expression.
      */
     CFGPartialType* visitArrayGet(ASTNode* node) {
-        assert(node->type == AST_ARRAY_GET || !"Not an array get node");
+        assert(node->type == AST_ARRAY_GET || !L"Not an array get node");
         CFGPartialType* arrayType = visitExpression(node->child1);
         if (arrayType->getType()->getNumDimensions() == 0)
-            emitError(node, "Operand must be an array");
+            emitError(node, L"Operand must be an array");
         CFGPartialType* indexType = visitExpression(node->child2);
-        CFGType* intType = new CFGType("Int");
+        CFGType* intType = new CFGType(L"Int");
         if (!indexType->getType()->isIntegerLike() ||
             indexType->getType()->isMorePromotedThan(intType))
-            emitError(node, "Array index must be an integer");
+            emitError(node, L"Array index must be an integer");
         delete intType;
         return getElementType(arrayType);
     }
@@ -837,7 +837,7 @@ private:
                 operation = AST_XOR;
                 break;
             default:
-                assert(!"Unhandled assignment type");
+                assert(!L"Unhandled assignment type");
         }
         CFGPartialType* arrayElementType;
         if (node->child1->type == AST_ARRAY_GET)
@@ -857,7 +857,7 @@ private:
             setVarValueType(node->child1, type);
         else if (node->child1->type == AST_ARRAY_GET) {
             if (!isSubtype(type, arrayElementType->getType()))
-                emitError(node->child1, "Incorrect element type for array");
+                emitError(node->child1, L"Incorrect element type for array");
             return arrayElementType;
         }
         return type;
@@ -880,17 +880,17 @@ private:
             {
                 CFGPartialType* type1 = visitExpression(operand1);
                 if (!type1->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                    emitError(node, L"Operand must be of an integer-like type");
                 CFGPartialType* type2 = visitExpression(operand2);
                 if (!type2->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                    emitError(node, L"Operand must be of an integer-like type");
                 return getLeastCommonType(type1, type2);
             }
             case AST_BITWISE_INVERT:
             {
                 CFGPartialType* type = visitExpression(operand1);
                 if (!type->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                    emitError(node, L"Operand must be of an integer-like type");
                 return type;
             }
             case AST_DIV:
@@ -900,10 +900,10 @@ private:
             {
                 CFGPartialType* type1 = visitExpression(operand1);
                 if (!type1->getType()->isNumeric())
-                    emitError(node, "Operand must be a number");
+                    emitError(node, L"Operand must be a number");
                 CFGPartialType* type2 = visitExpression(operand2);
                 if (!type2->getType()->isNumeric())
-                    emitError(node, "Operand must be a number");
+                    emitError(node, L"Operand must be a number");
                 return getLeastCommonType(type1, type2);
             }
             case AST_GREATER_THAN:
@@ -913,11 +913,11 @@ private:
             {
                 CFGPartialType* type1 = visitExpression(operand1);
                 if (!type1->getType()->isNumeric())
-                    emitError(node, "Operand must be a number");
+                    emitError(node, L"Operand must be a number");
                 CFGPartialType* type2 = visitExpression(operand2);
                 if (!type2->getType()->isNumeric())
-                    emitError(node, "Operand must be a number");
-                return new CFGPartialType(new CFGType("Bool"));
+                    emitError(node, L"Operand must be a number");
+                return new CFGPartialType(new CFGType(L"Bool"));
             }
             case AST_LEFT_SHIFT:
             case AST_RIGHT_SHIFT:
@@ -925,35 +925,35 @@ private:
             {
                 CFGPartialType* type1 = visitExpression(operand1);
                 if (!type1->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                    emitError(node, L"Operand must be of an integer-like type");
                 CFGPartialType* type2 = visitExpression(operand2);
                 if (type2->getType()->getNumDimensions() > 0 ||
-                    (type2->getType()->getClassName() != "Int" &&
-                     type2->getType()->getClassName() != "Byte"))
+                    (type2->getType()->getClassName() != L"Int" &&
+                     type2->getType()->getClassName() != L"Byte"))
                     emitError(
                         node,
-                        "Operand to bit shift must be integer or byte");
+                        L"Operand to bit shift must be integer or byte");
                 return type1;
             }
             case AST_MOD:
             {
                 CFGPartialType* type1 = visitExpression(operand1);
                 if (!type1->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                    emitError(node, L"Operand must be of an integer-like type");
                 CFGPartialType* type2 = visitExpression(operand2);
                 if (!type2->getType()->isIntegerLike())
-                    emitError(node, "Operand must be of an integer-like type");
+                    emitError(node, L"Operand must be of an integer-like type");
                 return getLeastCommonType(type1, type2);
             }
             case AST_NEGATE:
             {
                 CFGPartialType* type = visitExpression(operand1);
                 if (!type->getType()->isNumeric())
-                    emitError(node, "Operand must be a number");
+                    emitError(node, L"Operand must be a number");
                 return type;
             }
             default:
-                assert(!"Unhandled math expression");
+                assert(!L"Unhandled math expression");
                 return NULL;
         }
     }
@@ -970,32 +970,32 @@ private:
             {
                 CFGPartialType* type1 = visitExpression(node->child1);
                 if (!type1->getType()->isBool())
-                    emitError(node, "Operand must be a boolean");
+                    emitError(node, L"Operand must be a boolean");
                 pushBranch();
                 CFGPartialType* type2 = visitExpression(node->child2);
                 if (!type2->getType()->isBool())
-                    emitError(node, "Operand must be a boolean");
+                    emitError(node, L"Operand must be a boolean");
                 popBranch();
-                return new CFGPartialType(new CFGType("Bool"));
+                return new CFGPartialType(new CFGType(L"Bool"));
             }
             case AST_EQUALS:
             case AST_NOT_EQUALS:
                 // TODO (classes) type checking
                 visitExpression(node->child1);
                 visitExpression(node->child2);
-                return new CFGPartialType(new CFGType("Bool"));
+                return new CFGPartialType(new CFGType(L"Bool"));
             case AST_NOT:
             {
                 CFGPartialType* type = visitExpression(node->child1);
                 if (!type->getType()->isBool())
-                    emitError(node, "Operand must be a boolean");
-                return new CFGPartialType(new CFGType("Bool"));
+                    emitError(node, L"Operand must be a boolean");
+                return new CFGPartialType(new CFGType(L"Bool"));
             }
             case AST_TERNARY:
             {
                 CFGPartialType* conditionType = visitExpression(node->child1);
                 if (!conditionType->getType()->isBool())
-                    emitError(node, "Operand must be a boolean");
+                    emitError(node, L"Operand must be a boolean");
                 vector<LinkedList<pair<int, CFGPartialType*> >*>
                     incomingVarTypes;
                 pushBranch();
@@ -1008,7 +1008,7 @@ private:
                 return getLeastCommonType(trueType, falseType);
             }
             default:
-                assert(!"Unhanded boolean expression");
+                assert(!L"Unhanded boolean expression");
         }
         return NULL;
     }
@@ -1020,27 +1020,27 @@ private:
         switch (node->type) {
             case AST_FALSE:
             case AST_TRUE:
-                return new CFGPartialType(new CFGType("Bool"));
+                return new CFGPartialType(new CFGType(L"Bool"));
             case AST_FLOAT_LITERAL:
             {
-                string str = node->tokenStr;
-                if (str.at(str.length() - 1) != 'f' &&
-                    str.at(str.length() - 1) != 'F')
-                    return new CFGPartialType(new CFGType("Double"));
+                wstring str = node->tokenStr;
+                if (str.at(str.length() - 1) != L'f' &&
+                    str.at(str.length() - 1) != L'F')
+                    return new CFGPartialType(new CFGType(L"Double"));
                 else
-                    return new CFGPartialType(new CFGType("Float"));
+                    return new CFGPartialType(new CFGType(L"Float"));
             }
             case AST_INT_LITERAL:
             {
-                string str = node->tokenStr;
-                if (str.at(str.length() - 1) != 'l' &&
-                    str.at(str.length() - 1) != 'L')
-                    return new CFGPartialType(new CFGType("Int"));
+                wstring str = node->tokenStr;
+                if (str.at(str.length() - 1) != L'l' &&
+                    str.at(str.length() - 1) != L'L')
+                    return new CFGPartialType(new CFGType(L"Int"));
                 else
-                    return new CFGPartialType(new CFGType("Long"));
+                    return new CFGPartialType(new CFGType(L"Long"));
             }
             default:
-                assert(!"Unhandled literal type");
+                assert(!L"Unhandled literal type");
         }
         return NULL;
     }
@@ -1052,22 +1052,22 @@ private:
      */
     CFGPartialType* visitVarUse(ASTNode* node) {
         // TODO use non-specific partial types rather than Object
-        assert(node->type == AST_IDENTIFIER || !"Not a variable node");
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable node");
         assert(
             varIDs.count(node) > 0 ||
-            !"Missing variable id.  Probably a bug in VarResolver.");
+            !L"Missing variable id.  Probably a bug in VarResolver.");
         int varID = varIDs[node];
         if (varID < 0) {
-            string identifier = node->tokenStr;
+            wstring identifier = node->tokenStr;
             if (argTypes.count(identifier) > 0)
                 return new CFGPartialType(new CFGType(argTypes[identifier]));
             else if (fieldTypes->count(identifier) > 0)
                 return new CFGPartialType(
                     new CFGType((*fieldTypes)[identifier]));
             else
-                return new CFGPartialType(new CFGType("Object"));
+                return new CFGPartialType(new CFGType(L"Object"));
         } else if (reverseVarTypesStack.back() == NULL)
-            return new CFGPartialType(new CFGType("Object"));
+            return new CFGPartialType(new CFGType(L"Object"));
         else if (allVarTypes.count(varID) > 0) {
             if (nodeTypes.count(node) > 0)
                 // This branch is essential.  Without it, TypeEvaluator would
@@ -1078,8 +1078,8 @@ private:
         } else {
             emitError(
                 node,
-                "Variable may be used before it is initialized");
-            return new CFGPartialType(new CFGType("Object"));
+                L"Variable may be used before it is initialized");
+            return new CFGPartialType(new CFGType(L"Object"));
         }
     }
     
@@ -1104,18 +1104,18 @@ private:
      *     a return type.
      */
     CFGPartialType* visitMethodCall(ASTNode* node) {
-        string identifier = node->child1->tokenStr;
+        wstring identifier = node->child1->tokenStr;
         vector<CFGPartialType*> types;
         if (node->child2 != NULL)
             visitExpressionList(node->child2, types);
         if (methodInterfaces->count(identifier) == 0)
-            return new CFGPartialType(new CFGType("Object"));
+            return new CFGPartialType(new CFGType(L"Object"));
         else {
             MethodInterface* interface = (*methodInterfaces)[identifier];
             vector<CFGType*> argTypes = interface->getArgTypes();
             for (int i = 0; i < (int)min(types.size(), argTypes.size()); i++) {
                 if (!isSubtype(types[i], argTypes[i]))
-                    emitError(node, "Method argument is of incorrect type");
+                    emitError(node, L"Method argument is of incorrect type");
             }
             if (interface->getReturnType() != NULL)
                 return new CFGPartialType(
@@ -1135,7 +1135,7 @@ private:
         if (!type->getType()->isNumeric())
             emitError(
                 node,
-                "Increment / decrement operator may only be used on numbers");
+                L"Increment / decrement operator may only be used on numbers");
         return type;
     }
     
@@ -1148,7 +1148,7 @@ private:
         CFGPartialType* type = NULL;
         switch (node->type) {
             case AST_ARRAY:
-                assert(!"TODO array literals");
+                assert(!L"TODO array literals");
                 break;
             case AST_ARRAY_GET:
                 type = visitArrayGet(node);
@@ -1190,7 +1190,7 @@ private:
             case AST_CAST:
             case AST_NEW:
             case AST_TARGETED_METHOD_CALL:
-                assert(!"TODO classes");
+                assert(!L"TODO classes");
                 break;
             case AST_FALSE:
             case AST_FLOAT_LITERAL:
@@ -1204,7 +1204,7 @@ private:
             case AST_METHOD_CALL:
                 type = visitMethodCall(node);
                 if (type == NULL)
-                    type = new CFGPartialType(new CFGType("Object"));
+                    type = new CFGPartialType(new CFGType(L"Object"));
                 break;
             case AST_POST_DECREMENT:
             case AST_POST_INCREMENT:
@@ -1213,10 +1213,10 @@ private:
                 type = visitIncrementExpression(node);
                 break;
             case AST_QUALIFIED_IDENTIFIER:
-                assert(!"TODO classes");
+                assert(!L"TODO classes");
                 break;
             default:
-                assert(!"Unhandled expression type");
+                assert(!L"Unhandled expression type");
                 break;
         }
         if (nodeTypes.count(node) == 0 || !isEqual(nodeTypes[node], type)) {
@@ -1277,11 +1277,11 @@ private:
                 if (node->child1 != NULL) {
                     CFGPartialType* type = visitExpression(node->child1);
                     if (returnType != NULL && !isSubtype(type, returnType))
-                        emitError(node, "Return value is of incorrect type");
+                        emitError(node, L"Return value is of incorrect type");
                 }
                 break;
             default:
-                assert(!"Unhanded control flow statement type");
+                assert(!L"Unhanded control flow statement type");
         }
         
         map<int, CFGPartialType*>* reverseVarTypes =
@@ -1322,7 +1322,7 @@ private:
                 CFGPartialType* containerType = visitExpression(node->child2);
                 assert(
                     containerType->getType()->getNumDimensions() > 0 ||
-                    !"TODO classes");
+                    !L"TODO classes");
                 CFGPartialType* elementType = getElementType(containerType);
                 setVarValueType(node->child1, elementType);
                 break;
@@ -1331,7 +1331,7 @@ private:
                 visitStatementList(node->child1);
                 break;
             default:
-                assert(!"Unhandled loop type");
+                assert(!L"Unhandled loop type");
         }
     }
     
@@ -1356,7 +1356,7 @@ private:
                 visitExpression(node->child1);
                 break;
             default:
-                assert(!"Unhandled loop type");
+                assert(!L"Unhandled loop type");
         }
     }
     
@@ -1374,7 +1374,7 @@ private:
                 if (!type->getType()->isBool())
                     emitError(
                         node->child2,
-                        "Condition must be a boolean value");
+                        L"Condition must be a boolean value");
                 break;
             }
             case AST_FOR:
@@ -1385,7 +1385,7 @@ private:
                 if (!type->getType()->isBool())
                     emitError(
                         node->child2,
-                        "Condition must be a boolean value");
+                        L"Condition must be a boolean value");
                 break;
             }
             case AST_FOR_IN:
@@ -1398,12 +1398,12 @@ private:
                 if (!type->getType()->isBool())
                     emitError(
                         node->child1,
-                        "Condition must be a boolean value");
+                        L"Condition must be a boolean value");
                 visitStatement(node->child2);
                 break;
             }
             default:
-                assert(!"Unhandled loop type");
+                assert(!L"Unhandled loop type");
         }
         popBranch();
     }
@@ -1600,16 +1600,16 @@ private:
     void visitCaseList(ASTNode* node, bool& hasDefaultLabel) {
         if (node->type == AST_EMPTY_CASE_LIST)
             return;
-        assert(node->type == AST_CASE_LIST || !"Not a case list node");
+        assert(node->type == AST_CASE_LIST || !L"Not a case list node");
         visitCaseList(node->child1, hasDefaultLabel);
         if (node->child2->type == AST_CASE_LABEL_DEFAULT)
             hasDefaultLabel = true;
         else {
             visitExpression(node->child2->child1);
-            string str = node->child2->child1->tokenStr;
-            if (str.at(str.length() - 1) == 'l' ||
-                str.at(str.length() - 1) == 'L')
-                emitError(node->child2, "Type of case value must be Int");
+            wstring str = node->child2->child1->tokenStr;
+            if (str.at(str.length() - 1) == L'l' ||
+                str.at(str.length() - 1) == L'L')
+                emitError(node->child2, L"Type of case value must be Int");
         }
         if (node->child3->type != AST_EMPTY_STATEMENT_LIST) {
             pushBranch();
@@ -1630,7 +1630,7 @@ private:
                 if (!type->getType()->isBool())
                     emitError(
                         node->child1,
-                        "Condition must be a boolean value");
+                        L"Condition must be a boolean value");
                 pushBranch();
                 visitStatement(node->child2);
                 popBranch();
@@ -1642,7 +1642,7 @@ private:
                 if (!type->getType()->isBool())
                     emitError(
                         node->child1,
-                        "Condition must be a boolean value");
+                        L"Condition must be a boolean value");
                 pushBranch();
                 visitStatement(node->child2);
                 bool isTrueBranchReachable = reverseVarTypesStack.back() !=
@@ -1672,8 +1672,8 @@ private:
                 pushBreakLevel();
                 CFGPartialType* type = visitExpression(node->child1);
                 if (!type->getType()->isIntegerLike() ||
-                    type->getType()->getClassName() == "Long")
-                    emitError(node->child1, "Operand must be an Int or Byte");
+                    type->getType()->getClassName() == L"Long")
+                    emitError(node->child1, L"Operand must be an Int or Byte");
                 bool hasDefaultLabel = false;
                 visitCaseList(node->child2, hasDefaultLabel);
                 if (!hasDefaultLabel) {
@@ -1684,7 +1684,7 @@ private:
                 break;
             }
             default:
-                assert(!"Unhanded selection statement type");
+                assert(!L"Unhanded selection statement type");
         }
     }
     
@@ -1698,7 +1698,7 @@ private:
         else
             assert(
                 node->type == AST_IDENTIFIER ||
-                !"Not a variable declaration node");
+                !L"Not a variable declaration node");
     }
     
     /**
@@ -1751,13 +1751,13 @@ private:
                 visitMethodCall(node);
                 break;
             case AST_TARGETED_METHOD_CALL:
-                assert(!"TODO classes");
+                assert(!L"TODO classes");
                 break;
             case AST_VAR_DECLARATION:
                 visitVarDeclarationList(node->child1);
                 break;
             default:
-                assert(!"Unhandled statement type");
+                assert(!L"Unhandled statement type");
                 break;
         }
     }
@@ -1770,7 +1770,7 @@ private:
         if (node->type == AST_EMPTY_STATEMENT_LIST)
             return;
         assert(
-            node->type == AST_STATEMENT_LIST || !"Not a statement list node");
+            node->type == AST_STATEMENT_LIST || !L"Not a statement list node");
         visitStatementList(node->child1);
         visitStatement(node->child2);
     }
@@ -1779,8 +1779,8 @@ private:
      * Visits the specified node of type AST_ARG.
      */
     void visitArg(ASTNode* node) {
-        assert(node->type == AST_ARG || !"Not an arg node");
-        string identifier = node->child2->tokenStr;
+        assert(node->type == AST_ARG || !L"Not an arg node");
+        wstring identifier = node->child2->tokenStr;
         if (argTypes.count(identifier) == 0)
             argTypes[identifier] = ASTUtil::getCFGType(node->child1);
         if (node->child3 != NULL)
@@ -1795,7 +1795,7 @@ private:
         if (node->type == AST_ARG)
             visitArg(node);
         else {
-            assert(node->type == AST_ARG_LIST || !"Not an arg list node");
+            assert(node->type == AST_ARG_LIST || !L"Not an arg list node");
             visitArgList(node->child1);
             visitArg(node->child2);
         }
@@ -1817,7 +1817,7 @@ public:
              iterator != types.end();
              iterator++)
             delete *iterator;
-        for (map<string, CFGType*>::const_iterator iterator = argTypes.begin();
+        for (map<wstring, CFGType*>::const_iterator iterator = argTypes.begin();
              iterator != argTypes.end();
              iterator++)
             delete iterator->second;
@@ -1825,11 +1825,11 @@ public:
     
     void evaluateTypes(
         ASTNode* node,
-        map<string, CFGType*>& fieldTypes2,
+        map<wstring, CFGType*>& fieldTypes2,
         map<ASTNode*, int>& varIDs2,
-        map<string, MethodInterface*>& methodInterfaces2,
+        map<wstring, MethodInterface*>& methodInterfaces2,
         CompilerErrors* errors2) {
-        assert(node->type == AST_METHOD_DEFINITION || !"Not a method node");
+        assert(node->type == AST_METHOD_DEFINITION || !L"Not a method node");
         fieldTypes = &fieldTypes2;
         varIDs = varIDs2;
         methodInterfaces = &methodInterfaces2;
@@ -1850,7 +1850,7 @@ public:
             visitStatementList(node->child4);
         }
         
-        for (map<string, CFGType*>::const_iterator iterator = argTypes.begin();
+        for (map<wstring, CFGType*>::const_iterator iterator = argTypes.begin();
              iterator != argTypes.end();
              iterator++)
             delete iterator->second;
@@ -1876,8 +1876,8 @@ public:
     CFGReducedType getExpressionType(ASTNode* node) {
         assert(
             nodeTypes.count(node) > 0 ||
-            !"Missing expression type.  Either the node is not an expression "
-            "or there is a bug in TypeEvaluator.");
+            !L"Missing expression type.  Either the node is not an expression "
+            L"or there is a bug in TypeEvaluator.");
         return nodeTypes[node]->getType()->getReducedType();
     }
 };
@@ -1892,9 +1892,9 @@ TypeEvaluator::~TypeEvaluator() {
 
 void TypeEvaluator::evaluateTypes(
     ASTNode* node,
-    map<string, CFGType*>& fieldTypes,
+    map<wstring, CFGType*>& fieldTypes,
     map<ASTNode*, int>& varIDs,
-    map<string, MethodInterface*>& methodInterfaces,
+    map<wstring, MethodInterface*>& methodInterfaces,
     CompilerErrors* errors) {
     impl->evaluateTypes(node, fieldTypes, varIDs, methodInterfaces, errors);
 }

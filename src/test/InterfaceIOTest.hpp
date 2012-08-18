@@ -42,7 +42,7 @@ private:
      */
     void checkInterface(ClassInterface* interface);
 public:
-    std::string getName();
+    std::wstring getName();
     void test();
 };
 

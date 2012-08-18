@@ -37,7 +37,7 @@ public:
      */
     static std::map<ASTNode*, int> resolveVars(
         ASTNode* node,
-        std::set<std::string>& fieldIdentifiers,
+        std::set<std::wstring>& fieldIdentifiers,
         CompilerErrors* errors);
 };
 

@@ -24,7 +24,7 @@ cc -c grammar/ASTNode.c -Wall -o grammar/ASTNode.o
 export FILES="ASTUtil BinaryCompiler BreakEvaluator CFG CFGPartialType "\
 "Compiler CompilerErrors CPPCompiler FileManager Interface InterfaceInput "\
 "InterfaceOutput JSONDecoder JSONEncoder JSONValue Parser Process "\
-"TypeEvaluator VarResolver grammar/grammar"
+"StringUtil TypeEvaluator VarResolver grammar/grammar"
 
 # Target-specific logic
 if [ $1 = "compiler" ]

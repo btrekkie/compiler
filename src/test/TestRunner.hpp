@@ -26,7 +26,7 @@ public:
      * exception.
      * @param message a string describing the failure.
      */
-    void assertionFailed(std::string message);
+    void assertionFailed(std::wstring message);
 };
 
 #endif

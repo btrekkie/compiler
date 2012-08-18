@@ -68,9 +68,9 @@ public:
      */
     void evaluateTypes(
         ASTNode* node,
-        std::map<std::string, CFGType*>& fieldTypes,
+        std::map<std::wstring, CFGType*>& fieldTypes,
         std::map<ASTNode*, int>& varIDs,
-        std::map<std::string, MethodInterface*>& methodInterfaces,
+        std::map<std::wstring, MethodInterface*>& methodInterfaces,
         CompilerErrors* errors);
     /**
      * Returns the reduced type of the specified expression node.  Assumes the

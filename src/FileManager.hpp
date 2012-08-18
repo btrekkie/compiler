@@ -19,13 +19,13 @@ public:
      * Returns a new DirHandle for the directory with the specified filename.
      * Returns NULL if there is no such directory.
      */
-    static DirHandle* fromDir(std::string dirName);
+    static DirHandle* fromDir(std::wstring dirName);
     /**
-     * Returns the name of the next subfile, or "" if there are no more
+     * Returns the name of the next subfile, or L"" if there are no more
      * subfiles.  The name does not include the directory name; it is just the
-     * bare, relative filename.  This method does will return "." or "..".
+     * bare, relative filename.  This method does not return L"." or L"..".
      */
-    std::string getNextFilename();
+    std::wstring getNextFilename();
 };
 
 /**
@@ -36,24 +36,24 @@ public:
     /**
      * Returns whether there is a file with the specified filename.
      */
-    static bool doesFileExist(std::string filename);
+    static bool doesFileExist(std::wstring filename);
     /**
      * Returns the name of a file that does not presently exist to which the
      * program may write.
      */
-    static std::string getTempFilename();
+    static std::wstring getTempFilename();
     /**
      * Returns the full name of the directory in which the specified file
      * resides.  The behavior is unspecified if this information is cannot be
-     * determined from the filename alone (e.g. "filename" is "../") or if the
+     * determined from the filename alone (e.g. "filename" is L"../") or if the
      * file has no parent directory.
      */
-    static std::string getParentDir(std::string filename);
+    static std::wstring getParentDir(std::wstring filename);
     /**
      * Returns the number of bytes in the specified file.  Returns -1 if there
      * was an error obtaining this information.
      */
-    static int getSize(std::string filename);
+    static int getSize(std::wstring filename);
 };
 
 #endif

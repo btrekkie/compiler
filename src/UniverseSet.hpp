@@ -115,7 +115,7 @@ public:
     void intersect(UniverseSet<T>* set) {
         assert(
             universe == set->universe ||
-            !"Cannot intersect sets with different universes");
+            !L"Cannot intersect sets with different universes");
         for (int i = 0; i < min(numBytes, set->numBytes); i++)
             bytes[i] &= set->bytes[i];
     }
@@ -127,7 +127,7 @@ public:
     void unionWith(UniverseSet<T>* set) {
         assert(
             universe == set->universe ||
-            !"Cannot take the union of sets with different universes");
+            !L"Cannot take the union of sets with different universes");
         if (numBytes < set->numBytes)
             increaseSize(set->numBytes);
         for (int i = 0; i < set->numBytes; i++)
@@ -141,7 +141,7 @@ public:
     void difference(UniverseSet<T>* set) {
         assert(
             universe == set->universe ||
-            !"Cannot take the difference of sets with different universes");
+            !L"Cannot take the difference of sets with different universes");
         for (int i = 0; i < min(numBytes, set->numBytes); i++)
             bytes[i] &= ~(set->bytes[i]);
     }

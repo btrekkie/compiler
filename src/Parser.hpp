@@ -14,10 +14,12 @@ public:
      * Returns the AST representation of the specified source file.  Returns
      * NULL if there is a parser (or lexer) error.
      * @param filename the filename of the source file.
-     * @param errorOutput an ostream to which to output parser (and lexer)
+     * @param errorOutput a wostream to which to output parser (and lexer)
      *     errors.
      */
-    static ASTNode* parseFile(std::string filename, std::ostream& errorOutput);
+    static ASTNode* parseFile(
+        std::wstring filename,
+        std::wostream& errorOutput);
 };
 
 #endif

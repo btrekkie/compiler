@@ -7,32 +7,32 @@ void TestCase::assertionPassed() {
     runner->assertionPassed();
 }
 
-void TestCase::assertionFailed(string message) {
+void TestCase::assertionFailed(wstring message) {
     runner->assertionFailed(message);
 }
 
-void TestCase::assertTrue(bool value, string message) {
+void TestCase::assertTrue(bool value, wstring message) {
     if (value)
         runner->assertionPassed();
     else
         runner->assertionFailed(message);
 }
 
-void TestCase::assertFalse(bool value, string message) {
+void TestCase::assertFalse(bool value, wstring message) {
     if (!value)
         runner->assertionPassed();
     else
         runner->assertionFailed(message);
 }
 
-void TestCase::assertNull(void* value, string message) {
+void TestCase::assertNull(void* value, wstring message) {
     if (value == NULL)
         runner->assertionPassed();
     else
         runner->assertionFailed(message);
 }
 
-void TestCase::assertNotNull(void* value, string message) {
+void TestCase::assertNotNull(void* value, wstring message) {
     if (value != NULL)
         runner->assertionPassed();
     else

@@ -20,79 +20,88 @@ extern "C" {
 #include "InterfaceInput.hpp"
 #include "InterfaceOutput.hpp"
 #include "Parser.hpp"
+#include "StringUtil.hpp"
 
 using namespace std;
 
 // Workaround for naming conflict with BinaryCompiler::compileFile.  C++ :(
-static CFGFile* (*compileFile2)(ASTNode*, string, ostream&) = compileFile;
+static CFGFile* (*compileFile2)(ASTNode*, wstring, wostream&) = compileFile;
 
-string BinaryCompiler::compileFile(
-    string srcDir,
-    string buildDir,
-    string filename,
-    ostream& errorOutput) {
+wstring BinaryCompiler::compileFile(
+    wstring srcDir,
+    wstring buildDir,
+    wstring filename,
+    wostream& errorOutput) {
     // Parse and compile program
-    ASTNode* node = Parser::parseFile(srcDir + '/' + filename, errorOutput);
+    ASTNode* node = Parser::parseFile(srcDir + L'/' + filename, errorOutput);
     if (node == NULL)
-        return "";
+        return L"";
     CFGFile* file = compileFile2(node, filename, errorOutput);
     astFree(node);
     if (file == NULL)
-        return "";
+        return L"";
     CFGClass* clazz = file->getClass();
-    string identifier = clazz->getIdentifier();
+    wstring identifier = clazz->getIdentifier();
     
     // Output interface file
     ClassInterface* classInterface = clazz->getInterface();
-    ofstream interfaceOutputFile(
-        (buildDir + '/' + identifier + ".int").c_str());
+    wofstream interfaceOutputFile(
+        StringUtil::asciiWstringToString(
+            buildDir + L'/' + identifier + L".int").c_str());
     InterfaceOutput interfaceOutput(interfaceOutputFile);
     interfaceOutput.outputClassInterface(classInterface);
     interfaceOutputFile.close();
     delete classInterface;
     
     // Output C++ header file
-    ofstream headerOutput((buildDir + "/" + identifier + ".hpp").c_str());
+    wofstream headerOutput(
+        StringUtil::asciiWstringToString(
+            buildDir + L"/" + identifier + L".hpp").c_str());
     outputCPPHeaderFile(file, headerOutput);
     headerOutput.close();
     
     // Output C++ implementation file
-    string implementationFilename = buildDir + "/" + identifier + ".cpp";
-    ofstream implementationOutput(implementationFilename.c_str());
+    wstring implementationFilename = buildDir + L"/" + identifier + L".cpp";
+    wofstream implementationOutput(
+        StringUtil::asciiWstringToString(implementationFilename).c_str());
     outputCPPImplementationFile(file, implementationOutput);
     implementationOutput.close();
     
     delete file;
     int result = system(
-        (string() + "c++ -c '" + implementationFilename + "' -Wall -o '" +
-         buildDir + "/" + identifier + ".o'").c_str());
+        StringUtil::asciiWstringToString(
+            wstring() + L"c++ -c '" + implementationFilename +
+            L"' -Wall -o '" + buildDir + L'/' + identifier + L".o'").c_str());
     if (result == 0)
         return identifier;
     else
-        return "";
+        return L"";
 }
 
 bool BinaryCompiler::compileExecutable(
-    string buildDir,
-    string executableFilename,
-    string className,
-    string mainMethodName) {
+    wstring buildDir,
+    wstring executableFilename,
+    wstring className,
+    wstring mainMethodName) {
     // Use a filename with a character that may not appear in a class
     // identifier, to avoid conflicts
-    string mainFilename = buildDir + "/temp+main.cpp";
-    ofstream mainFile(mainFilename.c_str());
+    wstring mainFilename = buildDir + L"/temp+main.cpp";
+    wofstream mainFile(StringUtil::asciiWstringToString(mainFilename).c_str());
     outputMainFile(className, mainMethodName, mainFile);
     mainFile.close();
     int result = system(
-        (string() + "c++ '" + buildDir + "/" + className +
-         ".o' '" + buildDir + "/temp+main.cpp' -o '" +
-         executableFilename + '\'').c_str());
+        StringUtil::asciiWstringToString(
+            wstring() + L"c++ '" + buildDir + L'/' + className + L".o' '" +
+            buildDir + L"/temp+main.cpp' -o '" + executableFilename +
+            L'\'').c_str());
     return result == 0;
 }
 
 ClassInterface* BinaryCompiler::getClassInterface(
-    string buildDir,
-    string className) {
-    ifstream input((buildDir + "/" + className + ".int").c_str());
+    wstring buildDir,
+    wstring className) {
+    wifstream input(
+        StringUtil::asciiWstringToString(
+            buildDir + L"/" + className + L".int").c_str());
     return InterfaceInput::readClassInterface(input);
 }

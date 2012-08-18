@@ -25,12 +25,12 @@ private:
     static MethodInterface* readMethodInterface(JSONValue* value);
 public:
     /**
-     * Reads a serialized ClassInterface from the specified istream.  Returns
+     * Reads a serialized ClassInterface from the specified wistream.  Returns
      * NULL if the input stream does not contain a serialized ClassInterface.
      * Returns NULL if there is something else at the end of the input, after a
      * validly encoded ClassInterface.
      */
-    static ClassInterface* readClassInterface(std::istream& input);
+    static ClassInterface* readClassInterface(std::wistream& input);
 };
 
 #endif

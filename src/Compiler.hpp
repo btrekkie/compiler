@@ -17,7 +17,7 @@ class CFGFile;
  */
 CFGFile* compileFile(
     ASTNode* node,
-    std::string filename,
-    std::ostream& errorOutput);
+    std::wstring filename,
+    std::wostream& errorOutput);
 
 #endif

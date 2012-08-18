@@ -5,35 +5,35 @@
 
 using namespace std;
 
-JSONEncoder::JSONEncoder(ostream& output2) {
+JSONEncoder::JSONEncoder(wostream& output2) {
     output = &output2;
     indentationLevel = 0;
 }
 
 void JSONEncoder::outputIndentation() {
     for (int i = 0; i < indentationLevel; i++)
-        *output << "    ";
+        *output << L"    ";
 }
 
 void JSONEncoder::outputHexChar(int value) {
-    assert(value >= 0 && value < 16 || !"Invalid hex character");
+    assert(value >= 0 && value < 16 || !L"Invalid hex character");
     if (value < 10)
-        *output << (char)(value + '0');
+        *output << (wchar_t)(value + L'0');
     else
-        *output << (char)(value - 10 + 'a');
+        *output << (wchar_t)(value - 10 + L'a');
 }
 
 void JSONEncoder::startArray() {
-    *output << '[';
+    *output << L'[';
     indentationLevel++;
     justStartedArrayOrObject = true;
 }
 
 void JSONEncoder::startArrayElement() {
     if (!justStartedArrayOrObject)
-        *output << ",\n";
+        *output << L",\n";
     else {
-        *output << '\n';
+        *output << L'\n';
         justStartedArrayOrObject = false;
     }
     outputIndentation();
@@ -44,28 +44,28 @@ void JSONEncoder::endArray() {
     if (justStartedArrayOrObject)
         justStartedArrayOrObject = false;
     else {
-        *output << "\n";
+        *output << L"\n";
         outputIndentation();
     }
-    *output << ']';
+    *output << L']';
 }
 
 void JSONEncoder::startObject() {
-    *output << '{';
+    *output << L'{';
     indentationLevel++;
     justStartedArrayOrObject = true;
 }
 
-void JSONEncoder::appendObjectKey(string key) {
+void JSONEncoder::appendObjectKey(wstring key) {
     if (!justStartedArrayOrObject)
-        *output << ",\n";
+        *output << L",\n";
     else {
-        *output << '\n';
+        *output << L'\n';
         justStartedArrayOrObject = false;
     }
     outputIndentation();
     appendStr(key);
-    *output << ": ";
+    *output << L": ";
 }
 
 void JSONEncoder::endObject() {
@@ -73,34 +73,36 @@ void JSONEncoder::endObject() {
     if (justStartedArrayOrObject)
         justStartedArrayOrObject = false;
     else {
-        *output << "\n";
+        *output << L"\n";
         outputIndentation();
     }
-    *output << '}';
+    *output << L'}';
 }
 
 void JSONEncoder::endRoot() {
-    *output << "\n";
+    *output << L"\n";
 }
 
-void JSONEncoder::appendStr(string value) {
-    *output << '"';
-    for (string::const_iterator iterator = value.begin();
+void JSONEncoder::appendStr(wstring value) {
+    *output << L'"';
+    for (wstring::const_iterator iterator = value.begin();
          iterator != value.end();
          iterator++) {
-        char c = *iterator;
-        if (c == '"' || c == '\\')
-            *output << '\\' << c;
-        else if (c >= ' ' && c <= '~')
+        wchar_t c = *iterator;
+        if (c == L'"' || c == L'\\')
+            *output << L'\\' << c;
+        else if (c >= L' ' && c <= L'~')
             // Printable ASCII character
             *output << c;
         else {
-            *output << "\\u00";
-            outputHexChar(((unsigned char)c) / 16);
-            outputHexChar(((unsigned char)c) % 16);
+            *output << L"\\u";
+            outputHexChar((c >> 12) & 0xF);
+            outputHexChar((c >> 8) & 0xF);
+            outputHexChar((c >> 4) & 0xF);
+            outputHexChar(c & 0xF);
         }
     }
-    *output << '"';
+    *output << L'"';
 }
 
 void JSONEncoder::appendDouble(double value) {
@@ -112,11 +114,11 @@ void JSONEncoder::appendInt(int value) {
 }
 
 void JSONEncoder::appendBool(bool value) {
-    *output << (value ? "true" : "false");
+    *output << (value ? L"true" : L"false");
 }
 
 void JSONEncoder::appendNull() {
-    *output << "null";
+    *output << L"null";
 }
 
 void JSONEncoder::appendValue(JSONValue* value) {
@@ -141,8 +143,8 @@ void JSONEncoder::appendValue(JSONValue* value) {
         case JSON_TYPE_OBJECT:
         {
             startObject();
-            map<string, JSONValue*> object = value->getObjectValue();
-            for (map<string, JSONValue*>::const_iterator iterator =
+            map<wstring, JSONValue*> object = value->getObjectValue();
+            for (map<wstring, JSONValue*>::const_iterator iterator =
                      object.begin();
                  iterator != object.end();
                  iterator++) {
@@ -162,6 +164,6 @@ void JSONEncoder::appendValue(JSONValue* value) {
             appendBool(value->getBoolValue());
             break;
         default:
-            assert(!"Unhanded value type");
+            assert(!L"Unhanded value type");
     }
 }

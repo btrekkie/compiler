@@ -21,10 +21,10 @@ enum CFGReducedType {
 class CFGType {
 private:
     /**
-     * The type's class name.  If this is an array, "name" is the class name of
-     * the array's (leaf) elements.
+     * The type's class name.  If this is an array, "className" is the class
+     * name of the array's (leaf) elements.
      */
-    std::string className;
+    std::wstring className;
     /**
      * If this is an array, the number of dimensions in the array.  Otherwise,
      * "numDimensions" is 0.
@@ -38,9 +38,9 @@ private:
      */
     int getPromotionLevel();
 public:
-    CFGType(std::string name2, int numDimensions2 = 0);
+    CFGType(std::wstring name2, int numDimensions2 = 0);
     CFGType(CFGType* copy);
-    std::string getClassName();
+    std::wstring getClassName();
     int getNumDimensions();
     /**
      * Returns a new CFGType for "Bool" values.
@@ -75,14 +75,14 @@ public:
      */
     bool isMorePromotedThan(CFGType* other);
     /**
-     * Returns the code string representation of this type, e.g. "Int[][]".
+     * Returns the code string representation of this type, e.g. L"Int[][]".
      */
-    std::string toString();
+    std::wstring toString();
     /**
      * Returns the CFGType represented by the specified string, or NULL if the
      * string does not represent a CFGType.  This is the inverse of toString().
      */
-    static CFGType* fromString(std::string str);
+    static CFGType* fromString(std::wstring str);
     /**
      * Returns the reduced type of this type.
      */
@@ -101,12 +101,12 @@ private:
     /**
      * The field's (unqualified) identifier.
      */
-    std::string identifier;
+    std::wstring identifier;
 public:
-    FieldInterface(CFGType* type2, std::string identifier2);
+    FieldInterface(CFGType* type2, std::wstring identifier2);
     ~FieldInterface();
     CFGType* getType();
-    std::string getIdentifier();
+    std::wstring getIdentifier();
 };
 
 /**
@@ -127,16 +127,16 @@ private:
     /**
      * The method's (unqualified) identifier.
      */
-    std::string identifier;
+    std::wstring identifier;
 public:
     MethodInterface(
         CFGType* returnType2,
         std::vector<CFGType*> argTypes2,
-        std::string identifier2);
+        std::wstring identifier2);
     ~MethodInterface();
     CFGType* getReturnType();
     std::vector<CFGType*> getArgTypes();
-    std::string getIdentifier();
+    std::wstring getIdentifier();
 };
 
 /**
@@ -148,21 +148,21 @@ private:
      * A map from the (unqualified) identifier of the class's fields to their
      * FieldInterfaces.
      */
-    std::map<std::string, FieldInterface*> fields;
+    std::map<std::wstring, FieldInterface*> fields;
     /**
      * The interfaces for the class's methods.
      */
     std::vector<MethodInterface*> methods;
-    std::string identifier;
+    std::wstring identifier;
 public:
     ClassInterface(
         std::vector<FieldInterface*> fields2,
         std::vector<MethodInterface*> methods2,
-        std::string identifier2);
+        std::wstring identifier2);
     ~ClassInterface();
     std::vector<FieldInterface*> getFields();
     std::vector<MethodInterface*> getMethods();
-    std::string getIdentifier();
+    std::wstring getIdentifier();
 };
 
 #endif

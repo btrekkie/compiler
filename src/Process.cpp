@@ -7,10 +7,11 @@
 #include <unistd.h>
 #include "FileManager.hpp"
 #include "Process.hpp"
+#include "StringUtil.hpp"
 
 using namespace std;
 
-Process::Process(std::string command2) {
+Process::Process(std::wstring command2) {
     command = command2;
     timeout = -1;
     maxStdOutCaptureBytes = -1;
@@ -29,20 +30,21 @@ void Process::setMaxStdOutCaptureBytes(int maxStdOutCaptureBytes2) {
  * with pipes and sockets.
  */
 void Process::run() {
-    string outputFilename = FileManager::getTempFilename();
-    ofstream output(outputFilename.c_str());
+    wstring outputFilename = FileManager::getTempFilename();
+    wofstream output(StringUtil::asciiWstringToString(outputFilename).c_str());
     output.close();
-    string finishedFilename = FileManager::getTempFilename();
+    wstring finishedFilename = FileManager::getTempFilename();
     
     pid_t processID = fork();
     if (processID == 0) {
-        ostringstream fullCommand;
+        wostringstream fullCommand;
         fullCommand << command;
         if (maxStdOutCaptureBytes >= 0)
-            fullCommand << " | head -c " << maxStdOutCaptureBytes;
-        fullCommand << " > '" << outputFilename << '\'';
-        system(fullCommand.str().c_str());
-        ofstream output2(finishedFilename.c_str());
+            fullCommand << L" | head -c " << maxStdOutCaptureBytes;
+        fullCommand << L" > '" << outputFilename << L'\'';
+        system(StringUtil::asciiWstringToString(fullCommand.str()).c_str());
+        wofstream output2(
+            StringUtil::asciiWstringToString(finishedFilename).c_str());
         output2.close();
         exit(0);
     }
@@ -67,18 +69,18 @@ void Process::run() {
         }
     }
     wait(NULL);
-    ifstream input(outputFilename.c_str());
-    ostringstream outputStr;
+    wifstream input(StringUtil::asciiWstringToString(outputFilename).c_str());
+    wostringstream outputStr;
     outputStr << input.rdbuf();
     stdOut = outputStr.str();
-    remove(finishedFilename.c_str());
-    remove(outputFilename.c_str());
+    remove(StringUtil::asciiWstringToString(finishedFilename).c_str());
+    remove(StringUtil::asciiWstringToString(outputFilename).c_str());
 }
 
 bool Process::getTimedOut() {
     return timedOut;
 }
 
-string Process::getStdOut() {
+wstring Process::getStdOut() {
     return stdOut;
 }

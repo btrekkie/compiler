@@ -22,7 +22,7 @@ private:
      * @param expected the value for which "str" is a JSON encoding.  This is
      *     NULL if "str" is not a valid JSON encoding.
      */
-    void checkJSON(std::string str, JSONValue* expected);
+    void checkJSON(std::wstring str, JSONValue* expected);
     /**
      * Returns a JSON array value with the specified elements.
      */
@@ -39,11 +39,11 @@ private:
      * Returns a JSON object value with the specifier key-value pairs.
      */
     JSONValue* getObjectValue(
-        std::string key1,
+        std::wstring key1,
         JSONValue* value1,
-        std::string key2,
+        std::wstring key2,
         JSONValue* value2,
-        std::string key3,
+        std::wstring key3,
         JSONValue* value3);
     /**
      * Tests JSONDecoder and JSONEncoder.appendValue.
@@ -54,7 +54,7 @@ private:
      */
     void testEncoder();
 public:
-    std::string getName();
+    std::wstring getName();
     void test();
 };
 

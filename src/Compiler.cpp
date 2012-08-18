@@ -18,6 +18,7 @@
 #include "CompilerErrors.hpp"
 #include "CPPCompiler.hpp"
 #include "Interface.hpp"
+#include "StringUtil.hpp"
 #include "TypeEvaluator.hpp"
 #include "VarResolver.hpp"
 
@@ -39,7 +40,7 @@ private:
      * TODO (classes) include methods from other classes
      * TODO support method overloading
      */
-    map<string, MethodInterface*> methodInterfaces;
+    map<wstring, MethodInterface*> methodInterfaces;
     /**
      * A vector to which to append the compiled statements.
      */
@@ -83,20 +84,20 @@ private:
      * A map from the identifiers of the class's fields to the CFGOperands for
      * those fields.
      */
-    map<string, CFGOperand*> fieldVars;
+    map<wstring, CFGOperand*> fieldVars;
     /**
      * A map from the identifiers of the class's fields to their types.
      */
-    map<string, CFGType*> fieldTypes;
+    map<wstring, CFGType*> fieldTypes;
     /**
      * A set of the identifiers of the class's fields.
      */
-    set<string> fieldIdentifiers;
+    set<wstring> fieldIdentifiers;
     /**
      * A map from the identifiers of the arguments to the method we are
      * currently compiling to the CFGOperands for those variables.
      */
-    map<string, CFGOperand*> argVars;
+    map<wstring, CFGOperand*> argVars;
     /**
      * A BreakEvaluator maintaining compiler state pertaining to control flow
      * statements in the current method, if any: break statements, continue
@@ -113,7 +114,7 @@ private:
      */
     TypeEvaluator* typeEvaluator;
     
-    void emitError(ASTNode* node, string error) {
+    void emitError(ASTNode* node, wstring error) {
         errors->emitError(node, error);
     }
     
@@ -127,11 +128,11 @@ private:
      * @return the CFGOperand.
      */
     CFGOperand* getVarOperand(ASTNode* node, CFGReducedType type) {
-        assert(node->type == AST_IDENTIFIER || !"Not a variable node");
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable node");
         assert(
             varIDs.count(node) > 0 ||
-            !"Missing variable id.  Probably a bug in VarResolver.");
-        string identifier = node->tokenStr;
+            !L"Missing variable id.  Probably a bug in VarResolver.");
+        wstring identifier = node->tokenStr;
         int varID = varIDs[node];
         if (varID >= 0) {
             map<int, CFGOperand*>* vars;
@@ -164,7 +165,7 @@ private:
      * information.
      */
     CFGOperand* getVarOperand(ASTNode* node) {
-        assert(node->type == AST_IDENTIFIER || !"Not a variable node");
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable node");
         return getVarOperand(node, typeEvaluator->getExpressionType(node));
     }
     
@@ -194,10 +195,10 @@ private:
      * Int value.  See the comments for "varIDToOperands" for more information.
      */
     void setPromotedVarOperands(ASTNode* node) {
-        assert(node->type == AST_IDENTIFIER || !"Not a variable node");
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable node");
         assert(
             varIDs.count(node) > 0 ||
-            !"Missing variable id.  Probably a bug in VarResolver.");
+            !L"Missing variable id.  Probably a bug in VarResolver.");
         int varID = varIDs[node];
         if (varID >= 0) {
             CFGReducedType type = typeEvaluator->getExpressionType(node);
@@ -229,8 +230,8 @@ private:
             node->child1->type != AST_ARRAY_GET) {
             emitError(
                 node,
-                "Increment / decrement operator may only be used on variables "
-                "or array elements");
+                L"Increment / decrement operator may only be used on variables "
+                L"or array elements");
             return compileExpression(node->child1);
         }
         CFGOperand* operand;
@@ -274,7 +275,7 @@ private:
                 expressionResult = destination;
                 break;
             default:
-                assert(!"Unhandled increment type");
+                assert(!L"Unhandled increment type");
                 return NULL;
         }
         if (node->child1->type == AST_IDENTIFIER)
@@ -400,7 +401,7 @@ private:
             case AST_XOR_ASSIGN:
                 return CFG_XOR;
             default:
-                assert(!"Unhandled assignment type");
+                assert(!L"Unhandled assignment type");
         }
     }
     
@@ -451,7 +452,7 @@ private:
             case AST_XOR:
                 return CFG_XOR;
             default:
-                assert(!"Unhandled expression type");
+                assert(!L"Unhandled expression type");
         }
     }
     
@@ -474,7 +475,7 @@ private:
             case REDUCED_TYPE_DOUBLE:
                 return 5;
             default:
-                assert(!"Unhandled numeric type");
+                assert(!L"Unhandled numeric type");
         }
         return 0;
     }
@@ -528,19 +529,25 @@ private:
                 return CFGOperand::fromBool(false);
             case AST_FLOAT_LITERAL:
             {
-                string str = node->tokenStr;
-                char lastChar = str.at(str.length() - 1);
-                if (lastChar == 'f' || lastChar == 'F')
+                wstring str = node->tokenStr;
+                wchar_t lastChar = str.at(str.length() - 1);
+                if (lastChar == L'f' || lastChar == L'F')
                     return new CFGOperand(
-                        (float)atof(str.substr(0, str.length() - 1).c_str()));
+                        (float)atof(
+                            StringUtil::asciiWstringToString(
+                                str.substr(0, str.length() - 1)).c_str()));
                 else
-                    return new CFGOperand(strtod(node->tokenStr, NULL));
+                    return new CFGOperand(
+                        strtod(
+                            StringUtil::asciiWstringToString(
+                                node->tokenStr).c_str(),
+                            NULL));
             }
             case AST_INT_LITERAL:
             {
-                string str = node->tokenStr;
-                char lastChar = str.at(str.length() - 1);
-                bool isLong = lastChar == 'l' || lastChar == 'L';
+                wstring str = node->tokenStr;
+                wchar_t lastChar = str.at(str.length() - 1);
+                bool isLong = lastChar == L'l' || lastChar == L'L';
                 long long value;
                 if (ASTUtil::getIntLiteralValue(str, value)) {
                     if (isLong)
@@ -550,19 +557,19 @@ private:
                 } else if (isLong) {
                     emitError(
                         node,
-                        "Literal value is too large for Long data type");
+                        L"Literal value is too large for Long data type");
                     return new CFGOperand(0LL);
                 } else {
                     emitError(
                         node,
-                        "Literal value is too large for Int data type");
+                        L"Literal value is too large for Int data type");
                     return new CFGOperand(0);
                 }
             }
             case AST_TRUE:
                 return CFGOperand::fromBool(true);
             default:
-                assert(!"Unhandled literal type");
+                assert(!L"Unhandled literal type");
         }
         return NULL;
     }
@@ -627,7 +634,7 @@ private:
                 return destination;
             }
             default:
-                assert(!"Unhandled math expression");
+                assert(!L"Unhandled math expression");
         }
         return NULL;
     }
@@ -709,7 +716,7 @@ private:
                 return destination;
             }
             default:
-                assert(!"Unhanded boolean expression");
+                assert(!L"Unhanded boolean expression");
         }
         return NULL;
     }
@@ -722,13 +729,13 @@ private:
     CFGOperand* compileAssignmentExpression(ASTNode* node) {
         assert(
             node->type == AST_ASSIGNMENT_EXPRESSION ||
-                !"Not an assignment expression");
+                !L"Not an assignment expression");
         if (node->child1->type != AST_IDENTIFIER &&
             node->child1->type != AST_ARRAY_GET) {
             emitError(
                 node,
-                "Invalid left-hand side; must be a variable or an array "
-                "element");
+                L"Invalid left-hand side; must be a variable or an array "
+                L"element");
             compileExpression(node->child1);
             return compileExpression(node->child2);
         }
@@ -786,12 +793,12 @@ private:
      *     if it is a void method.
      */
     CFGOperand* compileMethodCall(ASTNode* node) {
-        string identifier = node->child1->tokenStr;
+        wstring identifier = node->child1->tokenStr;
         MethodInterface* interface;
         CFGOperand* destination;
         int numArgs;
         if (methodInterfaces.count(identifier) == 0) {
-            emitError(node, "Calling an unknown method");
+            emitError(node, L"Calling an unknown method");
             destination = NULL;
             numArgs = -1;
         } else {
@@ -807,10 +814,10 @@ private:
         if (node->child2 != NULL)
             compileMethodCallArgList(node->child2, args);
         if ((int)args.size() < numArgs)
-            emitError(node, "Too few arguments to method call");
+            emitError(node, L"Too few arguments to method call");
         else if ((int)args.size() > numArgs) {
             if (numArgs >= 0)
-                emitError(node, "Too many arguments to method call");
+                emitError(node, L"Too many arguments to method call");
         }
         CFGStatement* statement = new CFGStatement(
             CFG_METHOD_CALL,
@@ -829,7 +836,7 @@ private:
     CFGOperand* compileExpression(ASTNode* node) {
         switch (node->type) {
             case AST_ARRAY:
-                assert(!"TODO array literals");
+                assert(!L"TODO array literals");
                 return NULL;
             case AST_ARRAY_GET:
             {
@@ -871,7 +878,7 @@ private:
             case AST_CAST:
             case AST_NEW:
             case AST_TARGETED_METHOD_CALL:
-                assert(!"TODO classes");
+                assert(!L"TODO classes");
                 return NULL;
             case AST_FALSE:
             case AST_FLOAT_LITERAL:
@@ -888,7 +895,7 @@ private:
                 else {
                     emitError(
                         node,
-                        "Cannot use the return value of void method");
+                        L"Cannot use the return value of void method");
                     return new CFGOperand(0);
                 }
             }
@@ -898,10 +905,10 @@ private:
             case AST_PRE_INCREMENT:
                 return compileIncrementExpression(node);
             case AST_QUALIFIED_IDENTIFIER:
-                assert(!"TODO classes");
+                assert(!L"TODO classes");
                 return NULL;
             default:
-                assert(!"Unhandled expression type");
+                assert(!L"Unhandled expression type");
         }
         return NULL;
     }
@@ -1025,7 +1032,7 @@ private:
                 break;
             }
             default:
-                assert(!"Unhandled loop type");
+                assert(!L"Unhandled loop type");
                 break;
         }
         statements.push_back(CFGStatement::fromLabel(endLabel));
@@ -1060,7 +1067,7 @@ private:
         // type
         if (node->type == AST_EMPTY_CASE_LIST)
             return;
-        assert(node->type == AST_CASE_LIST || !"Not a case list");
+        assert(node->type == AST_CASE_LIST || !L"Not a case list");
         compileCaseList(
             node->child1,
             node->child2,
@@ -1070,7 +1077,7 @@ private:
             haveEncounteredDefault);
         if (node->child2->type == AST_CASE_LABEL_DEFAULT) {
             if (haveEncounteredDefault)
-                emitError(node, "Duplicate default label");
+                emitError(node, L"Duplicate default label");
             haveEncounteredDefault = true;
             switchValues.push_back(NULL);
         } else {
@@ -1082,7 +1089,7 @@ private:
             else {
                 intValue = value->getIntValue();
                 if (switchValueInts.count(value->getIntValue()) > 0)
-                    emitError(node, "Duplicate case label");
+                    emitError(node, L"Duplicate case label");
             }
             switchValueInts.insert(intValue);
             switchValues.push_back(value);
@@ -1093,8 +1100,8 @@ private:
             !breakEvaluator->alwaysBreaks(node->child3))
             emitError(
                 nextCaseLabelNode,
-                "Falling through in a switch statement is not permitted.  "
-                "Perhaps you are missing a break statement.");
+                L"Falling through in a switch statement is not permitted.  "
+                L"Perhaps you are missing a break statement.");
         CFGLabel* label = new CFGLabel();
         switchLabels.push_back(label);
         statements.push_back(CFGStatement::fromLabel(label));
@@ -1121,14 +1128,14 @@ private:
             if (numLoopsOperand->getType() == REDUCED_TYPE_LONG) {
                 emitError(
                     node,
-                    "Number of loops must be an integer literal, not a long "
-                    "literal");
+                    L"Number of loops must be an integer literal, not a long "
+                    L"literal");
                 delete numLoopsOperand;
                 return false;
             } else {
                 assert(
                     numLoopsOperand->getType() == REDUCED_TYPE_INT ||
-                    !"Unexpected literal type");
+                    !L"Unexpected literal type");
                 numLoops = numLoopsOperand->getIntValue();
                 delete numLoopsOperand;
                 return true;
@@ -1149,7 +1156,7 @@ private:
                 if (getNumJumpLoops(node, numLoops)) {
                     label = breakEvaluator->getBreakLabel(numLoops);
                     if (label == NULL) {
-                        emitError(node, "Attempting to break out of non-loop");
+                        emitError(node, L"Attempting to break out of non-loop");
                         return;
                     }
                 }
@@ -1161,7 +1168,7 @@ private:
                 if (getNumJumpLoops(node, numLoops)) {
                     label = breakEvaluator->getContinueLabel(numLoops);
                     if (label == NULL) {
-                        emitError(node, "Attempting to continue non-loop");
+                        emitError(node, L"Attempting to continue non-loop");
                         return;
                     }
                 }
@@ -1173,7 +1180,7 @@ private:
                     if (breakEvaluator->getReturnVar() == NULL) {
                         emitError(
                             node,
-                            "Cannot return a value from a void method");
+                            L"Cannot return a value from a void method");
                         delete operand;
                     } else
                         statements.push_back(
@@ -1182,11 +1189,11 @@ private:
                                 breakEvaluator->getReturnVar(),
                                 operand));
                 } else if (breakEvaluator->getReturnVar() != NULL)
-                    emitError(node, "Must return a non-void value");
+                    emitError(node, L"Must return a non-void value");
                 label = breakEvaluator->getReturnLabel();
                 break;
             default:
-                assert(!"Unhanded control flow statement type");
+                assert(!L"Unhanded control flow statement type");
         }
         statements.push_back(CFGStatement::jump(label));
     }
@@ -1252,7 +1259,7 @@ private:
                 break;
             }
             default:
-                assert(!"Unhanded selection statement type");
+                assert(!L"Unhanded selection statement type");
         }
     }
     
@@ -1299,7 +1306,7 @@ private:
                 compileVarDeclarationList(node->child1);
                 break;
             default:
-                assert(!"Unhandled statement type");
+                assert(!L"Unhandled statement type");
                 break;
         }
     }
@@ -1326,7 +1333,7 @@ private:
         ASTNode* node,
         vector<CFGOperand*>& args,
         vector<CFGType*>& argTypes) {
-        assert(node->child3 == NULL || !"TODO default arguments");
+        assert(node->child3 == NULL || !L"TODO default arguments");
         CFGType* type = ASTUtil::getCFGType(node->child1);
         argTypes.push_back(type);
         CFGOperand* var = new CFGOperand(
@@ -1362,7 +1369,7 @@ private:
      * already available in "fieldVars" and the like.)
      */
     CFGMethod* compileMethodDefinition(ASTNode* node) {
-        string identifier = node->child2->tokenStr;
+        wstring identifier = node->child2->tokenStr;
         argVars.clear();
         vector<CFGOperand*> args;
         vector<CFGType*> argTypes;
@@ -1397,7 +1404,7 @@ private:
         compileStatementList(statementListNode);
         if (returnVar != NULL &&
             !breakEvaluator->alwaysBreaks(statementListNode))
-            emitError(node, "Method may finish without returning a value");
+            emitError(node, L"Method may finish without returning a value");
         statements.push_back(CFGStatement::fromLabel(returnLabel));
         for (map<CFGReducedType, map<int, CFGOperand*>*>::const_iterator
                  iterator = varIDToOperands.begin();
@@ -1440,17 +1447,17 @@ private:
      */
     void getBuiltInMethodInterfaces() {
         vector<CFGType*> argTypes;
-        argTypes.push_back(new CFGType("Object"));
-        methodInterfaces["print"] = new MethodInterface(
+        argTypes.push_back(new CFGType(L"Object"));
+        methodInterfaces[L"print"] = new MethodInterface(
             NULL,
             argTypes,
-            "print");
+            L"print");
         argTypes.clear();
-        argTypes.push_back(new CFGType("Object"));
-        methodInterfaces["println"] = new MethodInterface(
+        argTypes.push_back(new CFGType(L"Object"));
+        methodInterfaces[L"println"] = new MethodInterface(
             NULL,
             argTypes,
-            "println");
+            L"println");
     }
     
     /**
@@ -1472,9 +1479,9 @@ private:
         vector<CFGType*> argTypes;
         if (node->child2->child4 != NULL)
             getArgTypes(node->child2->child3, argTypes);
-        string identifier = node->child2->child2->tokenStr;
+        wstring identifier = node->child2->child2->tokenStr;
         if (methodInterfaces.count(identifier) > 0)
-            assert(!"TODO method overloading");
+            assert(!L"TODO method overloading");
         methodInterfaces[identifier] = new MethodInterface(
             returnType,
             argTypes,
@@ -1489,7 +1496,7 @@ private:
      * @param type the type of the fields being declared.
      */
     void compileFieldDeclarationItem(ASTNode* node, CFGType* type) {
-        string identifier;
+        wstring identifier;
         if (node->type != AST_ASSIGNMENT_EXPRESSION)
             identifier = node->tokenStr;
         else
@@ -1558,7 +1565,7 @@ private:
         vector<CFGMethod*> methods;
         compileMethodDefinitions(node->child2, methods);
         
-        for (map<string, MethodInterface*>::const_iterator iterator =
+        for (map<wstring, MethodInterface*>::const_iterator iterator =
                  methodInterfaces.begin();
              iterator != methodInterfaces.end();
              iterator++)
@@ -1582,8 +1589,8 @@ public:
      */
     CFGFile* compileFile(
         ASTNode* node,
-        string filename,
-        ostream& errorOutput) {
+        wstring filename,
+        wostream& errorOutput) {
         errors = new CompilerErrors(errorOutput, filename);
         CFGFile* file = new CFGFile(compileClass(node->child1));
         bool hasEmittedError = errors->getHasEmittedError();
@@ -1597,7 +1604,7 @@ public:
     }
 };
 
-CFGFile* compileFile(ASTNode* node, string filename, ostream& errorOutput) {
+CFGFile* compileFile(ASTNode* node, wstring filename, wostream& errorOutput) {
     Compiler compiler;
     return compiler.compileFile(node, filename, errorOutput);
 }

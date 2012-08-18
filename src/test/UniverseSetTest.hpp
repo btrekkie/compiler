@@ -5,7 +5,7 @@
 
 class UniverseSetTest : public TestCase {
 public:
-    std::string getName();
+    std::wstring getName();
     void test();
 };
 

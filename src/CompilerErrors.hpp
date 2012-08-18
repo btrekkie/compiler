@@ -13,18 +13,18 @@ private:
     /**
      * The ostream to which to output compiler errors.
      */
-    std::ostream* output;
+    std::wostream* output;
     /**
      * The filename of the source file.  This is only used in the message we
      * output when printing compiler errors.  We do not actually read the file.
      */
-    std::string filename;
+    std::wstring filename;
     /**
      * Whether we called "emitError".
      */
     bool hasEmittedError;
 public:
-    CompilerErrors(std::ostream& output2, std::string filename2);
+    CompilerErrors(std::wostream& output2, std::wstring filename2);
     /**
      * Outputs a user-facing compiler error.
      * 
@@ -41,7 +41,7 @@ public:
      * @param node the node at which the error appears.
      * @param error the text of the error.
      */
-    void emitError(ASTNode* node, std::string error);
+    void emitError(ASTNode* node, std::wstring error);
     bool getHasEmittedError();
 };
 

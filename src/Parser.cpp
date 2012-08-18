@@ -11,18 +11,19 @@ extern "C" {
 #include <set>
 #include <stdio.h>
 #include "Parser.hpp"
+#include "StringUtil.hpp"
 
 using namespace std;
 
 /**
  * The filename passed to the most recent call to "parseFile".
  */
-static string curFilename;
+static wstring curFilename;
 /**
- * The ostream to which to output parser (and lexer) errors produced by the most
- * recent call to yyparse().
+ * The wostream to which to output parser (and lexer) errors produced by the
+ * most recent call to yyparse().
  */
-static ostream* curErrorOutput;
+static wostream* curErrorOutput;
 /**
  * A set of all of the ASTNodes allocated since the beginning of the last call
  * to "parseFile".
@@ -38,13 +39,13 @@ static ASTNode* curNode;
 static bool encounteredError;
 
 void yyerror(const char* str) {
-    *curErrorOutput << "Syntax error in " << curFilename << " at line " <<
-        yylineno << "\n";
+    *curErrorOutput << L"Syntax error in " << curFilename << L" at line " <<
+        yylineno << L'\n';
     encounteredError = true;
 }
 
-ASTNode* Parser::parseFile(string filename, ostream& errorOutput) {
-    FILE* file = fopen(filename.c_str(), "r");
+ASTNode* Parser::parseFile(wstring filename, wostream& errorOutput) {
+    FILE* file = fopen(StringUtil::asciiWstringToString(filename).c_str(), "r");
     void* parseData = setFileToParse(file);
     curFilename = filename;
     curErrorOutput = &errorOutput;

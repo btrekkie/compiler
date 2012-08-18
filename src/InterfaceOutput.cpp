@@ -4,7 +4,7 @@
 
 using namespace std;
 
-InterfaceOutput::InterfaceOutput(ostream& output2) {
+InterfaceOutput::InterfaceOutput(wostream& output2) {
     output = new JSONEncoder(output2);
 }
 
@@ -14,23 +14,23 @@ InterfaceOutput::~InterfaceOutput() {
 
 void InterfaceOutput::outputFieldInterface(FieldInterface* interface) {
     output->startObject();
-    output->appendObjectKey("identifier");
+    output->appendObjectKey(L"identifier");
     output->appendStr(interface->getIdentifier());
-    output->appendObjectKey("type");
+    output->appendObjectKey(L"type");
     output->appendStr(interface->getType()->toString());
     output->endObject();
 }
 
 void InterfaceOutput::outputMethodInterface(MethodInterface* interface) {
     output->startObject();
-    output->appendObjectKey("identifier");
+    output->appendObjectKey(L"identifier");
     output->appendStr(interface->getIdentifier());
-    output->appendObjectKey("returnType");
+    output->appendObjectKey(L"returnType");
     if (interface->getReturnType() != NULL)
         output->appendStr(interface->getReturnType()->toString());
     else
-        output->appendStr("void");
-    output->appendObjectKey("argTypes");
+        output->appendStr(L"void");
+    output->appendObjectKey(L"argTypes");
     output->startArray();
     vector<CFGType*> argTypes = interface->getArgTypes();
     for (vector<CFGType*>::const_iterator iterator = argTypes.begin();
@@ -45,9 +45,9 @@ void InterfaceOutput::outputMethodInterface(MethodInterface* interface) {
 
 void InterfaceOutput::outputClassInterface(ClassInterface* interface) {
     output->startObject();
-    output->appendObjectKey("identifier");
+    output->appendObjectKey(L"identifier");
     output->appendStr(interface->getIdentifier());
-    output->appendObjectKey("fields");
+    output->appendObjectKey(L"fields");
     output->startArray();
     vector<FieldInterface*> fields = interface->getFields();
     for (vector<FieldInterface*>::const_iterator iterator = fields.begin();
@@ -57,7 +57,7 @@ void InterfaceOutput::outputClassInterface(ClassInterface* interface) {
         outputFieldInterface(*iterator);
     }
     output->endArray();
-    output->appendObjectKey("methods");
+    output->appendObjectKey(L"methods");
     output->startArray();
     vector<MethodInterface*> methods = interface->getMethods();
     for (vector<MethodInterface*>::const_iterator iterator = methods.begin();

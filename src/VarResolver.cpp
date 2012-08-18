@@ -10,11 +10,11 @@ using namespace std;
  */
 class VarResolverImpl {
 private:
-    set<string>* fieldIdentifiers;
+    set<wstring>* fieldIdentifiers;
     /**
      * A set of the method's arguments' identifiers.
      */
-    set<string> argIdentifiers;
+    set<wstring> argIdentifiers;
     /**
      * The CompilerErrors object we are using to emit compiler errors.
      */
@@ -23,12 +23,12 @@ private:
      * A map from the identifiers of all of the local (non-argument) variables
      * we have encountered thus far to their corresponding ids.
      */
-    map<string, int> allVars;
+    map<wstring, int> allVars;
     /**
      * A stack of sets indicating the variables in the current frame / scope and
      * its ancestors.
      */
-    vector<set<string>*> frameVars;
+    vector<set<wstring>*> frameVars;
     /**
      * A map from the variable nodes we have visited to the ids of the
      * variables.
@@ -43,15 +43,15 @@ private:
      * Pushes a frame / scope for variables to the stack of frames.
      */
     void pushFrame() {
-        frameVars.push_back(new set<string>());
+        frameVars.push_back(new set<wstring>());
     }
     
     /**
      * Pops a frame / scope for variables from the stack of frames.
      */
     void popFrame() {
-        set<string>* frame = frameVars.back();
-        for (set<string>::const_iterator iterator = frame->begin();
+        set<wstring>* frame = frameVars.back();
+        for (set<wstring>::const_iterator iterator = frame->begin();
              iterator != frame->end();
              iterator++)
             allVars.erase(*iterator);
@@ -65,8 +65,8 @@ private:
      * identifier" error if appropriate.
      */
     void createVar(ASTNode* node) {
-        assert(node->type == AST_IDENTIFIER || !"Not a variable");
-        string identifier = node->tokenStr;
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable");
+        wstring identifier = node->tokenStr;
         int id = nextVarID;
         nextVarID++;
         nodeToVar[node] = id;
@@ -74,7 +74,7 @@ private:
             allVars.count(identifier) > 0)
             errors->emitError(
                 node,
-                "Multiple variables with the same identifier");
+                L"Multiple variables with the same identifier");
         else {
             allVars[identifier] = id;
             frameVars.back()->insert(identifier);
@@ -87,15 +87,15 @@ private:
      * variable.  Emits an "undeclared variable" error if appropriate.
      */
     int getVarID(ASTNode* node) {
-        assert(node->type == AST_IDENTIFIER || !"Not a variable");
-        string identifier = node->tokenStr;
+        assert(node->type == AST_IDENTIFIER || !L"Not a variable");
+        wstring identifier = node->tokenStr;
         if (fieldIdentifiers->count(identifier) > 0 ||
             argIdentifiers.count(identifier) > 0)
             return -1;
         else if (allVars.count(identifier) > 0)
             return allVars[identifier];
         else {
-            errors->emitError(node, "Variable not declared in this scope");
+            errors->emitError(node, L"Variable not declared in this scope");
             return -1;
         }
     }
@@ -110,7 +110,7 @@ private:
         else {
             assert(
                 node->type == AST_ASSIGNMENT_EXPRESSION ||
-                !"Not a variable declaration item node");
+                !L"Not a variable declaration item node");
             createVar(node->child1);
             visitNode(node->child3);
         }
@@ -137,13 +137,13 @@ private:
         switch (node->type) {
             case AST_ARG:
             {
-                string identifier = node->child2->tokenStr;
+                wstring identifier = node->child2->tokenStr;
                 if (argIdentifiers.count(identifier) == 0)
                     argIdentifiers.insert(identifier);
                 else
                     errors->emitError(
                         node,
-                        "Multiple method arguments with the same identifier");
+                        L"Multiple method arguments with the same identifier");
                 if (node->child3 != NULL)
                     visitNode(node->child3);
                 return;
@@ -205,9 +205,9 @@ private:
 public:
     map<ASTNode*, int> resolveVars(
         ASTNode* node,
-        set<string>& fieldIdentifiers2,
+        set<wstring>& fieldIdentifiers2,
         CompilerErrors* errors2) {
-        assert(node->type == AST_METHOD_DEFINITION || !"Not a method node");
+        assert(node->type == AST_METHOD_DEFINITION || !L"Not a method node");
         fieldIdentifiers = &fieldIdentifiers2;
         errors = errors2;
         nextVarID = 0;
@@ -222,7 +222,7 @@ public:
 
 map<ASTNode*, int> VarResolver::resolveVars(
     ASTNode* node,
-    set<string>& fieldIdentifiers,
+    set<wstring>& fieldIdentifiers,
     CompilerErrors* errors) {
     VarResolverImpl impl;
     return impl.resolveVars(node, fieldIdentifiers, errors);

@@ -15,7 +15,7 @@ private:
      * Returns the decimal representation of the specified hexadecimal
      * character.  Assumes that the character is a valid hexacedimal character.
      */
-    static int hexDigitToInt(char c);
+    static int hexDigitToInt(wchar_t c);
 public:
     /**
      * Computes the integer or long literal value indicated by the specified
@@ -28,7 +28,7 @@ public:
      *     -9223372036854775808 to 9223372036854775807 for longs).  If the value
      *     is not in bounds, "value" is not altered.
      */
-    static bool getIntLiteralValue(std::string str, long long& value);
+    static bool getIntLiteralValue(std::wstring str, long long& value);
     /**
      * Returns the CFGType representation of the specified type node (the "type"
      * rule in grammar.y).
