@@ -1,0 +1,227 @@
+NOTES ON THE COMPILER
+
+All basic functionality (e.g. arithmetic, for loops, switch statements) is implemented.  All non-basic functionality is not.  I just started working on adding support for arrays.  Classes, generics, fields, modules, etc. have yet to be implemented.
+
+The code in "lib_src" is largely outdated; I was just trying out a bunch of ideas.
+
+Other open tasks:
+
+-Make the memory management not suck.
+-Refactor TypeEvaluator somehow; it's too complicated.  An initial thought is to move all of the state (the fields) into a separate class.  It's not clear how to simplify gnarly types like "vector<vector<LinkedList<pair<int, CFGPartialType*> >*>*>", but that would be nice.
+-Update a couple of places to use the pimpl design pattern, e.g. Compiler.hpp.
+-Switch from "if (condition) statement;" to the "if (condition) { statement; }" convention.
+-Switch from the "hpp" extension to the "h" extension.
+
+
+
+NOTES ON THE LANGUAGE
+
+The language is largely similar to Java.  It is generally safe to assume it is the same except where departures are specifically mentioned.  The goal of the language, to the extent it has a goal, is to be like Java but with less typing.
+
+
+
+Primitives:
+
+Everything is an object, including primitive types like Int and Float.  Despite this fact, under the hood, the primitive types are compiled to ordinary primitives (e.g. Int => long int, but SomeType => CompiledObject*).  Arrays are compiled to a class consisting of two fields: the contents of the array and the int length of the array.  The contents of the array are CompiledObject** in the case of non-primitives and primitive arrays such as float* in the case of primitives.  Methods on primitive types (e.g. Int.toString()) are compiled to ordinary functions (e.g. toString(long int)).  All this avoids wasting space and time creating unnecessary objects, as in Java boxing and unboxing.
+
+For generics, I am thinking we could use another optimization to further avoid boxing and unboxing.  Specifically, templated fields can be compiled to a union rather than a CompiledObject*.  For example,
+
+Foo<T> {
+    T bar;
+}
+
+should compile to:
+
+class Foo {
+    union {
+        CompiledObject* objectValue,
+        int intValue,
+        float floatValue,
+        ...
+    } bar;
+};
+
+This requires a fair amount of bookkeeping to get right, but it saves time and space in the case of primitives.
+
+Arrays support a "subarray" method, which provides a direct reference to a subarray.  For example,
+
+void setElements(Int[] array, Int value) {
+    for (var i = 0; i < array.length; i++)
+        array[i] = value;
+}
+
+void testSubarray() {
+    var array = new Int[5];
+    setElements(array.subarray(0, 2), 1);
+    setElements(array.subarray(2, 5), 2);
+    println(array);
+}
+
+testSubarray() prints [1, 1, 2, 2, 2].  The subarray method is idiomatic and prevents having to pass in offset and length parameters, as is common in Java (e.g. InputStream.read(byte[], int, int)).  Using pointer arithmetic, this could still be implemented using only two fields: a pointer to the array contents and the array length.
+
+
+
+Strings:
+
+I am thinking we should implement Strings using UTF-8 byte arrays, because that is the common representation for reading and writing.  To make the "substring" operation efficient, String objects should also have fields that cache the number of bytes in various substrings.  For example, there might be a vector-ish field containing [this.substring(0, 50).toUTF8ByteArray().length(), this.substring(0, 100).toUTF8ByteArray().length(), this.substring(0, 150).toUTF8ByteArray().length(), ...].
+
+We will need to add a Char type, to support iteration over Strings and to support "char - 'a'".  It is basically exposed as a 32-bit integer (using UTF-32), though it need not be implemented as such.  (In particular, we might select a representation that is optimized for ASCII.)
+
+
+
+Optimizations:
+
+I have some thoughts on language-level features for writing optimized code.  One idea is to have an Allocator class, which exposes a pool of objects.  Perhaps the following:
+
+void foo() {
+    var map = new HashMap<Int, Foo>();
+    var allocator = new Allocator<Foo>(100);
+    for (var i = 0; i < 100; i++) {
+        map.put(i, allocator.allocate("First constructor arg", "Second", i);
+    }
+}
+
+Thus, we would use a single call to malloc to allocate 100 Foo objects.  HashMap could use the Allocator class to allocate all of its hash entries at once, saving time and space.  Cons: Might be overly complicated for small performance increase; Allocator.allocate method must have either awkward prototype or magical prototype to support different template arguments.
+
+Potentially, there could be allocator.release(foo) to release an object to a free list.  Probably better to omit it though, since it adds complexity, eliminates safety of previously acquired references to Foo objects, and it is possible to do something equivalent without it, by altering the fields of previously acquired Foo objects.
+
+Another idea is having a FastIterator<T> class, along the lines of Objective-C fast enumeration.  This would probably be alongside Iterator<T>, which is better when reduced complexity and typing are preferred.  Cons: Have to be able to convert between FastIterator and Iterator, which increases complexity.
+
+
+
+Macros:
+
+The language supports some predefined "macros" for reducing typing.  Some ideas: the following:
+
+class Foo {
+    public Int field1;
+    public Int field2;
+    public Int field3;
+    public Bar field4;
+    
+    @constructor(field1, field2 = 0);
+    @accessors(field1);
+    @getters(field2, field3);
+    @setter(field4);
+    @delegate(field4, method1, method2);
+    @hash(field1, field4);
+    @equals(field1, field4);
+    @toString(field1, field4);
+}
+
+Is shorthand for:
+
+class Foo {
+    public Int field1;
+    public Int field2;
+    public Int field3;
+    public Int field4;
+    
+    public Foo(Int field1, Int field2 = 0) {
+        this.field1 = field1;
+        this.field2 = field2;
+    }
+    
+    public Int field1() {
+        return field1;
+    }
+    
+    public void setField1(Int field1) {
+        this.field1 = field1;
+    }
+    
+    public Int field2() {
+        return field2;
+    }
+    
+    public Int field3() {
+        return field3;
+    }
+    
+    void setField4(Bar field4) {
+        this.field4 = field4;
+    }
+    
+    void method1() {
+        field4.method1();
+    }
+    
+    Int method2() {
+        return field4.method2();
+    }
+    
+    Int hash() {
+        return 31 * field1.hash() + 41 * field4.hash();
+    }
+    
+    Bool equals(Object other) {
+        if (!(other instanceof Foo)) {
+            return false;
+        }
+        var foo = (Foo)other;
+        return field1 == foo.field1 &&
+            (field4 != null ? field4.equals(foo.field4) : foo.field4 == null);
+    }
+    
+    String toString() {
+        return "[Foo field1=" + field1 + ", field4=" + field4 + ']';
+    }
+}
+
+Also, @singleton.
+
+
+
+Functions:
+
+The language supports anonymous functions, but probably not closures.  For example:
+
+void sortByBar(Foo[] array) {
+    final var cachedBars = new HashMap<Foo, Int>();
+    for (var foo : array) {
+        cachedBars.put(foo, foo.bar());
+    }
+    array.sort(function(Foo foo1, Foo foo2) {
+        return cachedBars.get(foo1) - cachedBars.get(foo2);
+    });
+}
+
+It's not clear how to express the type for anonymous functions.  Possibly as Function<Int, Foo, Foo>.  This is kind of bad though, because we would have to allow Function<void, Foo>.  Other open questions: are anonymous templated functions allowed?  How do we express those types?  Where does one indicate the return type of an anonymous function, if at all?
+
+
+
+Miscellaneous:
+
+Files can contain multiple classes.  One class per file is too draconian.  (This feature is not implemented yet.)
+
+Possibly the "HashMap" class should be like the Java class "LinkedHashMap", and "UnlinkedHashMap" would be like the Java class "HashMap".
+
+Set<T> might not be iterable; it might only support a "contains" method.  That would allow for infinite sets and inverting sets.
+
+Nested classes seem superfluous.
+
+Unlike in Java, str1 == str2 is interpreted as str1 != null ? str1.equals(str2) : str2 == null.
+
+Object.hash() is the equivalent of the Java method Object.hashCode().
+
+varargs seems superfluous, since JSON-style arrays are allowed.
+
+There are no "throws" declarations.  In Java, they are quite tedious.
+
+"Modules" are the name for the equivalent of Java packages.  Probably a programmer imports modules rather than individual classes.
+
+Open question: What about multiple return values?  It would be nice to put "[value1, value2] = foo();".  But if value1 is a String and value2 is an Int, what does foo() return?  We would need tuples, which is annoying.  I am thinking we should forgo this nice syntax, and do something like this instead:
+
+Pair<String, Int> foo() {
+    return new Pair<String, Int>("Hi", 0);
+}
+
+void bar() {
+    var result = foo();
+    println(result.first());
+    println(result.second());
+}
+
+In that case, Pair and Triple should be library classes.
+
+Open question: Are free-standing functions (as opposed to methods) allowed?  Probably not.  But I still want to support "print", "println", and stdin functions, so that there is less typing than in Java, where you need "System.out.println".
